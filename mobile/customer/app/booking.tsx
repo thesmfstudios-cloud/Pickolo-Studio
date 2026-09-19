@@ -15,6 +15,7 @@ export default function CustomerBooking() {
   const [time, setTime] = useState('');
   const [location, setLocation] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pricePaise, setPricePaise] = useState<number | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -32,6 +33,25 @@ export default function CustomerBooking() {
       if (b.data?.[0]) setLevelId(b.data[0].id);
     });
   }, []);
+
+  useEffect(() => {
+    async function loadPrice() {
+      const level = levels.find((item) => item.id === levelId);
+      if (!level || ![30, 60, 120].includes(duration)) {
+        setPricePaise(null);
+        return;
+      }
+
+      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+      const response = await fetch(
+        baseUrl + '/api/pricing?level=' + encodeURIComponent(level.name) + '&duration=' + duration,
+      );
+      const result = await response.json().catch(() => ({}));
+      setPricePaise(response.ok ? Number(result.totalPaise) : null);
+    }
+
+    loadPrice();
+  }, [levels, levelId, duration]);
 
   async function submit() {
     if (!supabase) {
@@ -125,6 +145,14 @@ export default function CustomerBooking() {
           ))}
         </View>
 
+        {pricePaise !== null && (
+          <View style={styles.priceCard}>
+            <Text style={styles.priceLabel}>Estimated booking total</Text>
+            <Text style={styles.price}>₹{(pricePaise / 100).toFixed(0)}</Text>
+            <Text style={styles.priceNote}>Final payable amount is server-calculated.</Text>
+          </View>
+        )}
+
         <Text style={styles.label}>Date</Text>
         <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={date} onChangeText={setDate} />
 
@@ -157,4 +185,8 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, fontSize: 16 },
   primary: { marginTop: 28, backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  priceCard: { marginTop: 22, padding: 18, borderRadius: 18, backgroundColor: '#eef2ff', borderWidth: 1, borderColor: '#c7d2fe' },
+  priceLabel: { color: '#475569', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  price: { marginTop: 5, color: '#13213a', fontSize: 30, fontWeight: '900' },
+  priceNote: { marginTop: 4, color: '#64748b', fontSize: 12 },
 });
