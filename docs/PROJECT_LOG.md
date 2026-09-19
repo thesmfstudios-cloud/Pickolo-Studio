@@ -363,3 +363,25 @@ No live Supabase migration, Android build, iOS build or Razorpay sandbox transac
 
 ### Remaining gate
 Live Supabase migration execution, live RLS checks, native Android/iOS builds, payment sandbox, push notifications, and production Vercel deployment verification.
+
+
+## 2026-09-19 — Final Pilot Hardening Block
+**Status:** SOURCE-COMPLETE / LIVE VERIFICATION PENDING
+
+### Added in this block
+- Pending applicant verification document upload and review.
+- Customer dispute intake + admin resolution.
+- Dispute-aware payout guard.
+- Automatic matching with candidate scoring.
+- Partner acceptance and offer expiry.
+- Automatic rematching after decline/cancellation/no-show.
+- Private multi-file delivery with signed access.
+- Customer payment/refund controls.
+- Admin operations metrics.
+- Web/mobile CI regression workflow.
+
+### Review standard
+Source code was repeatedly re-read after each major change and concrete route/auth/state mismatches were logged and corrected in BUG_LOG.md.
+
+### Release truth
+No live environment is marked verified until the actual Pickolo Supabase project, Pickolo Vercel project, Android build, iOS build and payment sandbox are exercised successfully.
