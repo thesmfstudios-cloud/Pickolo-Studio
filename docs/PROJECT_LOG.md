@@ -181,3 +181,26 @@ A previous generic transition route allowed any authenticated booking participan
 
 ### Next
 Live RLS verification → partner assignment test → cancellation/reassignment → delivery records → notifications.
+
+
+## 2026-09-19 — Partner Availability & Admin Queue
+**Status:** IN_PROGRESS
+
+### Built
+- Partner availability GET/POST API.
+- Partner mobile availability management screen.
+- Admin booking queue API.
+- Partner inbox and lifecycle controls remain connected to the shared booking state model.
+
+### Assignment readiness
+The system can now represent:
+- approved partner
+- service-level eligibility
+- availability windows
+- assigned booking
+- partner execution states
+
+Geographic 5 KM eligibility is intentionally not enforced yet because the live location/routing rules need to be finalized and verified.
+
+### Next
+Add cancellation/no-show handling, emergency reassignment, notifications and delivery-record workflow.
