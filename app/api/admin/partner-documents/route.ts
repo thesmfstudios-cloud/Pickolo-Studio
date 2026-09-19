@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const status = request.nextUrl.searchParams.get('status');
     const serviceClient = getServiceClient();
-    let query = serviceClient.from('partner_verification_documents').select('id,partner_id,document_type,file_name,mime_type,size_bytes,status,rejection_reason,reviewed_at,created_at').order('created_at', { ascending: false });
+    let query = serviceClient.from('partner_verification_documents').select('id,partner_id,applicant_id,document_type,file_name,mime_type,size_bytes,status,rejection_reason,reviewed_at,created_at,storage_path').order('created_at', { ascending: false });
     if (status) query = query.eq('status', status);
     const { data, error: listError } = await query;
     if (listError) return NextResponse.json({ error: listError.message }, { status: 400 });
@@ -30,8 +30,9 @@ export async function GET(request: NextRequest) {
         .from('partner-documents')
         .createSignedUrl(item.storage_path, 900);
 
+      const { storage_path: _storagePath, ...metadata } = item;
       documents.push({
-        ...item,
+        ...metadata,
         signed_url: signed?.signedUrl ?? null,
         expires_in_seconds: 900,
       });
