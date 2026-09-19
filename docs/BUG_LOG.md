@@ -453,3 +453,13 @@ The public pricing response included platform fee and partner payout values in a
 
 ### Fix
 Public pricing now returns only currency and customer total. Internal fee/payout values remain server-side.
+
+
+## B-041 — Legacy delivery write path could bypass multi-file delivery flow
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+An older partner delivery endpoint accepted a single storage path or public link alongside the newer signed multi-file flow.
+
+### Fix
+The legacy endpoint now returns HTTP 410. The authoritative delivery flow is upload-url → private storage upload → finalize → customer signed viewer.
