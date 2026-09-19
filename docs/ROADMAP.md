@@ -369,3 +369,20 @@ Remaining:
 
 ## Current release gate
 The application source now covers the planned core MVP transaction loop and main operational failure paths. The remaining work is validation and pilot hardening: live Supabase, Vercel, EAS/native builds, Razorpay sandbox, push delivery, monitoring, policies and controlled pilot execution.
+
+
+## 2026-09-19 — Source Hardening Continuation
+**Status:** IN_PROGRESS
+
+### Completed in this hardening pass
+- Profile role self-escalation guard migration 0018
+- Mobile secure session persistence
+- Pinned mobile/server Supabase and URL-polyfill dependencies
+- Partner signup path correction
+- Admin final-booking transition correction
+- Delivery finalization state correction
+- Individual Expo push-ticket acknowledgement handling
+- Repository validator coverage for the above controls
+
+### Live deployment policy
+Vercel and Supabase remain deployment targets for controlled validation checkpoints. Routine source changes stay in GitHub until live verification is actually required.
