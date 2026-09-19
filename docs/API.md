@@ -78,3 +78,31 @@ The current pricing values are development configuration. Commercial rates and c
 Validates target state against the server booking state machine and records the transition history.
 
 Customer/assigned-partner authorization is enforced in the current route. Privileged operational actions will move to role-protected admin/server operations before production.
+
+
+## Phase 3 APIs
+
+### GET /api/partner/jobs
+Authenticated Partner-only endpoint returning assigned jobs ordered by scheduled time.
+
+### POST /api/admin/assignments
+Authenticated Admin-only endpoint.
+
+Inputs:
+- booking_id
+- partner_id
+
+Checks:
+- admin authorization
+- booking assignment state
+- partner approval
+- service-level eligibility
+- overlapping partner availability
+
+Writes:
+- assigned_partner_id
+- PARTNER_ASSIGNED status
+- booking history entry
+
+### POST /api/bookings/[id]/transition
+Now uses role-specific transition maps instead of allowing every participant to perform every valid transition.
