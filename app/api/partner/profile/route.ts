@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const supabase = getClient(request);
+    const serviceClient = getServiceClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 
