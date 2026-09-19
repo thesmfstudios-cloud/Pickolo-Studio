@@ -88,3 +88,23 @@ Source changes committed. Live Auth/catalog/database testing remains pending unt
 
 ### Next
 Live Supabase verification, then booking state/history enforcement and partner workflow.
+
+
+## 2026-09-19 — Local Build Verification Attempt
+**Status:** BLOCKED BY ENVIRONMENT
+
+### Attempt
+Tried to clone the current GitHub repository into the available runtime and run npm installation/build verification.
+
+### Result
+The runtime could not resolve github.com, so dependency installation and production build could not be executed here.
+
+### Interpretation
+This is an environment/network limitation, not evidence of a Pickolo application build failure.
+
+### Required next verification
+Run the project in an environment with npm/network access and record:
+- npm install result
+- TypeScript result
+- next build result
+- runtime smoke test
