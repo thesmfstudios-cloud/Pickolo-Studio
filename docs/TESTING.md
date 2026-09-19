@@ -217,3 +217,20 @@ Once a network-capable build environment is available:
 - [ ] Push token registration works on iOS
 - [ ] Dispatcher requires secret
 - [ ] Unsent notification marked sent only after successful provider call
+
+
+## Matching tests
+- [ ] Paid booking enters SEARCHING_PARTNER
+- [ ] Automatic matcher selects only approved partners
+- [ ] Under-qualified partner excluded
+- [ ] Outside-5-KM partner excluded
+- [ ] No-availability partner excluded
+- [ ] Overlapping-booking partner excluded
+- [ ] No-candidate booking remains searchable
+- [ ] Partner receives pending offer
+- [ ] Partner can accept
+- [ ] Partner can decline
+- [ ] Decline clears assignment
+- [ ] Decline returns booking to SEARCHING_PARTNER
+- [ ] Partner cannot start travel before acceptance
+- [ ] Automatic assignment is idempotent for already-assigned booking
