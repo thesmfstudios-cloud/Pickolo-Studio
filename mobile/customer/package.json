@@ -9,13 +9,15 @@
     "ios": "expo start --ios"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "latest",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "latest",
-    "expo": "latest",
-    "expo-router": "latest",
-    "react": "latest",
-    "react-native": "latest",
+    "expo": "~57.0.0",
+    "expo-router": "~57.0.22",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
     "react-native-url-polyfill": "latest",
-    "expo-location": "latest"
+    "expo-location": "latest",
+    "expo-notifications": "~57.0.20",
+    "expo-device": "~57.0.2"
   }
 }
