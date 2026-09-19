@@ -57,7 +57,7 @@ export default function PartnerAuth() {
       return;
     }
 
-    router.replace('/home');
+    router.replace(mode === 'signup' ? '/apply' : '/home');
   }
 
   return (
