@@ -1,82 +1,187 @@
 import { useState } from 'react';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../shared/supabase';
 
+type SelectedAsset = {
+  uri: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  fileSize?: number | null;
+};
+
+type UploadAsset = {
+  path: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number | null;
+};
+
 export default function DeliveryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [url, setUrl] = useState('');
-  const [path, setPath] = useState('');
+  const [assets, setAssets] = useState<SelectedAsset[]>([]);
   const [busy, setBusy] = useState(false);
 
-  async function submit() {
+  async function pickPhotos() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert('Photo access', 'Allow photo access to select delivery files.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: 50,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setAssets(result.assets.map((asset) => ({
+        uri: asset.uri,
+        fileName: asset.fileName,
+        mimeType: asset.mimeType,
+        fileSize: asset.fileSize,
+      })));
+    }
+  }
+
+  async function uploadAndFinalize() {
     if (!supabase || !id) return;
 
-    if (!url.trim() && !path.trim()) {
-      Alert.alert('Missing delivery', 'Add a delivery link or storage path.');
+    if (!assets.length) {
+      Alert.alert('No photos selected', 'Select at least one photo.');
       return;
     }
 
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
+
     if (!token) {
       router.replace('/auth');
       return;
     }
 
-    setBusy(true);
     const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-    const response = await fetch(baseUrl + '/api/partner/jobs/' + id + '/delivery', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token,
-      },
-      body: JSON.stringify({
-        delivery_url: url.trim() || null,
-        storage_path: path.trim() || null,
-      }),
-    });
+    const uploaded: UploadAsset[] = [];
 
-    const result = await response.json().catch(() => ({}));
-    setBusy(false);
+    setBusy(true);
 
-    if (!response.ok) {
-      Alert.alert('Delivery failed', result.error || 'Please try again.');
-      return;
+    try {
+      for (const asset of assets) {
+        const uploadUrlResponse = await fetch(baseUrl + '/api/partner/jobs/' + id + '/delivery/upload-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token,
+          },
+          body: JSON.stringify({
+            file_name: asset.fileName || 'photo.jpg',
+            mime_type: asset.mimeType || 'image/jpeg',
+            size_bytes: asset.fileSize ?? null,
+          }),
+        });
+
+        const uploadInfo = await uploadUrlResponse.json().catch(() => ({}));
+
+        if (!uploadUrlResponse.ok) {
+          throw new Error(uploadInfo.error || 'Unable to prepare an upload.');
+        }
+
+        const fileResponse = await fetch(asset.uri);
+        const blob = await fileResponse.blob();
+
+        const { error: uploadError } = await supabase.storage
+          .from('booking-deliveries')
+          .uploadToSignedUrl(
+            uploadInfo.path,
+            uploadInfo.token,
+            blob,
+            { contentType: asset.mimeType || 'image/jpeg' },
+          );
+
+        if (uploadError) throw new Error(uploadError.message);
+
+        uploaded.push({
+          path: uploadInfo.path,
+          fileName: uploadInfo.fileName,
+          mimeType: uploadInfo.mimeType,
+          sizeBytes: uploadInfo.sizeBytes,
+        });
+      }
+
+      const finalizeResponse = await fetch(
+        baseUrl + '/api/partner/jobs/' + id + '/delivery/finalize',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token,
+          },
+          body: JSON.stringify({ assets: uploaded }),
+        },
+      );
+
+      const finalizeResult = await finalizeResponse.json().catch(() => ({}));
+
+      if (!finalizeResponse.ok) {
+        throw new Error(finalizeResult.error || 'Unable to finalize delivery.');
+      }
+
+      Alert.alert(
+        'Delivery submitted',
+        uploaded.length + ' photo' + (uploaded.length === 1 ? '' : 's') + ' securely delivered.',
+        [{ text: 'Done', onPress: () => router.replace('/jobs') }],
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Upload failed.';
+      Alert.alert('Delivery failed', message);
+    } finally {
+      setBusy(false);
     }
-
-    Alert.alert('Delivery submitted', 'The customer can now review the delivered work.', [
-      { text: 'Done', onPress: () => router.replace('/jobs') },
-    ]);
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Pressable onPress={() => router.back()}><Text style={styles.back}>‹ Back</Text></Pressable>
-        <Text style={styles.title}>Submit delivery</Text>
-        <Text style={styles.subtitle}>Add the customer-accessible delivery reference for this booking.</Text>
+        <Text style={styles.title}>Deliver photos</Text>
+        <Text style={styles.subtitle}>Select completed photos. Pickolo uploads them to private booking storage.</Text>
 
-        <Text style={styles.label}>Delivery link</Text>
-        <TextInput style={styles.input} placeholder="https://..." value={url} onChangeText={setUrl} autoCapitalize="none" keyboardType="url" />
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Selected</Text>
+          <Text style={styles.count}>{assets.length} photo{assets.length === 1 ? '' : 's'}</Text>
+          <Pressable style={styles.secondary} onPress={pickPhotos} disabled={busy}>
+            <Text style={styles.secondaryText}>{assets.length ? 'Change selection' : 'Select photos'}</Text>
+          </Pressable>
+        </View>
 
-        <Text style={styles.label}>Or storage path</Text>
-        <TextInput style={styles.input} placeholder="pickolo/bookings/..." value={path} onChangeText={setPath} autoCapitalize="none" />
-
-        <Pressable style={styles.primary} onPress={submit} disabled={busy}>
-          <Text style={styles.primaryText}>{busy ? 'Submitting...' : 'Submit delivery'}</Text>
-        </Pressable>
-      </View>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Delivery</Text>
+          <Text style={styles.muted}>Files remain private. Customers receive time-limited access after submission.</Text>
+          <Pressable style={styles.primary} onPress={uploadAndFinalize} disabled={busy || !assets.length}>
+            <Text style={styles.primaryText}>{busy ? 'Uploading securely...' : 'Upload & submit delivery'}</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:{flex:1,backgroundColor:'#f8fafc'}, container:{flex:1,padding:20,justifyContent:'center'},
-  back:{color:'#1e3a8a',fontWeight:'800',fontSize:16}, title:{marginTop:18,fontSize:32,fontWeight:'800',color:'#13213a'},
-  subtitle:{marginTop:7,color:'#64748b',lineHeight:22}, label:{marginTop:22,marginBottom:8,color:'#13213a',fontWeight:'800'},
-  input:{borderWidth:1,borderColor:'#e2e8f0',backgroundColor:'#fff',borderRadius:14,padding:14,fontSize:16},
-  primary:{marginTop:22,backgroundColor:'#2563eb',borderRadius:14,paddingVertical:16,alignItems:'center'},
-  primaryText:{color:'#fff',fontWeight:'800',fontSize:16}
+  safe: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { padding: 20, paddingBottom: 40 },
+  back: { color: '#1e3a8a', fontWeight: '800', fontSize: 16 },
+  title: { marginTop: 18, fontSize: 32, fontWeight: '800', color: '#13213a' },
+  subtitle: { marginTop: 7, color: '#64748b', lineHeight: 22 },
+  card: { marginTop: 18, padding: 20, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0' },
+  cardTitle: { fontSize: 18, fontWeight: '800', color: '#13213a' },
+  count: { marginTop: 8, fontSize: 28, fontWeight: '900', color: '#13213a' },
+  muted: { marginTop: 8, color: '#64748b', lineHeight: 21 },
+  primary: { marginTop: 16, backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  primaryText: { color: '#fff', fontWeight: '800' },
+  secondary: { marginTop: 14, backgroundColor: '#eef2ff', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
 });
