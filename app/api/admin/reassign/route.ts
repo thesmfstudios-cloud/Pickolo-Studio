@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
+import { writeAdminAudit } from '@/lib/admin-audit';
 import { distanceKm, PICKOLO_PILOT_RADIUS_KM } from '@/lib/geo';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -185,6 +186,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Reassignment succeeded but reassignment audit failed.' }, { status: 500 });
     }
 
+    await writeAdminAudit({ actorId: user.id, action: 'REASSIGN_PARTNER', entityType: 'booking', entityId: bookingId, metadata: { partner_id: partnerId, reason } });
     return NextResponse.json({ booking: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
