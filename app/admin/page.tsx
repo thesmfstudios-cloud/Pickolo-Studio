@@ -33,12 +33,21 @@ type Partner = {
   service_level?: { name?: string | null } | null;
 };
 
+type PriceConfig = {
+  id: string;
+  duration_minutes: number;
+  amount_paise: number;
+  platform_fee_bps: number;
+  service_level?: { name?: string | null } | null;
+};
+
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [pricing, setPricing] = useState<PriceConfig[]>([]);
   const [message, setMessage] = useState('');
 
   const token = useCallback(async () => {
@@ -67,18 +76,21 @@ export default function AdminPage() {
       fetch('/api/admin/bookings', { headers }),
       fetch('/api/admin/partners?status=pending', { headers }),
       fetch('/api/admin/partner-directory', { headers }),
+      fetch('/api/admin/pricing', { headers }),
     ]);
 
-    const [bookingData, appData, partnerData] = await Promise.all([
+    const [bookingData, appData, partnerData, pricingData] = await Promise.all([
       bookingRes.json().catch(() => ({})),
       appRes.json().catch(() => ({})),
       partnerRes.json().catch(() => ({})),
+      (await fetch('/api/admin/pricing', { headers })).json().catch(() => ({})),
     ]);
 
     if (!bookingRes.ok) setMessage(bookingData.error || 'Unable to load bookings.');
     setBookings(bookingData.bookings || []);
     setApplications(appData.applications || []);
     setPartners(partnerData.partners || []);
+    setPricing(pricingData.pricing || []);
     setLoading(false);
   }, [token]);
 
@@ -164,6 +176,25 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
+        </section>
+
+
+        <section className="card section">
+          <h2>Pricing configuration</h2>
+          <p className="muted">Server-side prices used by new bookings. Values are in INR.</p>
+          <table className="table">
+            <thead><tr><th>Level</th><th>Duration</th><th>Customer price</th><th>Platform fee</th></tr></thead>
+            <tbody>
+              {pricing.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.service_level?.name || '—'}</td>
+                  <td>{item.duration_minutes} min</td>
+                  <td>₹{(item.amount_paise / 100).toFixed(0)}</td>
+                  <td>{(item.platform_fee_bps / 100).toFixed(1)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </section>
 
         <section className="card section">
