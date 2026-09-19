@@ -48,7 +48,10 @@ export default function CustomerHome() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Your bookings</Text>
-          <Text style={styles.muted}>Booking history and live tracking will be connected next.</Text>
+          <Text style={styles.muted}>View booking status, timing and price for every request.</Text>
+          <Pressable style={styles.primary} onPress={() => router.push('/bookings')}>
+            <Text style={styles.primaryText}>View bookings</Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
