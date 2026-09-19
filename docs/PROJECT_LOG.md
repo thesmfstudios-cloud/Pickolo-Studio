@@ -451,3 +451,18 @@ Runtime verification is still pending for Supabase, Vercel, Android/iOS builds a
 
 ### Verification
 Source changes committed. Device and private-storage runtime checks remain pending.
+
+## 2026-09-19 — Partner Privacy & Geo Validation Pass
+**Status:** SOURCE-COMPLETE / LIVE VERIFICATION PENDING
+
+### Added
+- Migration 0019 removes public access to approved partner rows and adds partner-owner read access.
+- Booking and partner coordinate database constraints enforce valid latitude/longitude ranges.
+- Booking API now validates coordinates and bounds location text and notes lengths.
+- Repository validator now requires and checks the 0019 hardening migration.
+
+### Security impact
+Partner base-location data is no longer intended to be directly readable by customers or anonymous clients. The server-side matcher retains access through the service client.
+
+### Verification
+Source changes committed to GitHub. Live RLS/database verification remains pending.
