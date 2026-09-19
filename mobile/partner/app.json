@@ -35,7 +35,8 @@
           "photosPermission": "Pickolo needs photo access so you can securely deliver completed work to customers.",
           "cameraPermission": "Pickolo needs camera access when you capture work for a booking."
         }
-      ]
+      ],
+      "expo-document-picker"
     ]
   }
 }
