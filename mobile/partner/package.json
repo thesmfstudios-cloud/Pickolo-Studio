@@ -15,6 +15,7 @@
     "expo-router": "latest",
     "react": "latest",
     "react-native": "latest",
-    "react-native-url-polyfill": "latest"
+    "react-native-url-polyfill": "latest",
+    "expo-location": "latest"
   }
 }
