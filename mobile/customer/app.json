@@ -6,8 +6,22 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "ios": { "supportsTablet": false },
-    "android": { "package": "com.smfstudios.pickolocustomer" },
-    "plugins": ["expo-router"]
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.smfstudios.pickolocustomer"
+    },
+    "plugins": [
+      [
+        "expo-router"
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Pickolo uses your location to help book a nearby photographer."
+        }
+      ]
+    ]
   }
 }
