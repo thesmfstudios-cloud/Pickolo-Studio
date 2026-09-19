@@ -41,6 +41,7 @@ type PartnerDocument = {
   mime_type: string | null;
   status: string;
   rejection_reason: string | null;
+  signed_url?: string | null;
   created_at: string;
 };
 
@@ -287,6 +288,7 @@ export default function AdminPage() {
                   <div className="muted">Partner {doc.partner_id}</div>
                   <div className="muted">{doc.document_type} · {doc.mime_type || 'file'}</div>
                   <div className="muted">Submitted {new Date(doc.created_at).toLocaleString()}</div>
+                  {doc.signed_url && <a className="button secondary" style={{marginTop:8}} href={doc.signed_url} target="_blank" rel="noreferrer">Review file</a>}
                 </div>
                 <div style={{display:'flex',gap:8}}>
                   <button className="button" onClick={() => postAdmin('/api/admin/partner-documents', { id: doc.id, status: 'approved' })}>Approve</button>
