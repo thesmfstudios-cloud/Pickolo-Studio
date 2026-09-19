@@ -23,7 +23,21 @@ export async function GET(request: NextRequest) {
     if (status) query = query.eq('status', status);
     const { data, error: listError } = await query;
     if (listError) return NextResponse.json({ error: listError.message }, { status: 400 });
-    return NextResponse.json({ documents: data ?? [] });
+
+    const documents = [];
+    for (const item of data ?? []) {
+      const { data: signed } = await serviceClient.storage
+        .from('partner-documents')
+        .createSignedUrl(item.storage_path, 900);
+
+      documents.push({
+        ...item,
+        signed_url: signed?.signedUrl ?? null,
+        expires_in_seconds: 900,
+      });
+    }
+
+    return NextResponse.json({ documents });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to load documents.';
     return NextResponse.json({ error: message }, { status: 500 });
