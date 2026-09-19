@@ -340,3 +340,49 @@ Vercel Cron sends scheduled invocations as HTTP GET requests, while the internal
 
 ### Fix
 All scheduled worker route handlers now expose GET endpoints and keep CRON_SECRET authorization checks.
+
+
+## B-029 — Pending partner could not upload verification documents
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Verification documents referenced `partners.id` and upload endpoints required an approved Partner, making pre-approval onboarding impossible.
+
+### Fix
+Migration 0016 adds `applicant_id`, permits pending applicants, and updates owner access. Upload/list APIs now accept approved partners or users with a pending partner application.
+
+## B-030 — Open dispute did not block payout
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Payout release checked booking state but not active support disputes.
+
+### Fix
+Admin payout release now rejects `open` and `under_review` disputes.
+
+## B-031 — Rematching could select a failed partner again
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Automatic matcher excluded decline/expiry events but not cancellation/no-show events.
+
+### Fix
+Cancellation/no-show assignment events are now written and excluded during rematching.
+
+## B-032 — Scheduled worker operational path lacked automatic search retry
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+A booking could remain in SEARCHING_PARTNER if no candidate was available when the first matching attempt ran.
+
+### Fix
+Added scheduled search-queue processor that retries eligible SEARCHING_PARTNER bookings.
+
+## B-033 — Admin queue could issue duplicate data requests
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Admin dashboard accidentally requested pricing/dispute resources twice during incremental UI work.
+
+### Fix
+Consolidated each resource into one request per load cycle.
