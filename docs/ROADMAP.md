@@ -316,3 +316,14 @@ Remaining:
 **Status:** SOURCE-COMPLETE / LIVE VERIFICATION PENDING
 
 The main customer-to-partner transaction loop is implemented in source. Remaining work is primarily live infrastructure verification, native device testing, commercial configuration, and pilot hardening rather than a redesign of the core architecture.
+
+
+## Scheduled Operations
+**Status:** SOURCE-IMPLEMENTED / DEPLOYMENT VERIFICATION PENDING
+
+Added scheduled processors for:
+- partner offer expiry
+- unassigned SEARCHING_PARTNER bookings
+- push notification dispatch
+
+The three jobs are configured at one-minute cadence in vercel.json. Actual cadence depends on the deployed Vercel plan and deployment state.
