@@ -167,3 +167,24 @@ Adds `applicant_id` to verification documents and allows documents to exist befo
 
 ## Post-0016 operational hardening
 Payout dispute guard, assignment events, scheduled search workers and related access controls are source-implemented in application code and the preceding migrations. No additional migration number is implied by this section.
+
+
+## Current migration chain
+0001 core
+→ 0002 admin/assignment security
+→ 0003 failure recovery
+→ 0004 partner onboarding/notifications
+→ 0005 notification/performance automation
+→ 0006 payment provider
+→ 0007 RLS hardening
+→ 0008 reviews
+→ 0009 private media storage
+→ 0010 multi-file delivery
+→ 0011 configurable pricing
+→ 0012 booking history admin insert
+→ 0013 partner acceptance
+→ 0014 lifecycle metrics
+→ 0015 trust & safety
+→ 0016 pending applicant documents
+
+Execution against the real Pickolo Supabase project remains pending.
