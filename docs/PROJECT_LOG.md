@@ -304,3 +304,26 @@ Live Supabase project access is still not available through the connected integr
 
 ### Engineering principle
 The codebase is now structured so live verification can proceed without redesigning the core transaction model.
+
+
+## 2026-09-19 — Automatic Matching + Partner Offer Flow
+**Status:** IN_PROGRESS
+
+### Built
+- Explicit PartnerAcceptanceStatus model.
+- Partner assignment event history.
+- Automatic partner matching engine.
+- Matching score using distance, rating, on-time rate, cancellations and no-shows.
+- Availability and overlap checks in automatic matching.
+- 5 KM geographic constraint in automatic matching.
+- Paid booking now enters SEARCHING_PARTNER before automatic matching.
+- Automatic matching is triggered after verified payment.
+- Partner accept/decline API.
+- Partner mobile accept/decline actions.
+- Partner execution is blocked until assignment is accepted.
+
+### Operational behavior
+If no eligible partner exists, booking remains in SEARCHING_PARTNER for admin recovery.
+
+### Important
+Assignment scoring is an MVP heuristic. It is not a final optimization model and should be tuned from pilot data.
