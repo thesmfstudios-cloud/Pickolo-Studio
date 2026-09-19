@@ -47,3 +47,16 @@
 **Decision:** Keep mobile application code separate from the Next.js admin/web application. Customer and Partner experiences may share common mobile UI/domain modules while retaining role-specific screens and workflows.  
 **Reason:** Avoid coupling the mobile runtime to the web admin application and make Android/iOS release testing explicit.  
 **Status:** ACTIVE
+
+
+## D-010 — Separate Customer and Partner mobile applications
+**Date:** 2026-09-19  
+**Decision:** Customer and Partner are separate Expo applications targeting Android and iOS.  
+**Reason:** Their navigation, permissions and operational workflows differ; separate app boundaries reduce role leakage and simplify release management.  
+**Status:** ACTIVE
+
+## D-011 — Shared mobile backend/client contract
+**Date:** 2026-09-19  
+**Decision:** Both mobile apps share Supabase services, backend APIs, booking state definitions and validation rules.  
+**Reason:** Business rules must remain consistent across customer and partner experiences.  
+**Status:** ACTIVE
