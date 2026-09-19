@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { calculateBookingPrice, type ServiceLevelName } from '@/lib/pricing';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle(),
       supabase
         .from('service_levels')
-        .select('id')
+        .select('id,name')
         .eq('id', service_level_id)
         .eq('active', true)
         .maybeSingle(),
@@ -84,6 +85,16 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    const levelName = level.name as ServiceLevelName;
+    if (!['Basic', 'Standard', 'Professional'].includes(levelName)) {
+      return NextResponse.json({ error: 'Unsupported service level.' }, { status: 400 });
+    }
+
+    const bookingPricing = calculateBookingPrice({
+      level: levelName,
+      durationMinutes: Number(duration_minutes) as 30 | 60 | 120,
+    });
 
     const { data, error } = await supabase
       .from('bookings')
@@ -97,8 +108,11 @@ export async function POST(request: NextRequest) {
         location_lat: location_lat ?? null,
         location_long: location_long ?? null,
         notes: notes ?? null,
+        customer_price_paise: bookingPricing.totalPaise,
+        platform_fee_paise: bookingPricing.platformFeePaise,
+        partner_payout_paise: bookingPricing.partnerPayoutPaise,
       })
-      .select('id, booking_code, status, scheduled_start, duration_minutes, location_text')
+      .select('id, booking_code, status, scheduled_start, duration_minutes, location_text, customer_price_paise, platform_fee_paise, partner_payout_paise')
       .single();
 
     if (error) {
