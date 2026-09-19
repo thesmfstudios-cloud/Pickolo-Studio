@@ -466,3 +466,22 @@ Partner base-location data is no longer intended to be directly readable by cust
 
 ### Verification
 Source changes committed to GitHub. Live RLS/database verification remains pending.
+
+## 2026-09-19 — CI Stabilization Checkpoint
+**Status:** SOURCE CI VERIFIED / LIVE VERIFICATION PENDING
+
+### Result
+GitHub Actions run #140 passed all three jobs on commit `4938e8ef09be86390201c6fb65b293c9c8f6150f`:
+- Web validation + TypeScript + production build
+- Customer mobile typecheck
+- Partner mobile typecheck
+
+### Corrections required to reach green CI
+- Fixed Expo monorepo workspace installation/typecheck flow.
+- Corrected the unavailable `expo-document-picker` package version.
+- Added React/React Native/Node typing support where required.
+- Isolated root web TypeScript compilation from Expo app sources.
+- Repaired partner application/delivery typing errors and missing helper import.
+
+### Remaining release gates
+Live Supabase project access, RLS verification, Razorpay sandbox transaction, push credentials, native Android/iOS builds, and the correct Pickolo Vercel project remain pending.
