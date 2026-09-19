@@ -38,6 +38,7 @@ const requiredFiles = [
   'mobile/customer/eas.json',
   'mobile/partner/eas.json',
   'supabase/migrations/0018_profile_role_guard.sql',
+  'supabase/migrations/0019_partner_privacy_geo_constraints.sql',
 ];
 
 for (const file of requiredFiles) required(file);
@@ -135,12 +136,25 @@ if (!read('mobile/partner/app/home.tsx').includes("profile?.role === 'customer'"
 if (!read('app/api/internal/notifications/dispatch/route.ts').includes("ticket?.status !== 'ok'")) {
   failures.push('Notification dispatcher must inspect individual Expo push tickets.');
 }
-if (!read('app/api/admin/partner-documents/route.ts').includes('storage_path').toString()) {
+if (!read('app/api/admin/partner-documents/route.ts').includes('storage_path')) {
   failures.push('Admin document review route must access private storage paths internally.');
 }
 
 if (!read('supabase/migrations/0018_profile_role_guard.sql').includes('auth.uid() = old.id')) {
   failures.push('Profile role guard must reject self role changes.');
+}
+
+
+const partnerRls = read('supabase/migrations/0019_partner_privacy_geo_constraints.sql');
+if (!partnerRls.includes('drop policy if exists "partners_public_read_approved"') ||
+    !partnerRls.includes('create policy "partners_owner_read"')) {
+  failures.push('Partner base-location data must not remain publicly readable.');
+}
+if (!partnerRls.includes('bookings_location_lat_valid') ||
+    !partnerRls.includes('bookings_location_long_valid') ||
+    !partnerRls.includes('partners_base_lat_valid') ||
+    !partnerRls.includes('partners_base_long_valid')) {
+  failures.push('Geographic coordinate constraints missing from security migration.');
 }
 
 if (!exists('app/api/partner/jobs/[id]/delivery/route.ts')) {
@@ -166,4 +180,5 @@ console.log(' - server secret names absent from mobile source');
 console.log(' - partner signup and onboarding gate present');
 console.log(' - Expo push ticket handling present');
 console.log(' - profile role escalation guard present');
+console.log(' - partner location privacy and geo constraints present');
 console.log(' - legacy delivery write path retired');
