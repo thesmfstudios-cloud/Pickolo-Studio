@@ -103,6 +103,9 @@ if (rootPackage.dependencies?.['@supabase/supabase-js'] === 'latest') {
 if (rootPackage.devDependencies?.typescript !== '5.9.3') {
   failures.push('root package.json must pin TypeScript 5.9.3 for deterministic CI builds.');
 }
+if (rootPackage.devDependencies?.['@types/node'] !== '22.20.4') {
+  failures.push('root package.json must pin @types/node 22.20.4 for the Node 22 CI target.');
+}
 
 const mobileCodeDirs = ['mobile/customer', 'mobile/partner', 'mobile/shared'];
 for (const dir of mobileCodeDirs) {
