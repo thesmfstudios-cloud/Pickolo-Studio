@@ -62,6 +62,13 @@ export async function POST(
       return NextResponse.json({ error: 'Booking changed concurrently. Refresh and retry.' }, { status: 409 });
     }
 
+    const assignmentEvent = await serviceClient.from('partner_assignment_events').insert({
+      booking_id: id,
+      partner_id: oldPartner,
+      event_type: 'NO_SHOW',
+      reason,
+    });
+
     const incident = await serviceClient.from('booking_incidents').insert({
       booking_id: id,
       partner_id: oldPartner,
@@ -78,7 +85,7 @@ export async function POST(
       metadata: { actor_role: 'admin', reason, old_partner_id: oldPartner },
     });
 
-    if (incident.error || history.error) {
+    if (assignmentEvent.error || incident.error || history.error) {
       return NextResponse.json(
         { error: 'Booking returned to partner search, but recovery audit logging failed.' },
         { status: 500 },
