@@ -70,9 +70,21 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
 
   const startsAt = new Date(booking.scheduled_start);
   const endsAt = new Date(startsAt.getTime() + Number(booking.duration_minutes) * 60000);
+  const { data: priorEvents } = await supabase
+    .from('partner_assignment_events')
+    .select('partner_id,event_type')
+    .eq('booking_id', bookingId);
+
+  const excludedPartners = new Set(
+    (priorEvents ?? [])
+      .filter((event) => ['DECLINED', 'EXPIRED'].includes(event.event_type))
+      .map((event) => event.partner_id),
+  );
+
   const candidates: Candidate[] = [];
 
   for (const partner of partners ?? []) {
+    if (excludedPartners.has(partner.id)) continue;
     if (partner.base_lat === null || partner.base_long === null) continue;
     const level = Array.isArray(partner.service_level) ? partner.service_level[0] : partner.service_level;
     if (!level || level.sort_order < requestedLevel.sort_order) continue;
