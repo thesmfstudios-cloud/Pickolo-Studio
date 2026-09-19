@@ -63,6 +63,9 @@ export async function POST(request: NextRequest) {
     const serviceClient = getServiceClient();
     const { data, error: updateError } = await serviceClient.from('partner_verification_documents').update({ status, rejection_reason: status === 'rejected' ? (rejectionReason || 'Document rejected.') : null, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq('id', id).select('id,partner_id,document_type,status,rejection_reason,reviewed_by,reviewed_at').single();
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
+    const { data: documentOwner } = await serviceClient.from('partner_verification_documents').select('partner_id,applicant_id').eq('id', id).single();
+    const ownerId = documentOwner?.partner_id || documentOwner?.applicant_id;
+    if (ownerId) await serviceClient.from('notifications').insert({ user_id: ownerId, booking_id: null, channel: 'in_app', title: 'Verification document updated', body: 'Your verification document was marked ' + status + '.' });
     return NextResponse.json({ document: data });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Document review failed.';
