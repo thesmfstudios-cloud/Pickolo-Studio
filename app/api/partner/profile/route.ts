@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getApprovedPartner } from '@/lib/partner-auth';
 import { getServiceClient } from '@/lib/supabase-admin';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
     const serviceClient = getServiceClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    const serviceClient = getServiceClient();
 
     const { data, error: profileError } = await supabase
       .from('partners')
@@ -48,6 +50,8 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (role?.role !== 'partner') return NextResponse.json({ error: 'Partner access required.' }, { status: 403 });
+    const partner = await getApprovedPartner(serviceClient, user.id);
+    if (!partner) return NextResponse.json({ error: 'Approved partner access required.' }, { status: 403 });
 
     const body = await request.json();
     const lat = Number(body?.base_lat);
