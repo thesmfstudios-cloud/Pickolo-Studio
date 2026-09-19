@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { distanceKm, PICKOLO_PILOT_RADIUS_KM } from '@/lib/geo';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     const { data: partner } = await supabase
       .from('partners')
-      .select('id,verification_status,service_level_id,service_level:service_levels(sort_order)')
+      .select('id,verification_status,service_level_id,base_lat,base_long,service_level:service_levels(sort_order)')
       .eq('id', partnerId)
       .single();
 
@@ -74,6 +75,32 @@ export async function POST(request: NextRequest) {
       .lt('starts_at', endsAt.toISOString())
       .gt('ends_at', startsAt.toISOString())
       .limit(1);
+
+    if (
+      booking.location_lat === null ||
+      booking.location_long === null ||
+      partner.base_lat === null ||
+      partner.base_long === null
+    ) {
+      return NextResponse.json(
+        { error: 'Customer and partner locations are required for 5 KM pilot assignment.' },
+        { status: 400 },
+      );
+    }
+
+    const distance = distanceKm(
+      Number(booking.location_lat),
+      Number(booking.location_long),
+      Number(partner.base_lat),
+      Number(partner.base_long),
+    );
+
+    if (distance > PICKOLO_PILOT_RADIUS_KM) {
+      return NextResponse.json(
+        { error: 'Partner is outside the Pickolo 5 KM pilot radius.', distanceKm: Number(distance.toFixed(2)) },
+        { status: 400 },
+      );
+    }
 
     if (!availability?.length) {
       return NextResponse.json({ error: 'Partner has no matching availability.' }, { status: 400 });
