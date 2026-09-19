@@ -254,3 +254,11 @@ No feature in this checkpoint is marked fully RELEASED because live infrastructu
 - [ ] Payout blocked for open dispute
 - [ ] Payout blocked for under_review dispute
 - [ ] Payout proceeds after dispute resolved and booking remains eligible
+
+
+## Current verification status
+**Source checks:** completed continuously during implementation.
+**Runtime checks:** pending live infrastructure access.
+
+### CI
+`.github/workflows/ci.yml` is configured for web build/typecheck and customer/partner mobile typecheck. No completed run is currently recorded for the latest commit, so CI is not counted as verified.
