@@ -55,7 +55,7 @@ export default function PartnerPage() {
     e.preventDefault(); setBusy(true); setMsg('');
     const r=mode==='login'
       ? await supabaseBrowser!.auth.signInWithPassword({email,password})
-      : await supabaseBrowser!.auth.signUp({email,password,options:{data:{full_name:name}}});
+      : await supabaseBrowser!.auth.signUp({email,password,options:{data:{full_name:name},redirectTo:window.location.origin+'/partner'}});
     if(r.error)setMsg(r.error.message);
     else if(!r.data.session)setMsg('Account created. Complete email confirmation if required, then login.');
     setBusy(false);
