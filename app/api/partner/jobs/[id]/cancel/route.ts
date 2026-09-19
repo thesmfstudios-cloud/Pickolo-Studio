@@ -42,7 +42,7 @@ export async function POST(
     const { data: updated, error: updateError } = await supabase
       .from('bookings')
       .update({
-        status: 'CANCELLED',
+        status: 'SEARCHING_PARTNER',
         cancellation_reason: reason,
         assigned_partner_id: null,
       })
@@ -67,7 +67,7 @@ export async function POST(
     await supabase.from('booking_status_history').insert({
       booking_id: id,
       from_status: booking.status,
-      to_status: 'CANCELLED',
+      to_status: 'SEARCHING_PARTNER',
       changed_by: user.id,
       metadata: { actor_role: 'partner', reason },
     });
