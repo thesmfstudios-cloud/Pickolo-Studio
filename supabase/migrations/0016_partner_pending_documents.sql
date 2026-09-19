@@ -21,7 +21,8 @@ on public.partner_verification_documents for select
 to authenticated
 using (applicant_id = auth.uid() or partner_id = auth.uid());
 
-create policy if not exists "partner_documents_owner_insert"
+drop policy if exists "partner_documents_owner_insert" on public.partner_verification_documents;
+create policy "partner_documents_owner_insert"
 on public.partner_verification_documents for insert
 to authenticated
 with check (applicant_id = auth.uid() or partner_id = auth.uid());
