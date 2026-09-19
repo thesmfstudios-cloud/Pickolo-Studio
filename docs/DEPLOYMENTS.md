@@ -19,3 +19,13 @@ GitHub repository foundation is committed. First verified Vercel deployment is n
 
 ## Next
 Connect the Pickolo repository to the intended Vercel project and record the first successful deployment.
+
+
+## Mobile Applications
+**Status:** SOURCE FOUNDATION ONLY
+
+Applications:
+- Pickolo Customer — Android + iOS
+- Pickolo Partner — Android + iOS
+
+No verified APK/AAB or iOS archive has been produced yet. Build artifacts must only be recorded after actual platform build verification.
