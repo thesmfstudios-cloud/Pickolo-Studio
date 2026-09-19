@@ -37,6 +37,7 @@ const requiredFiles = [
   'mobile/partner/app.json',
   'mobile/customer/eas.json',
   'mobile/partner/eas.json',
+  'supabase/migrations/0018_profile_role_guard.sql',
 ];
 
 for (const file of requiredFiles) required(file);
@@ -65,8 +66,29 @@ for (const cron of cronConfig.crons ?? []) {
 }
 
 for (const relative of ['mobile/customer', 'mobile/partner']) {
-  const pkg = JSON.parse(read(path.join(relative, 'package.json').replaceAll(path.sep, '/')));
-  if (pkg.scripts?.typecheck !== 'tsc --noEmit') failures.push(`${relative}/package.json missing typecheck script`);
+  const pkgPath = path.join(relative, 'package.json').replaceAll(path.sep, '/');
+  const pkg = JSON.parse(read(pkgPath));
+
+  if (pkg.scripts?.typecheck !== 'tsc --noEmit') {
+    failures.push(`${relative}/package.json missing typecheck script`);
+  }
+
+  if (pkg.dependencies?.['@supabase/supabase-js'] === 'latest') {
+    failures.push(`${relative}/package.json must pin @supabase/supabase-js`);
+  }
+
+  if (pkg.dependencies?.['react-native-url-polyfill'] === 'latest') {
+    failures.push(`${relative}/package.json must pin react-native-url-polyfill`);
+  }
+
+  if (!pkg.dependencies?.['expo-secure-store']) {
+    failures.push(`${relative}/package.json missing expo-secure-store`);
+  }
+}
+
+const rootPackage = JSON.parse(read('package.json'));
+if (rootPackage.dependencies?.['@supabase/supabase-js'] === 'latest') {
+  failures.push('root package.json must pin @supabase/supabase-js');
 }
 
 const mobileCodeDirs = ['mobile/customer', 'mobile/partner', 'mobile/shared'];
@@ -96,8 +118,27 @@ for (const dir of mobileCodeDirs) {
   }
 }
 
-if (!exists('app/api/partner/jobs/[id]/delivery/route.ts')) failures.push('Legacy delivery route missing unexpectedly.');
-else if (!read('app/api/partner/jobs/[id]/delivery/route.ts').includes('status: 410')) failures.push('Legacy delivery route is not retired.');
+if (!read('mobile/shared/supabase.ts').includes('expo-secure-store')) {
+  failures.push('Mobile Supabase client must use secure device storage.');
+}
+
+if (!read('mobile/partner/app/auth.tsx').includes('supabase.auth.signUp')) {
+  failures.push('Partner auth must contain a working signup path.');
+}
+
+if (!read('app/api/internal/notifications/dispatch/route.ts').includes("ticket?.status !== 'ok'")) {
+  failures.push('Notification dispatcher must inspect individual Expo push tickets.');
+}
+
+if (!read('supabase/migrations/0018_profile_role_guard.sql').includes('auth.uid() = old.id')) {
+  failures.push('Profile role guard must reject self role changes.');
+}
+
+if (!exists('app/api/partner/jobs/[id]/delivery/route.ts')) {
+  failures.push('Legacy delivery route missing unexpectedly.');
+} else if (!read('app/api/partner/jobs/[id]/delivery/route.ts').includes('status: 410')) {
+  failures.push('Legacy delivery route is not retired.');
+}
 
 if (failures.length) {
   console.error('Pickolo repository validation FAILED');
@@ -110,5 +151,10 @@ console.log(' - required architecture/docs present');
 console.log(' - migrations sequential');
 console.log(' - Vercel cron routes valid');
 console.log(' - mobile typecheck scripts present');
+console.log(' - mobile dependencies pinned');
+console.log(' - secure mobile session storage present');
 console.log(' - server secret names absent from mobile source');
+console.log(' - partner signup path present');
+console.log(' - Expo push ticket handling present');
+console.log(' - profile role escalation guard present');
 console.log(' - legacy delivery write path retired');
