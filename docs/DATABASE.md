@@ -53,3 +53,14 @@ Admin operational writes are intentionally not exposed by these initial client-f
 - [ ] Partner isolation verified
 - [ ] Unauthorized writes rejected
 - [ ] State transition enforcement verified
+
+
+## Phase 2 data behavior
+Bookings now have explicit server-calculated money fields:
+- customer_price_paise
+- platform_fee_paise
+- partner_payout_paise
+
+The current values are development configuration and must not be treated as finalized commercial pricing.
+
+Booking status history records lifecycle transitions with actor identity and timestamps.
