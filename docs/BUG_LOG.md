@@ -433,3 +433,13 @@ Payout release stopped at PAYOUT_RELEASED while the admin UI had no action to co
 
 ### Fix
 Added Complete booking action for PAYOUT_RELEASED records.
+
+
+## B-039 — Admin could not inspect private verification documents
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The admin verification queue exposed metadata but no secure way to inspect the private uploaded document.
+
+### Fix
+Admin document list now creates 15-minute signed URLs, and the console exposes a Review file action. Documents remain in a private storage bucket.
