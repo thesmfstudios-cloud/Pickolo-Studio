@@ -162,3 +162,22 @@ Current price values are development configuration. They are not finalized comme
 
 ### Next
 Live Supabase verification → customer booking E2E → partner assignment workflow.
+
+
+## 2026-09-19 — Partner Workflow Foundation
+**Status:** IN_PROGRESS
+
+### Built
+- Admin authorization migration.
+- Role-aware booking transition API.
+- Admin assignment API.
+- Partner job inbox API.
+- Partner mobile job list.
+- Partner mobile lifecycle actions: on-the-way, start shoot, complete shoot, submit delivery.
+- Assignment checks for approved partner, service-level eligibility and matching availability.
+
+### Security correction
+A previous generic transition route allowed any authenticated booking participant to request any valid state-machine transition. This was corrected with explicit role-specific transition maps.
+
+### Next
+Live RLS verification → partner assignment test → cancellation/reassignment → delivery records → notifications.
