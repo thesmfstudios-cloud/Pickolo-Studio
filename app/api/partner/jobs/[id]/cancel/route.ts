@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase-admin';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -14,6 +15,8 @@ export async function POST(
     const supabase = createClient(url, anonKey, {
       global: authorization ? { headers: { Authorization: authorization } } : undefined,
     });
+
+    const serviceClient = getServiceClient();
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
@@ -39,7 +42,7 @@ export async function POST(
       return NextResponse.json({ error: 'Partner cancellation is not allowed at this stage.' }, { status: 409 });
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await serviceClient
       .from('bookings')
       .update({
         status: 'SEARCHING_PARTNER',
@@ -56,7 +59,7 @@ export async function POST(
       return NextResponse.json({ error: 'Booking changed concurrently. Refresh and retry.' }, { status: 409 });
     }
 
-    await supabase.from('booking_incidents').insert({
+    await serviceClient.from('booking_incidents').insert({
       booking_id: id,
       partner_id: user.id,
       incident_type: 'PARTNER_CANCELLATION',
@@ -64,7 +67,7 @@ export async function POST(
       recorded_by: user.id,
     });
 
-    await supabase.from('booking_status_history').insert({
+    await serviceClient.from('booking_status_history').insert({
       booking_id: id,
       from_status: booking.status,
       to_status: 'SEARCHING_PARTNER',
