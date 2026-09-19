@@ -439,3 +439,15 @@ Continue source-level audit, then use one controlled Vercel/Supabase deployment 
 ### Validation
 Repository validator was expanded to protect these controls from regression.
 Runtime verification is still pending for Supabase, Vercel, Android/iOS builds and provider integrations.
+
+
+## 2026-09-19 — UI/API Reliability Pass
+**Status:** IN_PROGRESS
+
+### Fixed
+- Admin verification document signed-preview query now includes the internal storage path and does not expose the raw path to clients.
+- Customer delivery viewer exits its loading state on API/auth failure.
+- Customer payment screen exits its loading state when configuration/auth is unavailable.
+
+### Verification
+Source changes committed. Device and private-storage runtime checks remain pending.
