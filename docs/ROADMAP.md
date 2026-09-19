@@ -347,3 +347,21 @@ Remaining:
 - document requirement policy/KYC rules
 - operational evidence retention policy
 - production deployment and monitoring
+
+
+## 2026-09-19 — Current Position
+**Source status:** MVP transaction loop + operational resilience + trust/safety foundations implemented.
+
+### Remaining work before private pilot
+- Connect and verify the correct Pickolo Supabase project.
+- Apply migrations in order.
+- Run RLS/auth/security tests against live data.
+- Verify Vercel project/deployment for Pickolo.
+- Run Android development build.
+- Run iOS development build.
+- Execute Razorpay sandbox payment, webhook and refund tests.
+- Verify push notifications on physical devices.
+- Validate storage upload and signed delivery URLs.
+- Tune automatic matching weights using pilot data.
+- Finalize KYC/document requirements and operating policies.
+- Add production error monitoring and alerting.
