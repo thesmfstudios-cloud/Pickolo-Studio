@@ -386,3 +386,13 @@ Admin dashboard accidentally requested pricing/dispute resources twice during in
 
 ### Fix
 Consolidated each resource into one request per load cycle.
+
+
+## B-034 — Payout release server client declaration
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The payout release route referenced the server-only Supabase client without a local declaration after the RLS hardening pass.
+
+### Fix
+Added the server client initialization before the admin authorization and payout workflow.
