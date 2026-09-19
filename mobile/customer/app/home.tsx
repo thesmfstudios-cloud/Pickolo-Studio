@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
+import { registerPushToken } from '../../shared/notifications';
 
 export default function CustomerHome() {
   const [name, setName] = useState('');
 
   useEffect(() => {
+    registerPushToken('customer').catch(() => undefined);
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
