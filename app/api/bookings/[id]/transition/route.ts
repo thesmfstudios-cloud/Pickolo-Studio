@@ -30,6 +30,7 @@ const CUSTOMER_ALLOWED: Partial<Record<BookingState, BookingState[]>> = {
 
 const ADMIN_ALLOWED: Partial<Record<BookingState, BookingState[]>> = {
   PAYMENT_CONFIRMED: ['SEARCHING_PARTNER'],
+  PAYOUT_RELEASED: ['COMPLETED'],
 };
 
 export async function POST(
