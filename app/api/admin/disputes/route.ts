@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
+import { writeAdminAudit } from '@/lib/admin-audit';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
     const serviceClient = getServiceClient();
     const { data, error: updateError } = await serviceClient.from('booking_disputes').update({ status, resolution: resolution || null, resolved_by: ['resolved','rejected'].includes(status) ? user.id : null, resolved_at: ['resolved','rejected'].includes(status) ? new Date().toISOString() : null }).eq('id', id).select('id,booking_id,status,resolution,resolved_by,resolved_at').single();
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
+    await writeAdminAudit({ actorId: user.id, action: 'DISPUTE_' + status.toUpperCase(), entityType: 'booking_dispute', entityId: id, metadata: { resolution: resolution || null } });
     return NextResponse.json({ dispute: data });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Dispute update failed.';
