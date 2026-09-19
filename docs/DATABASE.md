@@ -102,3 +102,40 @@ Operational audit trail now distinguishes failure incidents from normal booking 
 
 ## Geographic eligibility
 Bookings and partners already store latitude/longitude. Assignment now requires both sides to have coordinates and enforces the 5 KM pilot radius in application logic.
+
+
+## Migration 0004 — Partner onboarding + notifications
+- partner_applications
+- device_push_tokens
+- admin profile policies
+- timestamp trigger
+
+## Migration 0005 — Notification/performance automation
+- notification metadata/sent timestamp
+- booking status notification trigger
+- completed-booking performance trigger
+- incident performance trigger
+
+## Migration 0006 — Payment provider
+- provider order id
+- provider signature
+- captured timestamp
+- failed timestamp
+- provider/payment indexes
+- admin payment access
+
+## Migration 0007 — RLS hardening
+- partner performance owner read
+- notification owner update
+- admin booking history access
+
+## Migration 0008 — Reviews
+- completed booking customer review insert policy
+
+## Migration 0003 — Failure recovery
+- booking incidents
+- booking reassignments
+- assigned-partner delivery insert/update policies
+
+## Migration 0009 — Current payment/review hardening
+Source-level payment workflows now rely on server-side service-role operations after user authentication. The exact live migration sequence must be applied to the Pickolo Supabase project before production testing.
