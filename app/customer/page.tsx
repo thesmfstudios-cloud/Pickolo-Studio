@@ -107,67 +107,94 @@ export default function CustomerPage() {
     setBusy(true);
     setMessage('');
 
-    if (!supabaseBrowser) {
-      setMessage('Supabase is not configured for this environment.');
-      setBusy(false);
-      return;
-    }
+    try {
+      if (!supabaseBrowser) {
+        throw new Error('Supabase is not configured for this environment.');
+      }
 
-    const sessionResult = await supabaseBrowser.auth.getSession();
-    const accessToken = sessionResult.data.session?.access_token;
+      const sessionResult = await supabaseBrowser.auth.getSession();
+      const accessToken = sessionResult.data.session?.access_token;
 
-    if (!accessToken) {
-      router.push('/auth');
-      setBusy(false);
-      return;
-    }
-
-    let bookingCoordinates = coordinates;
-    if (!bookingCoordinates) {
-      try {
-        bookingCoordinates = await getBrowserLocation();
-        setCoordinates(bookingCoordinates);
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : 'Unable to access your location.');
-        setBusy(false);
+      if (!accessToken) {
+        router.push('/auth');
         return;
       }
-    }
 
-    const form = new FormData(event.currentTarget);
-    const payload = {
-      service_id: String(form.get('service_id') || ''),
-      service_level_id: String(form.get('service_level_id') || ''),
-      scheduled_start: new Date(
-        String(form.get('date')) + 'T' + String(form.get('time')),
-      ).toISOString(),
-      duration_minutes: Number(form.get('duration_minutes')),
-      location_text: String(form.get('location_text') || ''),
-      location_lat: bookingCoordinates.latitude,
-      location_long: bookingCoordinates.longitude,
-      notes: String(form.get('notes') || ''),
-    };
+      let bookingCoordinates = coordinates;
+      if (!bookingCoordinates) {
+        try {
+          bookingCoordinates = await getBrowserLocation();
+          setCoordinates(bookingCoordinates);
+        } catch (error) {
+          throw error instanceof Error
+            ? error
+            : new Error('Unable to access your location.');
+        }
+      }
 
-    const response = await fetch('/api/bookings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + accessToken,
-      },
-      body: JSON.stringify(payload),
-    });
+      const form = new FormData(event.currentTarget);
+      const payload = {
+        service_id: String(form.get('service_id') || ''),
+        service_level_id: String(form.get('service_level_id') || ''),
+        scheduled_start: new Date(
+          String(form.get('date')) + 'T' + String(form.get('time')),
+        ).toISOString(),
+        duration_minutes: Number(form.get('duration_minutes')),
+        location_text: String(form.get('location_text') || ''),
+        location_lat: bookingCoordinates.latitude,
+        location_long: bookingCoordinates.longitude,
+        notes: String(form.get('notes') || ''),
+      };
 
-    const result = await response.json();
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 20000);
 
-    if (!response.ok) {
-      setMessage(result.error || 'Unable to create booking.');
+      let response: Response;
+      try {
+        response = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + accessToken,
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+
+      const raw = await response.text();
+      let result: { error?: string; booking?: { booking_code?: string } } = {};
+      try {
+        result = raw ? JSON.parse(raw) : {};
+      } catch {
+        result = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || `Booking request failed (HTTP ${response.status}).`,
+        );
+      }
+
+      if (!result.booking?.booking_code) {
+        throw new Error('Booking was created but the server returned an invalid response.');
+      }
+
+      setSubmitted(true);
+      setMessage('Booking created: ' + result.booking.booking_code);
+    } catch (error) {
+      setMessage(
+        error instanceof DOMException && error.name === 'AbortError'
+          ? 'Booking request timed out. Please try again.'
+          : error instanceof Error
+            ? error.message
+            : 'Unable to create booking.',
+      );
+    } finally {
       setBusy(false);
-      return;
     }
-
-    setSubmitted(true);
-    setMessage('Booking created: ' + result.booking.booking_code);
-    setBusy(false);
   }
 
   if (!sessionReady) {
