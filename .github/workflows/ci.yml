@@ -1,0 +1,53 @@
+name: Pickolo CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pickolo-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web typecheck + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: npm
+      - run: npm install
+      - run: npm run lint
+      - run: npm run build
+
+  customer-mobile:
+    name: Customer mobile typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/customer
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+      - run: npm install --legacy-peer-deps
+      - run: npm run typecheck
+
+  partner-mobile:
+    name: Partner mobile typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/partner
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+      - run: npm install --legacy-peer-deps
+      - run: npm run typecheck
