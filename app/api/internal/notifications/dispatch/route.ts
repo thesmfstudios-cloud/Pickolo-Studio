@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
     if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
 
     if (cronSecret) {
-      const provided = request.headers.get('x-cron-secret');
-      if (provided !== cronSecret) {
+      const authorization = request.headers.get('authorization');
+      if (authorization !== 'Bearer ' + cronSecret) {
         return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
       }
     } else {
