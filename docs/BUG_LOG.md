@@ -276,3 +276,13 @@ Reject/suspend actions now synchronize the Partner record verification status.
 
 ### Remaining
 Live authorization test must confirm a suspended partner cannot receive jobs or mutate operational data.
+
+
+## B-023 — Admin no-show route path / RLS mismatch
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The admin UI called a dynamic no-show URL while the server route was defined as a static route. The route also needed server-privileged writes for booking recovery and audit records.
+
+### Fix
+Moved the endpoint to the dynamic route and routed state/audit writes through the server-only Supabase client after admin authentication.
