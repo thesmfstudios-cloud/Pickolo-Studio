@@ -451,3 +451,14 @@ A feature is not considered `VERIFIED` merely because it works once in a happy-p
 Important project knowledge must live in the repository, not only in chat history. When a later change alters an earlier decision, preserve the history and document the new decision rather than silently rewriting the past.
 
 This protocol remains active through **MVP → private pilot → production hardening → launch → post-launch fixes → future releases**.
+
+
+## 2026-09-19 — Development Status Update
+
+**Current source state:** Phase 1 implementation in progress.
+
+Completed source work includes customer authentication foundation, catalog-backed booking form, authenticated booking API, server-side future-time validation, active catalog validation, core database migration and initial RLS policies.
+
+**Verification status:** Live Supabase integration and production build are not yet verified. The connected Supabase integration does not currently expose the Pickolo project, and the available runtime cannot resolve github.com for a clean npm install/build.
+
+The project documentation records these blockers explicitly. No unverified build or database state is marked as passed.
