@@ -204,3 +204,36 @@ Geographic 5 KM eligibility is intentionally not enforced yet because the live l
 
 ### Next
 Add cancellation/no-show handling, emergency reassignment, notifications and delivery-record workflow.
+
+
+## 2026-09-19 — Failure Recovery + Fulfillment Completion
+**Status:** IN_PROGRESS
+
+### Built
+- Customer cancellation API.
+- Partner cancellation API with incident recording.
+- Admin no-show recovery.
+- Emergency reassignment API.
+- Partner delivery submission API.
+- Customer delivery confirmation API.
+- Admin payout release API.
+- Failure/reassignment database migration.
+- 5 KM geographic distance utility.
+- Assignment/reassignment now enforce the pilot radius.
+- Customer mobile current-location capture.
+- Partner mobile current-location setup.
+- Partner location profile API.
+
+### Operational flow
+Partner cancellation/no-show can return an eligible booking to SEARCHING_PARTNER, allowing controlled reassignment rather than automatically losing the booking.
+
+### New control points
+- Incident records
+- Reassignment audit records
+- Delivery record
+- Customer confirmation timestamp
+- Payout record
+- 5 KM distance eligibility
+
+### Verification
+Source committed. Live Supabase, device and payment verification remain pending.
