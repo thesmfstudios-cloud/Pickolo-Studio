@@ -153,6 +153,7 @@ export default function BookingDetailScreen() {
                 const token = data.session?.access_token;
                 if (!token) return;
 
+                const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
                 const response = await fetch(baseUrl + '/api/payments/refund/' + id, {
                   method: 'POST',
                   headers: { Authorization: 'Bearer ' + token },
