@@ -21,13 +21,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const token = String(body?.token || '').trim();
     const platform = body?.platform as 'android' | 'ios' | undefined;
-    const appRole = body?.app_role as 'customer' | 'partner' | 'admin' | undefined;
 
-    if (!token || !platform || !['android', 'ios'].includes(platform) || !appRole || !['customer', 'partner', 'admin'].includes(appRole)) {
-      return NextResponse.json({ error: 'token, platform and app_role are required.' }, { status: 400 });
+    if (!token || !platform || !['android', 'ios'].includes(platform)) {
+      return NextResponse.json({ error: 'token and platform are required.' }, { status: 400 });
     }
 
     const serviceClient = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
+
+    const { data: profile } = await serviceClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.role) {
+      return NextResponse.json({ error: 'User profile is not available.' }, { status: 409 });
+    }
 
     const { data, error } = await serviceClient
       .from('device_push_tokens')
@@ -35,7 +44,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         token,
         platform,
-        app_role: appRole,
+        app_role: profile.role,
         active: true,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'token' })
