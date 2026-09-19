@@ -463,3 +463,19 @@ An older partner delivery endpoint accepted a single storage path or public link
 
 ### Fix
 The legacy endpoint now returns HTTP 410. The authoritative delivery flow is upload-url → private storage upload → finalize → customer signed viewer.
+
+
+## B-042 — Partner signup mode did not create accounts
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The Partner auth screen exposed a signup mode and collected name/phone, but the submit action still called signInWithPassword. A user could not create a new partner account from that screen.
+
+### Fix
+The auth flow now switches between sign-in and sign-up, validates required fields, and stores full name and phone in Supabase Auth user metadata during signup.
+
+### Verification
+Source path updated and committed. Live Supabase/auth verification remains pending.
+
+### Regression risk
+Both login and signup must be exercised on Android and iOS once the real Pickolo Supabase project is connected.
