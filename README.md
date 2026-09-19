@@ -462,3 +462,52 @@ Completed source work includes customer authentication foundation, catalog-backe
 **Verification status:** Live Supabase integration and production build are not yet verified. The connected Supabase integration does not currently expose the Pickolo project, and the available runtime cannot resolve github.com for a clean npm install/build.
 
 The project documentation records these blockers explicitly. No unverified build or database state is marked as passed.
+
+
+---
+
+## 16. Mobile Platform Requirement
+
+Pickolo's customer and partner experiences are mobile-first and must support both Android and iOS.
+
+### Mobile architecture
+
+The mobile client will use a shared cross-platform React Native codebase, with Expo used for development and build tooling where appropriate.
+
+Target platforms:
+- Android
+- iOS
+
+The same business logic, API contracts and backend are shared across both mobile platforms.
+
+### Product surfaces
+
+| Surface | Technology direction | Target |
+|---|---|---|
+| Customer App | React Native / Expo | Android + iOS |
+| Partner App | React Native / Expo | Android + iOS |
+| Admin Panel | Next.js web application | Desktop + responsive web |
+
+The current Next.js customer/partner pages are foundation prototypes, not the final Android/iOS application.
+
+### Mobile requirements
+
+- Authentication and session persistence
+- Push notifications
+- Location permissions and location capture
+- Deep links
+- Camera / media permissions where required
+- Network interruption and retry handling
+- Secure token storage
+- Android back behavior
+- iOS navigation conventions
+- Responsive phone layouts
+- App versioning and minimum-version handling
+- Crash/error monitoring
+- App Store and Google Play release workflows
+
+### Mobile development rule
+
+Feature behavior must remain platform-consistent unless a platform-specific behavior is intentionally documented in docs/DECISIONS.md.
+
+When Android and iOS differ in implementation, document: difference → reason → user impact → test coverage.
