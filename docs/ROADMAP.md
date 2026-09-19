@@ -292,3 +292,21 @@ Covered:
 8. Production monitoring
 9. Final commercial/pricing approval
 10. Pilot runbook
+
+
+## Automatic Marketplace Matching
+**Status:** IN_PROGRESS
+
+Implemented:
+- automatic candidate discovery
+- eligibility filtering
+- heuristic scoring
+- pending partner offer
+- accept/decline
+- recovery after decline/no-show
+
+Remaining:
+- matching weight calibration
+- offer expiry
+- timed reassignment
+- operational SLA monitoring
