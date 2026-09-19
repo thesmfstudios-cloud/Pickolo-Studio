@@ -81,6 +81,13 @@ export async function POST(
       if (roleError) return NextResponse.json({ error: roleError.message }, { status: 400 });
     }
 
+    if (action === 'reject' || action === 'suspend') {
+      await supabase
+        .from('partners')
+        .update({ verification_status: nextStatus })
+        .eq('id', application.applicant_id);
+    }
+
     const { data: updated, error: updateError } = await supabase
       .from('partner_applications')
       .update({
