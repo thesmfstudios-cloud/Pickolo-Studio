@@ -387,6 +387,9 @@ export default function AdminPage() {
                       {booking.status === 'CUSTOMER_CONFIRMED' && (
                         <button className="button" onClick={() => postAdmin('/api/admin/payouts/' + booking.id + '/release')}>Release payout</button>
                       )}
+                      {booking.status === 'PAYOUT_RELEASED' && (
+                        <button className="button" onClick={() => postAdmin('/api/bookings/' + booking.id + '/transition', { to_status: 'COMPLETED' })}>Complete booking</button>
+                      )}
                     </div>
                   </td>
                 </tr>
