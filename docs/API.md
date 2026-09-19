@@ -58,3 +58,23 @@ POST /api/bookings now additionally validates:
 - service level exists and is active
 
 These checks happen server-side before the booking insert.
+
+
+## Pricing API
+
+### GET /api/pricing?level=Basic|Standard|Professional&duration=30|60|120
+**Status:** IMPLEMENTED / LIVE TEST PENDING
+
+Returns the server-calculated development booking estimate.
+
+### Important
+The current pricing values are development configuration. Commercial rates and commission must be approved and validated before production payment launch.
+
+## Booking lifecycle
+
+### POST /api/bookings/[id]/transition
+**Status:** IMPLEMENTED / LIVE TEST PENDING
+
+Validates target state against the server booking state machine and records the transition history.
+
+Customer/assigned-partner authorization is enforced in the current route. Privileged operational actions will move to role-protected admin/server operations before production.
