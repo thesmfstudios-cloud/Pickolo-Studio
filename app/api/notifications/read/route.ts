@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase-admin';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -12,6 +13,8 @@ export async function POST(request: NextRequest) {
       global: authorization ? { headers: { Authorization: authorization } } : undefined,
     });
 
+    const serviceClient = getServiceClient();
+
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 
@@ -20,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     if (!id) return NextResponse.json({ error: 'Notification id is required.' }, { status: 400 });
 
-    const { data, error } = await supabase
+    const { data, error } = await serviceClient
       .from('notifications')
       .update({ read_at: new Date().toISOString() })
       .eq('id', id)
