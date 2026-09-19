@@ -41,6 +41,9 @@ export default function PartnerHome() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Jobs</Text>
           <Text style={styles.muted}>The partner inbox is reserved for verified eligible assignments.</Text>
+          <Pressable style={styles.primary} onPress={() => router.push('/jobs')}>
+            <Text style={styles.primaryText}>View assigned jobs</Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
