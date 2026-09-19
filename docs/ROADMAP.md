@@ -252,3 +252,43 @@ Remaining:
 
 ## Next major validation gate
 Live Pickolo Supabase connection + migration execution + Android/iOS sandbox verification.
+
+
+## 2026-09-19 — MVP Feature Completion Progress
+
+### Transaction loop
+**Status:** SOURCE-COMPLETE / LIVE VERIFICATION PENDING
+
+Covered:
+Customer request → server price → payment order → verified payment → partner search/assignment → partner execution → private media delivery → customer confirmation → payout → review.
+
+### Operational resilience
+Covered:
+- partner cancellation
+- no-show recovery
+- emergency reassignment
+- notification events
+- incident audit
+- partner performance counters
+
+### Mobile
+Covered:
+- Android + iOS customer foundation
+- Android + iOS partner foundation
+- native payment checkout integration
+- location permissions
+- private media upload/viewing
+- push token registration
+- EAS build profiles
+
+### Remaining before private pilot
+1. Live Supabase project access
+2. Run/apply all migrations
+3. RLS/auth testing
+4. Android native build verification
+5. iOS native build verification
+6. Razorpay sandbox transaction verification
+7. Notification provider verification
+8. Production monitoring
+9. Final commercial/pricing approval
+10. Pilot runbook
