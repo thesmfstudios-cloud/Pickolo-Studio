@@ -104,6 +104,12 @@ export default function PartnerHome() {
           <Pressable style={styles.secondary} onPress={() => router.push('/availability')}>
             <Text style={styles.secondaryText}>Manage availability</Text>
           </Pressable>
+          <Pressable style={styles.secondary} onPress={() => router.push('/notifications')}>
+            <Text style={styles.secondaryText}>Notifications</Text>
+          </Pressable>
+          <Pressable style={styles.secondary} onPress={() => router.push('/performance')}>
+            <Text style={styles.secondaryText}>Performance & payouts</Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
