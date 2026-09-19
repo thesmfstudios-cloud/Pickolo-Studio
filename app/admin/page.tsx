@@ -49,6 +49,7 @@ export default function AdminPage() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [pricing, setPricing] = useState<PriceConfig[]>([]);
   const [message, setMessage] = useState('');
+  const [savingPriceId, setSavingPriceId] = useState<string | null>(null);
 
   const token = useCallback(async () => {
     if (!supabase) return null;
@@ -109,6 +110,35 @@ export default function AdminPage() {
       setMessage(result.error || 'Verification failed.');
       return;
     }
+    await load();
+  }
+
+  async function savePrice(id: string, amountPaise: number, platformFeeBps: number) {
+    const accessToken = await token();
+    if (!accessToken) return;
+
+    setSavingPriceId(id);
+    const response = await fetch('/api/admin/pricing', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + accessToken,
+      },
+      body: JSON.stringify({
+        id,
+        amount_paise: amountPaise,
+        platform_fee_bps: platformFeeBps,
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+    setSavingPriceId(null);
+
+    if (!response.ok) {
+      setMessage(result.error || 'Unable to save pricing.');
+      return;
+    }
+
     await load();
   }
 
@@ -212,8 +242,50 @@ export default function AdminPage() {
                 <tr key={item.id}>
                   <td>{item.service_level?.name || '—'}</td>
                   <td>{item.duration_minutes} min</td>
-                  <td>₹{(item.amount_paise / 100).toFixed(0)}</td>
-                  <td>{(item.platform_fee_bps / 100).toFixed(1)}%</td>
+                  <td>
+                    <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                      <input
+                        className="input"
+                        style={{width:110}}
+                        type="number"
+                        min="100"
+                        defaultValue={(item.amount_paise / 100).toFixed(0)}
+                        id={'price-' + item.id}
+                      />
+                      <button
+                        className="button secondary"
+                        disabled={savingPriceId === item.id}
+                        onClick={() => {
+                          const el = document.getElementById('price-' + item.id) as HTMLInputElement | null;
+                          const rupees = Number(el?.value || 0);
+                          savePrice(item.id, Math.round(rupees * 100), item.platform_fee_bps);
+                        }}
+                      >
+                        {savingPriceId === item.id ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <input
+                      className="input"
+                      style={{width:90}}
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      defaultValue={(item.platform_fee_bps / 100).toFixed(1)}
+                      id={'fee-' + item.id}
+                      onBlur={(e) => {
+                        const fee = Number(e.target.value);
+                        const el = document.getElementById('price-' + item.id) as HTMLInputElement | null;
+                        const rupees = Number(el?.value || item.amount_paise / 100);
+                        if (Number.isFinite(fee) && Number.isFinite(rupees) && fee >= 0 && fee <= 100) {
+                          savePrice(item.id, Math.round(rupees * 100), Math.round(fee * 100));
+                        }
+                      }}
+                    />
+                    <span className="muted">%</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
