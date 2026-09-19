@@ -177,3 +177,43 @@ Once a network-capable build environment is available:
 - [ ] Delivery submission limited to assigned partner
 - [ ] Customer can confirm submitted delivery
 - [ ] Payout release limited to admin after customer confirmation
+
+
+## Payment tests
+- [ ] Payment order uses database booking amount
+- [ ] Duplicate payment-order request reuses existing pending order
+- [ ] Invalid signature rejected
+- [ ] Wrong order id rejected
+- [ ] Wrong amount rejected
+- [ ] Non-captured payment rejected
+- [ ] Captured payment moves booking to PAYMENT_CONFIRMED
+- [ ] Repeated verification is idempotent
+- [ ] Invalid webhook signature rejected
+- [ ] Captured webhook reconciles payment
+- [ ] Failed webhook records failure
+- [ ] Refund only allowed after cancellation
+- [ ] Secret keys absent from mobile bundle
+
+## Review tests
+- [ ] Only completed booking can be reviewed
+- [ ] Customer can review own booking only
+- [ ] Duplicate review rejected
+- [ ] Partner average rating updates
+
+## Partner onboarding tests
+- [ ] User can submit application
+- [ ] Duplicate application updates existing pending record
+- [ ] Non-admin cannot approve
+- [ ] Approval creates partner profile
+- [ ] Approval promotes profile role
+- [ ] Reject records reason
+- [ ] Suspend is auditable
+
+## Notification tests
+- [ ] Booking status creates in-app notification
+- [ ] Customer receives only own notifications
+- [ ] Partner receives assignment/status notification
+- [ ] Push token registration works on Android
+- [ ] Push token registration works on iOS
+- [ ] Dispatcher requires secret
+- [ ] Unsent notification marked sent only after successful provider call
