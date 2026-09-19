@@ -49,12 +49,12 @@ export async function POST(
       return NextResponse.json({ error: 'Provide between 1 and 100 uploaded assets.' }, { status: 400 });
     }
 
-    const assets = incoming.map((item: any) => ({
+    const assets = incoming.map((item: unknown) => ({
       booking_id: id,
-      storage_path: String(item?.path || ''),
-      file_name: String(item?.fileName || 'photo'),
-      mime_type: String(item?.mimeType || 'image/jpeg'),
-      size_bytes: item?.sizeBytes == null ? null : Number(item.sizeBytes),
+      storage_path: typeof item === 'object' && item !== null && 'path' in item ? String((item as { path?: unknown }).path || '') : '',
+      file_name: typeof item === 'object' && item !== null && 'fileName' in item ? String((item as { fileName?: unknown }).fileName || 'photo') : 'photo',
+      mime_type: typeof item === 'object' && item !== null && 'mimeType' in item ? String((item as { mimeType?: unknown }).mimeType || 'image/jpeg') : 'image/jpeg',
+      size_bytes: typeof item === 'object' && item !== null && 'sizeBytes' in item && (item as { sizeBytes?: unknown }).sizeBytes != null ? Number((item as { sizeBytes?: unknown }).sizeBytes) : null,
       created_by: user.id,
     }));
 
