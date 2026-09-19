@@ -135,6 +135,7 @@ export async function POST(request: NextRequest) {
         partner_acceptance_status: 'pending',
         partner_acceptance_at: null,
         partner_declined_at: null,
+        partner_offer_expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
       })
       .eq('id', bookingId)
       .eq('status', 'SEARCHING_PARTNER')
