@@ -17,12 +17,20 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error } = await userClient.auth.getUser();
     if (error || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     const partner = await getApprovedPartner(serviceClient, user.id);
-    if (!partner) return NextResponse.json({ error: 'Approved partner access required.' }, { status: 403 });
+    const { data: application } = await serviceClient
+      .from('partner_applications')
+      .select('id,status')
+      .eq('applicant_id', user.id)
+      .maybeSingle();
+
+    if (!partner && application?.status !== 'pending') {
+      return NextResponse.json({ error: 'Partner application access required.' }, { status: 403 });
+    }
 
     const { data, error: listError } = await serviceClient
       .from('partner_verification_documents')
       .select('id,document_type,file_name,mime_type,size_bytes,status,rejection_reason,reviewed_at,created_at')
-      .eq('partner_id', user.id)
+      .or('applicant_id.eq.' + user.id + ',partner_id.eq.' + user.id)
       .order('created_at', { ascending: false });
     if (listError) return NextResponse.json({ error: listError.message }, { status: 400 });
     return NextResponse.json({ documents: data ?? [] });
