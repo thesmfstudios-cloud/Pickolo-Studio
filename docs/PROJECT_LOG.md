@@ -327,3 +327,16 @@ If no eligible partner exists, booking remains in SEARCHING_PARTNER for admin re
 
 ### Important
 Assignment scoring is an MVP heuristic. It is not a final optimization model and should be tuned from pilot data.
+
+
+## 2026-09-19 — Source MVP Checkpoint
+**Status:** SOURCE-COMPLETE / LIVE VERIFICATION PENDING
+
+### Main loop covered
+Customer booking → database pricing → payment verification → partner search → automatic match → partner acceptance → execution → private media delivery → customer confirmation → payout workflow → review/performance.
+
+### Operational resilience covered
+Cancellation, no-show recovery, reassignment, offer expiry and notification events are represented in source.
+
+### Verification limitation
+No live Supabase migration, Android build, iOS build or Razorpay sandbox transaction is marked passed until the required live project access and credentials are available.
