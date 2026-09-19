@@ -159,3 +159,23 @@ Still required before Phase 2 is complete:
 - Delivery record flow
 - Notifications
 - Partner earnings
+
+
+## Phase 3 update — Partner availability
+**Status:** IN_PROGRESS
+
+Implemented:
+- Partner availability API
+- Partner availability mobile UI
+- Admin booking queue
+- Role-specific partner lifecycle actions
+- Assignment eligibility checks
+
+Next:
+- Partner onboarding and verification
+- Cancellation/no-show
+- Emergency reassignment
+- Notifications
+- Delivery records
+- Earnings
+- 5 KM geographic eligibility
