@@ -114,3 +114,18 @@ Once a network-capable build environment is available:
 - [ ] App relaunch with existing session
 - [ ] Accessibility baseline
 - [ ] Production bundle identifiers
+
+
+## Phase 2 additions
+- [ ] Pricing API returns expected values for all 3 service levels × 3 durations
+- [ ] Booking stores server-calculated total
+- [ ] Client-supplied price cannot override server pricing
+- [ ] Booking detail only returns owner booking
+- [ ] Valid state transition succeeds
+- [ ] Invalid state transition returns conflict
+- [ ] Unauthorized participant receives 403
+- [ ] Concurrent transition does not overwrite newer state
+- [ ] Mobile booking list loads
+- [ ] Mobile booking detail loads
+- [ ] Android booking flow verified
+- [ ] iOS booking flow verified
