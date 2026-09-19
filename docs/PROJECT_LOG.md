@@ -423,3 +423,19 @@ The new mobile dependency set and SecureStore behavior still require Android/iOS
 
 ### Next
 Continue source-level audit, then use one controlled Vercel/Supabase deployment checkpoint for live integration verification rather than deploying every incremental code change.
+
+
+## 2026-09-19 — Transaction & Security Regression Pass
+**Status:** IN_PROGRESS
+
+### Important fixes found and applied
+- Added database migration 0018 to prevent authenticated users from changing their own profile role.
+- Fixed notification dispatch so HTTP 200 from Expo does not automatically mark failed device tickets as sent.
+- Fixed admin completion path for PAYOUT_RELEASED bookings.
+- Fixed partner delivery finalization so the normal DATA_PENDING flow actually reaches DATA_SUBMITTED.
+- Fixed a missing admin pricing audit import that would break the build.
+- Fixed Partner signup/onboarding routing and role gating.
+
+### Validation
+Repository validator was expanded to protect these controls from regression.
+Runtime verification is still pending for Supabase, Vercel, Android/iOS builds and provider integrations.
