@@ -534,3 +534,16 @@ New Partner signups now open the partner application screen. The Partner home sc
 
 ### Verification
 Source paths updated and committed. Live Auth/RLS/device verification remains pending.
+
+
+## B-047 — Admin document review URL used an unselected storage path
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The admin verification-document API attempted to create a signed URL from item.storage_path but its SELECT list omitted storage_path. The UI therefore received no review URL for private documents.
+
+### Fix
+The API now selects storage_path internally, creates the signed URL, and omits the raw storage path from the client response.
+
+### Verification
+Source path updated and committed. Live private-storage verification remains pending.
