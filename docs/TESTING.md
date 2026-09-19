@@ -84,3 +84,33 @@ Once a network-capable build environment is available:
 - [ ] Auth smoke test
 - [ ] Booking API smoke test
 - [ ] RLS tests
+
+
+## Mobile Test Matrix — Foundation
+
+### Android
+- [ ] Customer app start
+- [ ] Partner app start
+- [ ] Customer login/session persistence
+- [ ] Partner login/session persistence
+- [ ] Catalog loading
+- [ ] Booking submission
+- [ ] API error handling
+
+### iOS
+- [ ] Customer app start
+- [ ] Partner app start
+- [ ] Customer login/session persistence
+- [ ] Partner login/session persistence
+- [ ] Catalog loading
+- [ ] Booking submission
+- [ ] API error handling
+
+### Cross-platform
+- [ ] Navigation parity
+- [ ] Form validation parity
+- [ ] Session expiry behavior
+- [ ] Network interruption/retry
+- [ ] App relaunch with existing session
+- [ ] Accessibility baseline
+- [ ] Production bundle identifiers
