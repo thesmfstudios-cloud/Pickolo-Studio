@@ -10,6 +10,37 @@ type CatalogItem = {
   description?: string | null;
 };
 
+type Coordinates = {
+  latitude: number;
+  longitude: number;
+};
+
+function getBrowserLocation(): Promise<Coordinates> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Location access is not supported by this browser.'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      () => {
+        reject(new Error('Location access is required to create a booking. Please allow location access and try again.'));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      },
+    );
+  });
+}
+
 export default function CustomerPage() {
   const router = useRouter();
   const [services, setServices] = useState<CatalogItem[]>([]);
@@ -18,6 +49,8 @@ export default function CustomerPage() {
   const [submitted, setSubmitted] = useState(false);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     if (!supabaseBrowser) {
@@ -55,6 +88,20 @@ export default function CustomerPage() {
     };
   }, [router]);
 
+  async function captureLocation() {
+    setLocating(true);
+    setMessage('');
+    try {
+      const nextCoordinates = await getBrowserLocation();
+      setCoordinates(nextCoordinates);
+      setMessage('Location captured. Your exact coordinates are used only for partner matching.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to access your location.');
+    } finally {
+      setLocating(false);
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -71,7 +118,20 @@ export default function CustomerPage() {
 
     if (!accessToken) {
       router.push('/auth');
+      setBusy(false);
       return;
+    }
+
+    let bookingCoordinates = coordinates;
+    if (!bookingCoordinates) {
+      try {
+        bookingCoordinates = await getBrowserLocation();
+        setCoordinates(bookingCoordinates);
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : 'Unable to access your location.');
+        setBusy(false);
+        return;
+      }
     }
 
     const form = new FormData(event.currentTarget);
@@ -83,6 +143,8 @@ export default function CustomerPage() {
       ).toISOString(),
       duration_minutes: Number(form.get('duration_minutes')),
       location_text: String(form.get('location_text') || ''),
+      location_lat: bookingCoordinates.latitude,
+      location_long: bookingCoordinates.longitude,
       notes: String(form.get('notes') || ''),
     };
 
@@ -154,6 +216,15 @@ export default function CustomerPage() {
                 <input className="input" name="location_text" placeholder="Location / landmark" required />
               </div>
 
+              <button
+                className="button secondary"
+                type="button"
+                onClick={captureLocation}
+                disabled={busy || locating}
+              >
+                {locating ? 'Detecting location…' : coordinates ? 'Location captured ✓' : 'Use current location'}
+              </button>
+
               <textarea
                 className="input"
                 name="notes"
@@ -161,7 +232,7 @@ export default function CustomerPage() {
                 rows={4}
               />
 
-              <button className="button" type="submit" disabled={busy}>
+              <button className="button" type="submit" disabled={busy || locating}>
                 {busy ? 'Creating booking…' : 'Create booking request'}
               </button>
 
