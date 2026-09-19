@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
 
@@ -8,6 +8,9 @@ type Job = {
   booking_code: string;
   status: string;
   partner_acceptance_status?: 'not_required' | 'pending' | 'accepted' | 'declined' | 'expired';
+  partner_offer_expires_at?: string | null;
+  location_lat?: number | null;
+  location_long?: number | null;
   scheduled_start: string;
   duration_minutes: number;
   location_text: string;
@@ -119,6 +122,23 @@ export default function PartnerJobsScreen() {
               <Text style={styles.date}>{new Date(job.scheduled_start).toLocaleString()}</Text>
               <Text style={styles.muted}>{job.service?.name || 'Photography'} · {job.service_level?.name || 'Standard'}</Text>
               <Text style={styles.muted}>{job.duration_minutes} min · {job.location_text}</Text>
+              {job.partner_acceptance_status === 'pending' && job.partner_offer_expires_at && (
+                <Text style={styles.offerExpiry}>Offer expires {new Date(job.partner_offer_expires_at).toLocaleTimeString()}</Text>
+              )}
+
+              {(job.location_lat !== null && job.location_lat !== undefined && job.location_long !== null && job.location_long !== undefined) && (
+                <Pressable
+                  style={styles.navigation}
+                  onPress={() => {
+                    const query = encodeURIComponent(String(job.location_lat) + ',' + String(job.location_long));
+                    Linking.openURL('https://www.google.com/maps/search/?api=1&query=' + query).catch(() => {
+                      Alert.alert('Maps unavailable', 'Unable to open navigation.');
+                    });
+                  }}
+                >
+                  <Text style={styles.navigationText}>Navigate</Text>
+                </Pressable>
+              )}
 
               {job.status === 'PARTNER_ASSIGNED' && job.partner_acceptance_status === 'pending' && (
                 <View style={styles.offerRow}>
@@ -260,4 +280,7 @@ const styles = StyleSheet.create({
   secondaryText: { color: '#1e3a8a', fontWeight: '800' },
   danger: { marginTop: 10, backgroundColor: '#fff1f2', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
   dangerText: { color: '#be123c', fontWeight: '800' },
+  offerExpiry: { marginTop: 8, color: '#b45309', fontSize: 12, fontWeight: '800' },
+  navigation: { marginTop: 10, backgroundColor: '#f1f5f9', borderRadius: 13, paddingVertical: 12, alignItems: 'center' },
+  navigationText: { color: '#334155', fontWeight: '800' },
 });
