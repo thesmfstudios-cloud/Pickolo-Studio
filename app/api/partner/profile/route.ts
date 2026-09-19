@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase-admin';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -15,6 +16,7 @@ function getClient(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const supabase = getClient(request);
+    const serviceClient = getServiceClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 
@@ -55,7 +57,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Valid base_lat and base_long are required.' }, { status: 400 });
     }
 
-    const { data, error: updateError } = await supabase
+    const { data, error: updateError } = await serviceClient
       .from('partners')
       .update({ base_lat: lat, base_long: long, updated_at: new Date().toISOString() })
       .eq('id', user.id)
