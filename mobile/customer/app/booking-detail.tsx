@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../shared/supabase';
 
@@ -157,6 +157,13 @@ export default function BookingDetailScreen() {
                 ))}
               </View>
               <Text style={styles.reviewHint}>1 to 5</Text>
+              <TextInput
+                style={styles.reviewInput}
+                placeholder="Optional comment"
+                value={comment}
+                onChangeText={setComment}
+                multiline
+              />
               <Pressable
                 style={styles.primary}
                 onPress={async () => {
@@ -215,5 +222,6 @@ const styles = StyleSheet.create({
   ratingActive: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
   ratingText: { color: '#13213a', fontWeight: '800' },
   reviewHint: { marginTop: 6, color: '#94a3b8', fontSize: 12 },
+  reviewInput: { marginTop: 12, minHeight: 90, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 13, backgroundColor: '#fff', padding: 12, textAlignVertical: 'top' },
   muted: { color: '#64748b' },
 });
