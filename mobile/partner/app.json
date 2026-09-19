@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Pickolo Partner",
+    "slug": "pickolo-partner",
+    "scheme": "pickolo-partner",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": { "supportsTablet": false },
+    "android": { "package": "com.smfstudios.pickolopartner" },
+    "plugins": ["expo-router"]
+  }
+}
