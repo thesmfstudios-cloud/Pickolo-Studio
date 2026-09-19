@@ -22,11 +22,15 @@ export default function PaymentScreen() {
   }, [id]);
 
   async function loadOrder() {
-    if (!supabase || !id) return;
+    if (!supabase || !id) {
+      setLoading(false);
+      return;
+    }
 
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) {
+      setLoading(false);
       router.replace('/auth');
       return;
     }
