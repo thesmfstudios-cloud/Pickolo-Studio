@@ -58,7 +58,7 @@ export async function POST(
 
     const { data: booking, error } = await supabase
       .from('bookings')
-      .select('id,status,customer_id,assigned_partner_id')
+      .select('id,status,customer_id,assigned_partner_id,partner_acceptance_status')
       .eq('id', id)
       .single();
 
@@ -82,6 +82,10 @@ export async function POST(
       if (!partner) {
         return NextResponse.json({ error: 'Approved partner access required.' }, { status: 403 });
       }
+    }
+
+    if (role === 'partner' && toStatus === 'ON_THE_WAY' && booking.partner_acceptance_status !== 'accepted') {
+      return NextResponse.json({ error: 'Accept the assignment before starting travel.' }, { status: 409 });
     }
 
     if (role === 'admin') {
