@@ -16,6 +16,7 @@ export async function POST(
       global: authorization ? { headers: { Authorization: authorization } } : undefined,
     });
 
+    const serviceClient = getServiceClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 
