@@ -3,16 +3,19 @@ import { createClient } from '@supabase/supabase-js';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(request: NextRequest) {
   try {
     if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
     const authorization = request.headers.get('authorization') ?? '';
-    const supabase = createClient(url, anonKey, {
+    if (!serviceRoleKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured.');
+
+    const userClient = createClient(url, anonKey, {
       global: authorization ? { headers: { Authorization: authorization } } : undefined,
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
     if (userError || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 
     const body = await request.json();
@@ -24,7 +27,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'token, platform and app_role are required.' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const serviceClient = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
+
+    const { data, error } = await serviceClient
       .from('device_push_tokens')
       .upsert({
         user_id: user.id,
