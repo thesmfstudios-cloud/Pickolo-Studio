@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     const { data: updated, error: updateError } = await serviceClient
       .from('bookings')
-      .update({ assigned_partner_id: partnerId, status: 'PARTNER_ASSIGNED', partner_acceptance_status: 'pending', partner_acceptance_at: null, partner_declined_at: null })
+      .update({ assigned_partner_id: partnerId, status: 'PARTNER_ASSIGNED', partner_acceptance_status: 'pending', partner_acceptance_at: null, partner_declined_at: null, partner_offer_expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() })
       .eq('id', bookingId)
       .in('status', ['SEARCHING_PARTNER', 'PAYMENT_CONFIRMED'])
       .select('id,booking_code,status,assigned_partner_id')
@@ -142,6 +142,13 @@ export async function POST(request: NextRequest) {
     if (updateError || !updated) {
       return NextResponse.json({ error: 'Assignment failed because booking changed concurrently.' }, { status: 409 });
     }
+
+    const assignmentEvent = await serviceClient.from('partner_assignment_events').insert({
+      booking_id: bookingId,
+      partner_id: partnerId,
+      event_type: 'ASSIGNED',
+      reason: 'Manual admin assignment',
+    });
 
     const { error: historyError } = await serviceClient
       .from('booking_status_history')
@@ -153,8 +160,8 @@ export async function POST(request: NextRequest) {
         metadata: { assigned_partner_id: partnerId },
       });
 
-    if (historyError) {
-      return NextResponse.json({ error: 'Assignment completed but history write failed.' }, { status: 500 });
+    if (assignmentEvent?.error || historyError) {
+      return NextResponse.json({ error: 'Assignment completed but audit logging failed.' }, { status: 500 });
     }
 
     return NextResponse.json({ booking: updated });
