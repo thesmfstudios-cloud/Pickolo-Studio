@@ -511,3 +511,43 @@ The current Next.js customer/partner pages are foundation prototypes, not the fi
 Feature behavior must remain platform-consistent unless a platform-specific behavior is intentionally documented in docs/DECISIONS.md.
 
 When Android and iOS differ in implementation, document: difference → reason → user impact → test coverage.
+
+
+## 17. Current Engineering Status — 2026-09-19
+
+### Source implementation checkpoint
+**MVP TRANSACTION LOOP: SOURCE-COMPLETE / LIVE VERIFICATION PENDING**
+
+Implemented in source:
+- Android + iOS Customer application foundation
+- Android + iOS Partner application foundation
+- Admin web operations console
+- Authentication foundation
+- Customer booking flow
+- Database-driven pricing configuration
+- Razorpay order, verification, webhook and refund flows
+- Automatic partner matching
+- Explicit partner accept/decline
+- Offer expiry and rematching worker
+- 5 KM geographic eligibility
+- Availability and double-booking protection
+- Partner cancellation / no-show recovery
+- Private multi-photo delivery with signed upload/access
+- Delivery confirmation
+- Payout workflow foundation
+- Reviews and performance metrics
+- In-app and push notification infrastructure
+- Partner onboarding and admin verification
+- Engineering audit/history documentation
+
+### Live verification blockers
+- Pickolo Supabase project is not currently exposed by the connected Supabase integration.
+- Pickolo Vercel project is not currently exposed by the connected Vercel integration.
+- Available runtime cannot resolve github.com for a clean dependency install/build.
+- Razorpay merchant/test credentials are not configured in the connected environment.
+
+### Definition of truth
+A feature is only marked RELEASED/VERIFIED after live database, build, security and workflow evidence is recorded in docs/.
+
+### Current highest-priority gate
+**Live infrastructure access → migrations → Auth/RLS → Android/iOS development builds → payment sandbox → pilot verification.**
