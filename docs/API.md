@@ -255,3 +255,12 @@ Admin dispute queue.
 
 ### POST /api/admin/disputes
 Admin moves dispute to under_review, resolved or rejected.
+
+
+## Current API groups
+- Customer booking/payment/delivery/review/dispute
+- Partner application/profile/availability/jobs/delivery/respond/documents/performance
+- Admin bookings/assignments/reassignment/no-show/payouts/partners/documents/disputes/pricing/metrics
+- Internal scheduled assignment and notification workers
+
+All state-changing routes authenticate the caller before controlled server-side writes. Live authorization remains pending verification.
