@@ -137,3 +137,25 @@ Still required before Phase 2 is complete:
 - Device testing on iOS
 - Approved pricing configuration
 - Payment integration
+
+
+## Phase 3 — Partner Workflow
+**Status:** IN_PROGRESS
+
+### Implemented
+- Role-specific state transitions
+- Partner job inbox API
+- Admin assignment API
+- Assignment eligibility checks
+- Partner mobile job inbox
+- Partner mobile lifecycle actions
+
+### Remaining
+- Live RLS/auth verification
+- Assignment testing against live data
+- Partner onboarding/verification UI
+- Cancellation/no-show
+- Emergency reassignment
+- Delivery record flow
+- Notifications
+- Partner earnings
