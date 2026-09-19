@@ -245,3 +245,13 @@ Applied the full authored migration chain `0001` through `0019` in order.
 
 ### Remaining live gate
 Authentication with real users, owner-isolation tests with real sessions, Vercel environment-value match, Razorpay sandbox, push notifications, storage signed URLs, and Android/iOS device builds remain to be verified.
+
+
+## 2026-09-19 — Security advisor hardening
+**Status:** VERIFIED
+
+- Security advisor warnings were reviewed after live migration deployment.
+- Migration `0020_security_definer_hardening` removed public RPC execution from trigger-only SECURITY DEFINER functions and pinned mutable trigger search paths.
+- Migration `0021_admin_auth_private_schema` moved the SECURITY DEFINER implementation of `is_admin()` into the non-exposed `private` schema while retaining a public invoker wrapper for RLS compatibility.
+- Supabase security advisor currently reports **0 security lints**.
+- Performance advisor still reports informational/unoptimized items, including RLS init-plan and unindexed foreign-key notices. These are not blocking the authenticated functional test gate and will be addressed after correctness verification.
