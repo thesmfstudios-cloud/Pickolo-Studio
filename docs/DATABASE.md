@@ -188,3 +188,14 @@ Payout dispute guard, assignment events, scheduled search workers and related ac
 → 0016 pending applicant documents
 
 Execution against the real Pickolo Supabase project remains pending.
+
+
+## Migration 0017 — Admin audit trail
+Adds `admin_audit_log` for sensitive operator actions.
+
+## Current integrity rules
+- Partner verification documents may exist before approval via `applicant_id`.
+- Active disputes block payout release.
+- Failed partner events are excluded from rematching.
+- Pricing is configurable in `service_level_prices`.
+- Delivery media is stored privately and accessed via signed URLs.
