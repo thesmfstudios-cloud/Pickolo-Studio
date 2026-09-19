@@ -250,3 +250,16 @@ Admin assignment and emergency reassignment now inspect active assigned bookings
 
 ### Remaining
 Live concurrent assignment testing is still required against the real database.
+
+
+## B-021 — Partner delivery-preparation transition blocked
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The partner mobile workflow exposed SHOOT_COMPLETED → DATA_PENDING, but the role-specific server transition map omitted that edge.
+
+### Fix
+Added SHOOT_COMPLETED → DATA_PENDING to the Partner transition map.
+
+### Verification
+Server and mobile lifecycle definitions now align for delivery preparation. Live E2E testing remains pending.
