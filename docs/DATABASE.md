@@ -139,3 +139,14 @@ Bookings and partners already store latitude/longitude. Assignment now requires 
 
 ## Migration 0009 — Current payment/review hardening
 Source-level payment workflows now rely on server-side service-role operations after user authentication. The exact live migration sequence must be applied to the Pickolo Supabase project before production testing.
+
+
+## Migration 0013 — Partner acceptance
+Added:
+- partner_acceptance_status
+- partner_acceptance_at
+- partner_declined_at
+- partner_assignment_events
+
+## Pricing configuration
+Migration 0011 moved customer booking pricing into service_level_prices so commercial rates can change without application redeploy.
