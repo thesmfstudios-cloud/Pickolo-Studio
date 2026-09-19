@@ -141,8 +141,19 @@ export default function BookingDetailScreen() {
           )}
 
           {booking.status === 'DATA_SUBMITTED' && (
-            <Pressable style={styles.primary} onPress={confirmDelivery}>
-              <Text style={styles.primaryText}>Confirm delivery</Text>
+            <>
+              <Pressable style={styles.primary} onPress={() => router.push({ pathname: '/delivery', params: { id } })}>
+                <Text style={styles.primaryText}>View delivered photos</Text>
+              </Pressable>
+              <Pressable style={styles.secondary} onPress={confirmDelivery}>
+                <Text style={styles.secondaryText}>Confirm delivery</Text>
+              </Pressable>
+            </>
+          )}
+
+          {booking.status === 'COMPLETED' && (
+            <Pressable style={styles.primary} onPress={() => router.push({ pathname: '/delivery', params: { id } })}>
+              <Text style={styles.primaryText}>View delivered photos</Text>
             </Pressable>
           )}
 
@@ -213,6 +224,8 @@ const styles = StyleSheet.create({
   price: { marginTop: 5, fontSize: 25, color: '#13213a', fontWeight: '800' },
   primary: { marginTop: 18, backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800' },
+  secondary: { marginTop: 10, backgroundColor: '#eef2ff', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
   danger: { marginTop: 10, backgroundColor: '#fff1f2', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
   dangerText: { color: '#be123c', fontWeight: '800' },
   reviewCard: { marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
