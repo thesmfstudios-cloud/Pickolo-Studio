@@ -17,6 +17,7 @@ This checklist is the final gate before private pilot and production release.
 - [ ] Private storage verified
 - [ ] Signed delivery URLs verified
 - [ ] Notification dispatch verified
+- [ ] Individual Expo push ticket errors do not mark notifications as sent
 - [ ] Performance triggers verified
 - [ ] Review flow verified
 
@@ -84,6 +85,7 @@ This checklist is the final gate before private pilot and production release.
 ## Security
 - [ ] No secrets in client builds
 - [ ] Service-role key server-only
+- [ ] Profile role self-escalation blocked by database guard
 - [ ] Razorpay secret server-only
 - [ ] Webhook signature verification
 - [ ] Customer data isolation
