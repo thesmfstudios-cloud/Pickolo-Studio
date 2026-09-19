@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
 
@@ -15,6 +16,8 @@ export default function CustomerBooking() {
   const [time, setTime] = useState('');
   const [location, setLocation] = useState('');
   const [busy, setBusy] = useState(false);
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locating, setLocating] = useState(false);
   const [pricePaise, setPricePaise] = useState<number | null>(null);
 
   useEffect(() => {
@@ -52,6 +55,31 @@ export default function CustomerBooking() {
 
     loadPrice();
   }, [levels, levelId, duration]);
+
+  async function useCurrentLocation() {
+    setLocating(true);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Location permission', 'Allow Pickolo to use your location for nearby photographer matching.');
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      setCoords({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+      setLocation('Current location');
+    } catch {
+      Alert.alert('Location unavailable', 'We could not read your current location. Enter the location manually.');
+    } finally {
+      setLocating(false);
+    }
+  }
 
   async function submit() {
     if (!supabase) {
@@ -93,6 +121,8 @@ export default function CustomerBooking() {
         scheduled_start: start.toISOString(),
         duration_minutes: duration,
         location_text: location.trim(),
+        location_lat: coords?.latitude ?? null,
+        location_long: coords?.longitude ?? null,
       }),
     });
 
@@ -161,6 +191,9 @@ export default function CustomerBooking() {
 
         <Text style={styles.label}>Location</Text>
         <TextInput style={styles.input} placeholder="Location / landmark" value={location} onChangeText={setLocation} />
+        <Pressable style={styles.locationButton} onPress={useCurrentLocation} disabled={locating}>
+          <Text style={styles.locationButtonText}>{locating ? 'Locating...' : coords ? 'Location added' : 'Use current location'}</Text>
+        </Pressable>
 
         <Pressable style={styles.primary} onPress={submit} disabled={busy}>
           <Text style={styles.primaryText}>{busy ? 'Creating...' : 'Create booking request'}</Text>
@@ -183,6 +216,8 @@ const styles = StyleSheet.create({
   chipText: { color: '#64748b', fontWeight: '700' },
   chipTextActive: { color: '#1d4ed8' },
   input: { borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, fontSize: 16 },
+  locationButton: { marginTop: 10, backgroundColor: '#eef2ff', borderRadius: 13, paddingVertical: 13, alignItems: 'center' },
+  locationButtonText: { color: '#1e3a8a', fontWeight: '800' },
   primary: { marginTop: 28, backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800', fontSize: 16 },
   priceCard: { marginTop: 22, padding: 18, borderRadius: 18, backgroundColor: '#eef2ff', borderWidth: 1, borderColor: '#c7d2fe' },
