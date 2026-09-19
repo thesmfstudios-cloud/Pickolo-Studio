@@ -508,3 +508,16 @@ Delivery upload preparation and finalization now require DATA_PENDING. Finalizat
 
 ### Verification
 Source paths updated and committed. Live storage/state-transition testing remains pending.
+
+
+## B-045 — Admin pricing route referenced audit helper without import
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The admin pricing PATCH route called writeAdminAudit but did not import the helper, which would fail the TypeScript/build stage.
+
+### Fix
+Added the missing server-side audit helper import.
+
+### Verification
+Source path updated and committed. CI/build execution remains pending because the available runtime cannot perform a clean dependency install.
