@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Booking is not ready for assignment.' }, { status: 409 });
     }
 
-    const { data: partner } = await supabase
+    const { data: partner } = await serviceClient
       .from('partners')
       .select('id,verification_status,service_level_id,base_lat,base_long,service_level:service_levels(sort_order)')
       .eq('id', partnerId)
