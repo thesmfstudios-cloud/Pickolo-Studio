@@ -64,3 +64,27 @@ GitHub commits verified. Live Supabase execution and end-to-end API verification
 
 ### Next
 Verify Pickolo Supabase project → apply migration → test Auth/RLS → connect real booking flow.
+
+
+## 2026-09-19 — Customer Auth & Booking Integration
+**Status:** IN_PROGRESS
+
+### Built
+- Customer email/password authentication screen.
+- Browser Supabase client.
+- Customer booking form now reads active services and service levels.
+- Customer booking form sends authenticated Bearer token to POST /api/bookings.
+- Customer booking API now rejects past/invalid booking times.
+- Customer booking API verifies selected service and service level are active.
+
+### Security / correctness
+- Customer identity is taken from the authenticated session.
+- Client cannot select another customer ID.
+- Selected catalog records are verified server-side.
+- Price is still not authoritative until pricing rules are implemented.
+
+### Verification
+Source changes committed. Live Auth/catalog/database testing remains pending until the Pickolo Supabase project is available through the connected integration.
+
+### Next
+Live Supabase verification, then booking state/history enforcement and partner workflow.
