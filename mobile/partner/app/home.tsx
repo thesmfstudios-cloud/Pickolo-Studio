@@ -53,11 +53,32 @@ export default function PartnerHome() {
   }
 
   useEffect(() => {
-    registerPushToken('partner').catch(() => undefined);
-    if (!supabase) return;
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) router.replace('/auth');
-    });
+    async function initialize() {
+      if (!supabase) return;
+
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        router.replace('/auth');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profile?.role === 'customer') {
+        router.replace('/apply');
+        return;
+      }
+
+      if (profile?.role === 'partner') {
+        registerPushToken('partner').catch(() => undefined);
+      }
+    }
+
+    initialize().catch(() => router.replace('/auth'));
   }, []);
 
   async function logout() {
