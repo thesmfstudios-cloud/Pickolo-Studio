@@ -10,7 +10,8 @@
       "supportsTablet": false
     },
     "android": {
-      "package": "com.smfstudios.pickolopartner"
+      "package": "com.smfstudios.pickolopartner",
+      "predicativeBackGestureEnabled": true
     },
     "plugins": [
       [
@@ -19,7 +20,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Pickolo uses your location to connect you with nearby assignments."
+          "locationWhenInUsePermission": "Pickolo uses your location to match nearby photography assignments."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "default"
         }
       ]
     ]
