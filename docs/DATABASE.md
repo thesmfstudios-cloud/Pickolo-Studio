@@ -157,3 +157,13 @@ Current authored migration sequence:
 0001 core → 0002 admin assignment → 0003 failure recovery → 0004 partner onboarding/notifications → 0005 notification/performance automation → 0006 payments → 0007 RLS hardening → 0008 reviews → 0009 private media → 0010 multi-file delivery → 0011 pricing configuration → 0012 booking history admin insert → 0013 partner acceptance → 0014 lifecycle metrics.
 
 All migrations remain source-authored until they are executed against the verified Pickolo Supabase project.
+
+
+## Migration 0015 — Trust & Safety
+Adds partner verification documents and booking disputes.
+
+## Migration 0016 — Pending applicant documents
+Adds `applicant_id` to verification documents and allows documents to exist before Partner approval.
+
+## Migration 0017+ operational hardening
+Payout dispute guard, assignment events, scheduled search workers and related access controls are now source-implemented. Live execution remains pending until the correct Pickolo Supabase project is connected.
