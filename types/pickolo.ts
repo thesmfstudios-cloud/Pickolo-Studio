@@ -30,6 +30,13 @@ export const BOOKING_TRANSITIONS: Record<BookingState, BookingState[]> = {
   COMPLETED: [],
 };
 
+export type PartnerAcceptanceStatus =
+  | 'not_required'
+  | 'pending'
+  | 'accepted'
+  | 'declined'
+  | 'expired';
+
 export function canTransition(from: BookingState, to: BookingState) {
   return BOOKING_TRANSITIONS[from].includes(to);
-}
+};
