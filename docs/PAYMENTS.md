@@ -56,3 +56,7 @@ Customer uses the React Native Razorpay wrapper. Native payment testing requires
 
 ## Native Expo requirement
 The customer app uses the native Razorpay React Native wrapper. Expo documentation for this integration requires a native prebuild/development build; Razorpay's iOS UPI intent setup also requires the supported query schemes in the generated Info.plist.
+
+
+## Customer cancellation/refund
+A cancelled booking with a captured payment can enter the full-refund workflow. Refund remains a server/provider operation; the customer app does not calculate or trust refund amounts client-side.
