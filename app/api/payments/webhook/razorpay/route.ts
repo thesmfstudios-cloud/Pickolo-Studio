@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-admin';
 import { fetchRazorpayPayment, verifyWebhookSignature } from '@/lib/razorpay';
+import { assignBestPartner } from '@/lib/assignment';
 
 export const runtime = 'nodejs';
 
@@ -95,6 +96,8 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    await assignBestPartner(payment.booking_id).catch(() => undefined);
 
     return NextResponse.json({ received: true });
   } catch (error) {
