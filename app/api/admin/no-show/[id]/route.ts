@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
+import { writeAdminAudit } from '@/lib/admin-audit';
 import { assignBestPartner } from '@/lib/assignment';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -93,6 +94,7 @@ export async function POST(
     }
 
     const reassignment = await assignBestPartner(id);
+    await writeAdminAudit({ actorId: user.id, action: 'NO_SHOW_RECOVERY', entityType: 'booking', entityId: id, metadata: { old_partner_id: oldPartner, reassignment } });
     return NextResponse.json({ booking: updated, reassignment });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
