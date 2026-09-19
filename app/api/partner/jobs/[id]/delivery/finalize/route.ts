@@ -62,6 +62,19 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid delivery asset path.' }, { status: 400 });
     }
 
+    for (const asset of assets) {
+      const { data: signedCheck, error: storageError } = await serviceClient.storage
+        .from('booking-deliveries')
+        .createSignedUrl(asset.storage_path, 60);
+
+      if (storageError || !signedCheck?.signedUrl) {
+        return NextResponse.json({
+          error: 'One or more delivery files are not present in private storage.',
+          path: asset.storage_path,
+        }, { status: 409 });
+      }
+    }
+
     const { data: saved, error: assetError } = await serviceClient
       .from('delivery_assets')
       .upsert(assets, { onConflict: 'booking_id,storage_path' })
