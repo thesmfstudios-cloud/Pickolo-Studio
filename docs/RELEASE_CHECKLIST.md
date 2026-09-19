@@ -114,3 +114,10 @@ A release is not considered complete until every required checklist item has evi
 - [ ] Company/legal entity details published
 - [ ] Support contact published
 - [ ] App Store / Play Store metadata reviewed
+
+## Source hardening evidence
+- [x] Partner base-location public read policy removed in migration 0019
+- [x] Geographic coordinate database constraints added
+- [x] Booking API validates customer-provided coordinate ranges
+- [ ] Live RLS verification of partner data isolation
+- [ ] Live database migration verification
