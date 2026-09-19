@@ -234,3 +234,7 @@ Once a network-capable build environment is available:
 - [ ] Decline returns booking to SEARCHING_PARTNER
 - [ ] Partner cannot start travel before acceptance
 - [ ] Automatic assignment is idempotent for already-assigned booking
+
+
+## Release status
+No feature in this checkpoint is marked fully RELEASED because live infrastructure/device evidence is still pending. Source-level implementation and code-path checks are recorded separately from runtime verification.
