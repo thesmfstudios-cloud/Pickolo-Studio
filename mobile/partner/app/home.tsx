@@ -3,6 +3,7 @@ import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-na
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
+import { registerPushToken } from '../../shared/notifications';
 
 export default function PartnerHome() {
   async function setCurrentLocation() {
@@ -52,6 +53,7 @@ export default function PartnerHome() {
   }
 
   useEffect(() => {
+    registerPushToken('partner').catch(() => undefined);
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) router.replace('/auth');
