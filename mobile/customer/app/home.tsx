@@ -54,6 +54,9 @@ export default function CustomerHome() {
           <Pressable style={styles.primary} onPress={() => router.push('/bookings')}>
             <Text style={styles.primaryText}>View bookings</Text>
           </Pressable>
+          <Pressable style={styles.secondary} onPress={() => router.push('/notifications')}>
+            <Text style={styles.secondaryText}>Notifications</Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
@@ -72,4 +75,6 @@ const styles = StyleSheet.create({
   muted: { marginTop: 8, fontSize: 15, lineHeight: 22, color: '#64748b' },
   primary: { marginTop: 18, backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  secondary: { marginTop: 10, backgroundColor: '#eef2ff', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
 });
