@@ -237,3 +237,16 @@ Partner cancellation now returns the booking to SEARCHING_PARTNER so the booking
 **Status:** FIXED / CODE-VERIFIED
 
 Partner mobile jobs now require an explicit SHOOT_COMPLETED → DATA_PENDING transition before delivery submission.
+
+
+## B-020 — Partner double-booking risk
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Assignment previously validated partner availability windows but did not check whether the partner already had another overlapping active booking.
+
+### Fix
+Admin assignment and emergency reassignment now inspect active assigned bookings and reject time overlap.
+
+### Remaining
+Live concurrent assignment testing is still required against the real database.
