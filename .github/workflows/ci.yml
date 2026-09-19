@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22.13.0
-          cache: npm
+          # Do not require a lockfile just to enable npm caching; this repo currently uses npm install.
       - run: npm install
       - run: npm run validate:repo
       - run: npm run lint
