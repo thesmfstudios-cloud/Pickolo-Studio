@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+// Live deployment validation checkpoint.
+
 export default function Home() {
   return (
     <main className="main">
