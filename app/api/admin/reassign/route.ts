@@ -67,6 +67,25 @@ export async function POST(request: NextRequest) {
     const startsAt = new Date(booking.scheduled_start);
     const endsAt = new Date(startsAt.getTime() + Number(booking.duration_minutes) * 60000);
 
+    const { data: activeBookings } = await supabase
+      .from('bookings')
+      .select('id,scheduled_start,duration_minutes,status')
+      .eq('assigned_partner_id', partnerId)
+      .not('status', 'in', '("CANCELLED","REFUNDED","COMPLETED","DISPUTED")')
+      .neq('id', bookingId);
+
+    const hasConflict = (activeBookings ?? []).some((existing) => {
+      const existingStart = new Date(existing.scheduled_start).getTime();
+      const existingEnd = existingStart + Number(existing.duration_minutes) * 60000;
+      const newStart = startsAt.getTime();
+      const newEnd = endsAt.getTime();
+      return newStart < existingEnd && newEnd > existingStart;
+    });
+
+    if (hasConflict) {
+      return NextResponse.json({ error: 'Partner already has an overlapping booking.' }, { status: 409 });
+    }
+
     const { data: availability } = await supabase
       .from('partner_availability')
       .select('id')
