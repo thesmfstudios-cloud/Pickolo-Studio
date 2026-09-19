@@ -108,3 +108,30 @@ Run the project in an environment with npm/network access and record:
 - TypeScript result
 - next build result
 - runtime smoke test
+
+
+## 2026-09-19 — Cross-Platform Mobile Foundation
+**Status:** IN_PROGRESS
+
+### Objective
+Establish separate Android/iOS customer and partner mobile applications using a shared React Native/Expo direction while retaining one backend contract.
+
+### Built
+- mobile/customer Expo application foundation.
+- mobile/partner Expo application foundation.
+- Shared mobile booking constants.
+- Shared Supabase session client.
+- Customer mobile login/home/booking foundation.
+- Partner mobile login/home foundation.
+- Android package identifiers for both apps.
+- iOS application configuration for both apps.
+- Mobile documentation.
+
+### Architecture
+Customer and Partner are separate app surfaces. Supabase and API contracts remain shared.
+
+### Known limitation
+Live mobile installation/build verification has not been completed because the available runtime currently cannot resolve GitHub for dependency installation.
+
+### Next
+Connect the real Pickolo Supabase project, configure mobile environment variables, then verify Android and iOS builds and authenticated booking integration.
