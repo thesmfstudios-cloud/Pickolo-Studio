@@ -175,8 +175,10 @@ Once a network-capable build environment is available:
 - [ ] Partner outside 5 KM rejected
 - [ ] Missing coordinates rejected
 - [ ] Delivery submission limited to assigned partner
+- [ ] DATA_PENDING delivery finalization moves booking to DATA_SUBMITTED
 - [ ] Customer can confirm submitted delivery
 - [ ] Payout release limited to admin after customer confirmation
+- [ ] Admin can complete a PAYOUT_RELEASED booking
 
 
 ## Payment tests
@@ -253,6 +255,8 @@ No feature in this checkpoint is marked fully RELEASED because live infrastructu
 - [ ] Final dispute decision requires resolution text
 - [ ] Payout blocked for open dispute
 - [ ] Payout blocked for under_review dispute
+- [ ] Profile role self-escalation rejected
+- [ ] Expo push ticket errors are not marked sent
 - [ ] Payout proceeds after dispute resolved and booking remains eligible
 
 
