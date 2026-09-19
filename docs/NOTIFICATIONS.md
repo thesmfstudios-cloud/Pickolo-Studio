@@ -38,3 +38,7 @@ A notification should never be treated as proof that the user saw or acted on an
 ## Mobile requirements
 
 Push notification behavior must be tested on physical Android and iOS development builds. Android remote push notifications require a development build rather than Expo Go.
+
+
+## Scheduled dispatcher security
+Vercel Cron sends CRON_SECRET as an `Authorization: Bearer ...` header. Scheduled endpoints use that exact header contract.
