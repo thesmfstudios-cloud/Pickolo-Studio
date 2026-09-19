@@ -40,3 +40,26 @@ Customer booking → payment → assignment → partner acceptance → shoot →
 
 ## Release gate
 Build → Functional Test → Failure Test → Security/RLS Review → Documentation → Deployment Verification
+
+
+## Phase 1 Test Status
+
+### Auth
+- [ ] Real Pickolo Supabase login
+- [ ] Profile trigger
+
+### RLS
+- [ ] Customer can read own bookings
+- [ ] Customer cannot read another customer's bookings
+- [ ] Partner can read assigned booking only
+- [ ] Partner cannot alter customer-owned booking state
+
+### API
+- [ ] POST authenticated booking
+- [ ] POST rejects missing fields
+- [ ] POST rejects invalid duration
+- [ ] GET returns only caller's bookings
+- [ ] Unauthenticated requests return 401
+
+### Blocker
+Live execution is pending access to the Pickolo Supabase project through the connected integration.
