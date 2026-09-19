@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
+import { assignBestPartner } from '@/lib/assignment';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -84,7 +85,8 @@ export async function POST(
       );
     }
 
-    return NextResponse.json({ booking: updated });
+    const reassignment = await assignBestPartner(id);
+    return NextResponse.json({ booking: updated, reassignment });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
     return NextResponse.json({ error: message }, { status: 500 });
