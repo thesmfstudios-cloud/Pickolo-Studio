@@ -24,6 +24,30 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
   if (!['PAYMENT_CONFIRMED', 'SEARCHING_PARTNER'].includes(booking.status)) {
     return { assigned: false, reason: 'Booking is not ready for partner matching.' };
   }
+
+  if (booking.status === 'PAYMENT_CONFIRMED') {
+    const { data: searching, error: searchError } = await supabase
+      .from('bookings')
+      .update({ status: 'SEARCHING_PARTNER' })
+      .eq('id', booking.id)
+      .eq('status', 'PAYMENT_CONFIRMED')
+      .select('id,status')
+      .single();
+
+    if (searchError || !searching) {
+      return { assigned: false, reason: 'Booking changed before partner search could start.' };
+    }
+
+    await supabase.from('booking_status_history').insert({
+      booking_id: booking.id,
+      from_status: 'PAYMENT_CONFIRMED',
+      to_status: 'SEARCHING_PARTNER',
+      changed_by: actorId ?? null,
+      metadata: { actor_role: actorId ? 'admin' : 'system', assignment_mode: 'automatic' },
+    });
+
+    booking.status = 'SEARCHING_PARTNER';
+  }
   if (booking.assigned_partner_id) {
     return { assigned: false, reason: 'Booking already has a partner.', partnerId: booking.assigned_partner_id };
   }
