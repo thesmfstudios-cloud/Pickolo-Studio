@@ -340,3 +340,26 @@ Cancellation, no-show recovery, reassignment, offer expiry and notification even
 
 ### Verification limitation
 No live Supabase migration, Android build, iOS build or Razorpay sandbox transaction is marked passed until the required live project access and credentials are available.
+
+
+## 2026-09-19 — Trust & Safety + Pilot Hardening
+**Status:** SOURCE-COMPLETE / LIVE VERIFICATION PENDING
+
+### Added
+- Pending partner verification document upload before approval.
+- Private partner document storage.
+- Admin partner document review API.
+- Customer dispute creation/status API.
+- Admin dispute queue and resolution API.
+- Payout guard that blocks release while a dispute is open or under review.
+- Automatic rematching exclusion for partners who cancel or no-show.
+- Manual assignment offer expiry/audit parity.
+- Scheduled matching/search/notification workers.
+- CI workflow for web and mobile regression checks.
+
+### Important corrections
+- Fixed pending applicant document flow so onboarding does not require an already-created Partner record.
+- Fixed admin dispute/queue request duplication in the web console.
+
+### Remaining gate
+Live Supabase migration execution, live RLS checks, native Android/iOS builds, payment sandbox, push notifications, and production Vercel deployment verification.
