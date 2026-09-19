@@ -197,3 +197,43 @@ Partner cancellation now clears the failed assignment and returns the booking to
 
 ### Verification
 Route updated. Live end-to-end recovery test remains pending.
+
+
+## B-016 — State-changing endpoint writes blocked by RLS
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Authenticated state-changing routes were attempting writes with the normal client role while RLS intentionally restricted those writes.
+
+### Fix
+Sensitive state changes now authenticate the user with the normal client, then perform the controlled write through the server-only Supabase service client after authorization checks.
+
+### Affected areas
+- booking transitions
+- customer cancellation
+- partner cancellation
+- delivery confirmation
+- notification read state
+- partner profile updates
+
+### Verification
+Source updated and committed. Live RLS testing remains pending.
+
+## B-017 — Push dispatcher lacked service privileges
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The notification dispatcher needed access to unsent notifications and device tokens that normal client RLS should not expose.
+
+### Fix
+Dispatcher now requires CRON_SECRET and uses the server-only Supabase service role client.
+
+## B-018 — Partner cancellation could stop recovery
+**Status:** FIXED / CODE-VERIFIED
+
+Partner cancellation now returns the booking to SEARCHING_PARTNER so the booking can be reassigned.
+
+## B-019 — Mobile job lifecycle skipped DATA_PENDING
+**Status:** FIXED / CODE-VERIFIED
+
+Partner mobile jobs now require an explicit SHOOT_COMPLETED → DATA_PENDING transition before delivery submission.
