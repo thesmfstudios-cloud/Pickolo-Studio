@@ -26,3 +26,30 @@ The database will use least-privilege access and Row Level Security. Sensitive s
 3. Apply RLS.
 4. Test customer/partner/admin boundaries.
 5. Record migration and verification evidence here.
+
+
+## Migration 0001 — Core Marketplace Schema
+**Status:** AUTHORED / NOT LIVE-VERIFIED
+
+### Added
+- User profiles and roles
+- Service catalog and Basic/Standard/Professional levels
+- Partner verification and availability
+- Bookings and status history
+- Payments and payouts
+- Delivery records
+- Reviews
+- Partner performance
+- Notifications
+- Initial RLS policies and new-user trigger
+
+### Security note
+Admin operational writes are intentionally not exposed by these initial client-facing policies. They will be added only after the server-side admin authorization strategy is finalized.
+
+### Live verification checklist
+- [ ] Migration applies
+- [ ] Trigger creates profiles
+- [ ] Customer isolation verified
+- [ ] Partner isolation verified
+- [ ] Unauthorized writes rejected
+- [ ] State transition enforcement verified
