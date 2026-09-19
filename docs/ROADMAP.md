@@ -399,3 +399,11 @@ Next exit criteria:
 - Customer booking persistence and isolation test.
 - Partner/admin RLS boundary tests.
 - Then proceed to payment sandbox and native device verification.
+
+
+## 2026-09-19 — Security Gate Passed
+**Status:** IN_PROGRESS
+
+The live Pickolo Supabase security advisor now reports zero security lints after migrations 0020 and 0021.
+
+The next release gate is functional authorization testing with real customer, partner and admin sessions, followed by Vercel environment confirmation and payment/device verification.
