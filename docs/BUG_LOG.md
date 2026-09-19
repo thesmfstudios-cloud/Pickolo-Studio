@@ -495,3 +495,16 @@ Source path updated and committed. Live push-provider verification remains pendi
 
 ### Remaining
 Invalid device-token handling and provider delivery receipts require physical-device testing during pilot hardening.
+
+
+## B-044 — Delivery finalization could not leave DATA_PENDING
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The partner delivery finalize route accepted DATA_PENDING but only changed the booking to DATA_SUBMITTED when the booking was still SHOOT_COMPLETED. The normal mobile flow therefore uploaded files successfully while leaving the booking stuck in DATA_PENDING.
+
+### Fix
+Delivery upload preparation and finalization now require DATA_PENDING. Finalization atomically attempts the DATA_PENDING → DATA_SUBMITTED state change after verifying the uploaded files exist.
+
+### Verification
+Source paths updated and committed. Live storage/state-transition testing remains pending.
