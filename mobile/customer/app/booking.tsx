@@ -134,9 +134,10 @@ export default function CustomerBooking() {
       return;
     }
 
-    Alert.alert('Booking created', result.booking?.booking_code || 'Booking created.', [
-      { text: 'Done', onPress: () => router.replace('/home') },
-    ]);
+    router.replace({
+      pathname: '/payment',
+      params: { id: result.booking?.id },
+    });
   }
 
   return (
