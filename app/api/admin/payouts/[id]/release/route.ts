@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
+import { writeAdminAudit } from '@/lib/admin-audit';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -85,6 +86,7 @@ export async function POST(
       metadata: { actor_role: 'admin' },
     });
 
+    await writeAdminAudit({ actorId: user.id, action: 'RELEASE_PAYOUT', entityType: 'booking', entityId: id, metadata: { partner_id: booking.assigned_partner_id, amount_paise: booking.partner_payout_paise } });
     return NextResponse.json({ booking: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
