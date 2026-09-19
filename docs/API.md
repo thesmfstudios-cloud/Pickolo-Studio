@@ -106,3 +106,17 @@ Writes:
 
 ### POST /api/bookings/[id]/transition
 Now uses role-specific transition maps instead of allowing every participant to perform every valid transition.
+
+
+## Availability API
+
+### GET /api/partner/availability
+Partner-only. Returns the authenticated partner's availability windows.
+
+### POST /api/partner/availability
+Partner-only. Validates future start time and end-after-start, then creates an availability window.
+
+## Admin booking queue
+
+### GET /api/admin/bookings
+Admin-only. Returns booking records for operational monitoring, optionally filtered by status.
