@@ -153,3 +153,51 @@ Admin-only payout release after CUSTOMER_CONFIRMED.
 
 ### PATCH /api/partner/profile
 Partner updates their base coordinates for local assignment eligibility.
+
+
+## Payment APIs
+
+### POST /api/payments/order/[id]
+Authenticated customer. Creates or reuses a Razorpay order using the server-calculated booking amount.
+
+### POST /api/payments/verify/[id]
+Authenticated customer. Verifies Razorpay signature and independently fetches the provider payment. Requires captured payment before moving booking to PAYMENT_CONFIRMED.
+
+### POST /api/payments/webhook/razorpay
+Public webhook endpoint protected by Razorpay webhook signature verification. Captured/failed events update payment state.
+
+### POST /api/payments/refund/[id]
+Authenticated customer. Initiates full refund for a captured payment after booking cancellation.
+
+## Partner onboarding
+
+### POST /api/partner/apply
+Authenticated user creates or updates a partner application.
+
+### GET /api/partner/application
+Returns the authenticated user's application.
+
+### GET /api/admin/partners
+Admin-only application queue.
+
+### POST /api/admin/partners/[id]/verify
+Admin approves, rejects or suspends an application. Approval creates/updates the Partner record and promotes the profile role to partner.
+
+## Notifications
+
+### GET /api/notifications
+Authenticated user notification inbox.
+
+### POST /api/notifications/read
+Marks an owned notification as read.
+
+### POST /api/notifications/register-token
+Registers the current Android/iOS Expo push token using server-side database access.
+
+### POST /api/internal/notifications/dispatch
+Protected server job that sends unsent notification events through Expo Push Service.
+
+## Partner performance
+
+### GET /api/partner/performance
+Returns partner performance counters and payout history.
