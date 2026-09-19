@@ -459,9 +459,9 @@ This protocol remains active through **MVP → private pilot → production hard
 
 Completed source work includes customer authentication foundation, catalog-backed booking form, authenticated booking API, server-side future-time validation, active catalog validation, core database migration and initial RLS policies.
 
-**Verification status:** Live Supabase integration and production build are not yet verified. The connected Supabase integration does not currently expose the Pickolo project, and the available runtime cannot resolve github.com for a clean npm install/build.
+**Verification status:** The Pickolo Supabase project is now live-verified and migrations `0001`–`0019` are applied. Production web deployment and smoke tests are also verified. Remaining live gates are authenticated-session/RLS E2E tests, Vercel environment-value confirmation, Razorpay sandbox verification, push notifications, storage signed URLs, and Android/iOS device builds.
 
-The project documentation records these blockers explicitly. No unverified build or database state is marked as passed.
+The project documentation records these gates explicitly. No unverified payment, device, or production-release state is marked as passed.
 
 
 ---
@@ -550,7 +550,7 @@ Implemented in source:
 A feature is only marked RELEASED/VERIFIED after live database, build, security and workflow evidence is recorded in docs/.
 
 ### Current highest-priority gate
-**Live infrastructure access → migrations → Auth/RLS → Android/iOS development builds → payment sandbox → pilot verification.**
+**Authenticated Supabase verification → Vercel environment confirmation → Android/iOS development builds → Razorpay sandbox → pilot verification.**
 
 
 ---
