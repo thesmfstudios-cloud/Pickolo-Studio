@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
-      .select('id,status,scheduled_start,duration_minutes,service_level_id,assigned_partner_id')
+      .select('id,status,scheduled_start,duration_minutes,service_level_id,assigned_partner_id,location_lat,location_long')
       .eq('id', bookingId)
       .single();
 
@@ -99,9 +99,13 @@ export async function POST(request: NextRequest) {
 
     if (
       booking.location_lat === null ||
+      booking.location_lat === undefined ||
       booking.location_long === null ||
+      booking.location_long === undefined ||
       partner.base_lat === null ||
-      partner.base_long === null
+      partner.base_lat === undefined ||
+      partner.base_long === null ||
+      partner.base_long === undefined
     ) {
       return NextResponse.json(
         { error: 'Customer and partner locations are required for 5 KM pilot assignment.' },
@@ -146,6 +150,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Reassignment failed because booking changed concurrently.' }, { status: 409 });
     }
 
+    const assignmentEvent = await serviceClient.from('partner_assignment_events').insert({
+      booking_id: bookingId,
+      partner_id: partnerId,
+      event_type: 'ASSIGNED',
+      reason: 'Manual emergency reassignment',
+    });
+
     const { error: historyError } = await serviceClient
       .from('booking_status_history')
       .insert({
@@ -156,7 +167,7 @@ export async function POST(request: NextRequest) {
         metadata: { actor_role: 'admin', assigned_partner_id: partnerId, reason },
       });
 
-    if (historyError) {
+    if (assignmentEvent?.error || historyError) {
       return NextResponse.json({ error: 'Reassignment succeeded but audit logging failed.' }, { status: 500 });
     }
 
