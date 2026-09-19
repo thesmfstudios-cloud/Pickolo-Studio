@@ -7,6 +7,8 @@ export default function CustomerAuth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [fullName, setFullName] = useState('');
 
   async function login() {
     if (!supabase) {
@@ -14,15 +16,31 @@ export default function CustomerAuth() {
       return;
     }
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+
+    const result =
+      mode === 'login'
+        ? await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          })
+        : await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: { data: { full_name: fullName.trim() } },
+          });
+
     setBusy(false);
+
+    const error = result.error;
     if (error) {
       Alert.alert('Login failed', error.message);
       return;
     }
+    if (mode === 'signup' && !result.data.session) {
+      Alert.alert('Account created', 'Check your email if confirmation is enabled.');
+      return;
+    }
+
     router.replace('/home');
   }
 
@@ -30,10 +48,13 @@ export default function CustomerAuth() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.kicker}>PICKOLO</Text>
-        <Text style={styles.title}>Customer Login</Text>
+        <Text style={styles.title}>{mode === 'login' ? 'Customer Login' : 'Create your account'}</Text>
         <Text style={styles.subtitle}>Book a photographer for a short local assignment.</Text>
 
         <View style={styles.form}>
+          {mode === 'signup' && (
+            <TextInput style={styles.input} placeholder="Full name" value={fullName} onChangeText={setFullName} />
+          )}
           <TextInput
             style={styles.input}
             value={email}
@@ -50,7 +71,15 @@ export default function CustomerAuth() {
             secureTextEntry
           />
           <Pressable style={styles.primary} onPress={login} disabled={busy}>
-            <Text style={styles.primaryText}>{busy ? 'Please wait...' : 'Login'}</Text>
+            <Text style={styles.primaryText}>{busy ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create account'}</Text>
+          </Pressable>
+          <Pressable
+            style={styles.secondary}
+            onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}
+          >
+            <Text style={styles.secondaryText}>
+              {mode === 'login' ? 'Create a new account' : 'Already have an account? Login'}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -68,4 +97,6 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 15, paddingVertical: 14, fontSize: 16 },
   primary: { backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  secondary: { paddingVertical: 14, alignItems: 'center' },
+  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
 });
