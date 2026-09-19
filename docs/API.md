@@ -49,3 +49,12 @@ Returns the authenticated customer's bookings ordered newest first.
 
 ### Security
 The route forwards the caller's Authorization header to Supabase and relies on authenticated access plus database RLS. No client is trusted to choose another customer's identity.
+
+
+## 2026-09-19 — Booking validation hardening
+POST /api/bookings now additionally validates:
+- scheduled_start is a valid future timestamp
+- service exists and is active
+- service level exists and is active
+
+These checks happen server-side before the booking insert.
