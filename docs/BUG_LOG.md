@@ -68,3 +68,22 @@ The booking API now verifies both catalog records are active before inserting th
 
 ### Verification
 Implemented with server-side database lookups. Live integration test pending.
+
+
+## B-006 — Runtime cannot access GitHub registry
+**Status:** ENVIRONMENT BLOCKER
+
+### Symptom
+Local verification runtime cannot resolve github.com.
+
+### Impact
+Cannot install npm dependencies or run a trustworthy production build from this runtime.
+
+### Root cause
+Runtime network/DNS restriction.
+
+### Product impact
+None established. This is a development-environment limitation.
+
+### Next action
+Use network-capable local/CI environment for build verification and record the result.
