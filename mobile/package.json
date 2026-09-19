@@ -1,0 +1,11 @@
+{
+  "name": "pickolo-mobile",
+  "private": true,
+  "workspaces": [
+    "customer",
+    "partner"
+  ],
+  "devDependencies": {
+    "@types/react": "19.3.0"
+  }
+}

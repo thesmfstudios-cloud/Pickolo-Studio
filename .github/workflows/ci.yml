@@ -30,25 +30,25 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: mobile/customer
+        working-directory: mobile
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
         with:
           node-version: 22.13.0
       - run: npm install --legacy-peer-deps
-      - run: npm run typecheck
+      - run: npm run typecheck --workspace @pickolo/customer
 
   partner-mobile:
     name: Partner mobile typecheck
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: mobile/partner
+        working-directory: mobile
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
         with:
           node-version: 22.13.0
       - run: npm install --legacy-peer-deps
-      - run: npm run typecheck
+      - run: npm run typecheck --workspace @pickolo/partner

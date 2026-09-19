@@ -31,6 +31,7 @@ const requiredFiles = [
   'docs/DATABASE.md',
   'docs/API.md',
   'docs/RELEASE_CHECKLIST.md',
+  'mobile/package.json',
   'mobile/customer/.env.example',
   'mobile/partner/.env.example',
   'mobile/customer/app.json',
@@ -59,7 +60,7 @@ if (fs.existsSync(migrationDir)) {
 
 const cronConfig = JSON.parse(read('vercel.json'));
 for (const cron of cronConfig.crons ?? []) {
-  const routePath = path.join(root, cron.path.replace(/^\//, ''), 'route.ts');
+  const routePath = path.join(root, 'app', cron.path.replace(/^\//, ''), 'route.ts');
   if (!fs.existsSync(routePath)) failures.push(`Vercel cron route does not exist: ${cron.path}`);
   else if (!read(path.relative(root, routePath)).includes('export async function GET')) {
     failures.push(`Vercel cron route must export GET: ${cron.path}`);
@@ -85,6 +86,14 @@ for (const relative of ['mobile/customer', 'mobile/partner']) {
   if (!pkg.dependencies?.['expo-secure-store']) {
     failures.push(`${relative}/package.json missing expo-secure-store`);
   }
+}
+
+
+const mobileWorkspace = JSON.parse(read('mobile/package.json'));
+if (!Array.isArray(mobileWorkspace.workspaces) ||
+    !mobileWorkspace.workspaces.includes('customer') ||
+    !mobileWorkspace.workspaces.includes('partner')) {
+  failures.push('Mobile workspace must include customer and partner apps.');
 }
 
 const rootPackage = JSON.parse(read('package.json'));
