@@ -266,3 +266,15 @@ No feature in this checkpoint is marked fully RELEASED because live infrastructu
 
 ### CI
 `.github/workflows/ci.yml` is configured for web build/typecheck and customer/partner mobile typecheck. No completed run is currently recorded for the latest commit, so CI is not counted as verified.
+
+### CI verification — 2026-09-19
+**GitHub Actions run #140** completed successfully on commit `4938e8ef09be86390201c6fb65b293c9c8f6150f`.
+
+Passed:
+- repository validation
+- web TypeScript check
+- Next.js production build
+- customer mobile typecheck
+- partner mobile typecheck
+
+This is source/CI evidence only. It does not replace live Supabase, Razorpay, push-notification, Android, iOS or production deployment verification.
