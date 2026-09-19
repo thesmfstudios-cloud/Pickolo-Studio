@@ -201,3 +201,26 @@ Protected server job that sends unsent notification events through Expo Push Ser
 
 ### GET /api/partner/performance
 Returns partner performance counters and payout history.
+
+
+## Automatic matching
+
+Internal matcher: assignBestPartner(bookingId, actorId?)
+
+Candidate checks:
+- approved partner
+- service-level eligibility
+- 5 KM radius
+- matching availability
+- no overlapping active booking
+
+Candidate score considers distance, rating, on-time performance, cancellations and no-shows.
+
+## Partner response
+
+POST /api/partner/jobs/[id]/respond
+Authenticated approved partner.
+
+Actions: accept or decline.
+
+Accept marks the assignment accepted. Decline clears the assignment, returns booking to SEARCHING_PARTNER and records incident/assignment event.
