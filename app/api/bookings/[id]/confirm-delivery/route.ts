@@ -49,7 +49,7 @@ export async function POST(
       return NextResponse.json({ error: 'No delivery record exists for this booking.' }, { status: 409 });
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await serviceClient
       .from('bookings')
       .update({ status: 'CUSTOMER_CONFIRMED' })
       .eq('id', id)
