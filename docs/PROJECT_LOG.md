@@ -485,3 +485,27 @@ GitHub Actions run #140 passed all three jobs on commit `4938e8ef09be86390201c6f
 
 ### Remaining release gates
 Live Supabase project access, RLS verification, Razorpay sandbox transaction, push credentials, native Android/iOS builds, and the correct Pickolo Vercel project remain pending.
+
+
+## 2026-09-19 — Live Supabase migration deployment
+**Status:** VERIFIED
+
+### What changed
+Connected the Pickolo source migration chain to the verified empty Supabase project `ewfvmvakdmpismnddrmt`.
+
+### Applied
+`0001` core through `0019` partner privacy/geographic constraints, in order.
+
+### Verification
+- Supabase migration count: 19
+- Public tables: 23
+- RLS policies: 57
+- Public triggers: 9
+- Seed data: 3 service levels + 1 Photography service
+- RLS smoke checks: anonymous service catalog read succeeds; profiles and bookings return zero rows without a user identity.
+
+### Remaining risk
+Real authenticated-session tests have not yet been executed, and Vercel environment values must still be matched explicitly to this project before calling the web/database integration complete.
+
+### Next
+Verify Vercel `NEXT_PUBLIC_SUPABASE_URL`, then run real Auth/RLS/customer-booking tests.
