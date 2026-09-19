@@ -22,7 +22,7 @@ async function sendExpoPush(messages: unknown[]) {
   return data;
 }
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
 
