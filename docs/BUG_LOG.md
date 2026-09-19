@@ -521,3 +521,16 @@ Added the missing server-side audit helper import.
 
 ### Verification
 Source path updated and committed. CI/build execution remains pending because the available runtime cannot perform a clean dependency install.
+
+
+## B-046 — New Partner account could enter workspace before onboarding
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The Partner app offered account signup but routed new accounts directly to the partner workspace, even though the new profile still had the default customer role and no partner application.
+
+### Fix
+New Partner signups now open the partner application screen. The Partner home screen also checks the authenticated profile role and redirects customer-role users into onboarding before exposing partner operations.
+
+### Verification
+Source paths updated and committed. Live Auth/RLS/device verification remains pending.
