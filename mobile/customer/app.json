@@ -11,7 +11,7 @@
     },
     "android": {
       "package": "com.smfstudios.pickolocustomer",
-      "predicativeBackGestureEnabled": true
+      "predictiveBackGestureEnabled": true
     },
     "plugins": [
       [
