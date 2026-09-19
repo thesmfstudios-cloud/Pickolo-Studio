@@ -395,3 +395,59 @@ The blueprint defines the local-first 5 KM pilot, three initial product surfaces
 
 **Pickolo App by SMF Studios**  
 **Book the right photographer. Complete the job. Build the reputation.**
+
+
+---
+
+## 15. Permanent Engineering Documentation Protocol
+
+This repository is maintained as a living engineering record from MVP foundation through production launch. Documentation is part of the development process and must be updated proactively after meaningful work. The user should not need to repeatedly request documentation updates.
+
+### What must be recorded
+
+| Event | Record |
+|---|---|
+| New feature | Scope, reason, implementation, affected files, tests, status |
+| Bug discovered | Symptom, reproduction, investigation, root cause, impact |
+| Bug fixed | Change made, affected files, verification, regression coverage |
+| Database change | Migration, schema impact, RLS/security impact |
+| API change | Contract, auth, validation, errors, business rules |
+| Security change | Risk, mitigation, verification |
+| Architecture decision | Decision, alternatives, reason, consequences |
+| UI change | Screen, behavior, responsive considerations |
+| Failed attempt | What failed, why, lesson, next action |
+| Reverted change | Reason, affected area, follow-up |
+| Deployment | Environment, commit, build/runtime result, issues |
+| Phase start | Scope, dependencies, acceptance criteria |
+| Phase completion | Exit criteria, evidence, remaining risks |
+
+### Required engineering records
+
+The `docs/` directory is the detailed source of truth:
+
+- `PROJECT_LOG.md` — chronological development journal
+- `BUG_LOG.md` — bugs, root causes, fixes, regression status
+- `DECISIONS.md` — architecture and product decisions
+- `TESTING.md` — test strategy, executed tests and release gates
+- `DATABASE.md` — schema, migrations and RLS/security notes
+- `API.md` — API contracts and backend behavior
+- `DEPLOYMENTS.md` — deployment history and environment notes
+- `ROADMAP.md` — phase tracking, milestones and exit criteria
+
+### Documentation quality rule
+
+Do not write vague entries such as "fixed bug" or "updated backend". Use:
+
+**Context → Problem → Investigation → Root Cause → Change → Verification → Remaining Risk → Next Step**
+
+### Status terminology
+
+Use these statuses consistently: `PLANNED`, `IN_PROGRESS`, `BLOCKED`, `READY_FOR_TEST`, `TESTING`, `VERIFIED`, `RELEASED`, `DEFERRED`, `REVERTED`.
+
+A feature is not considered `VERIFIED` merely because it works once in a happy-path demo.
+
+### Permanent history rule
+
+Important project knowledge must live in the repository, not only in chat history. When a later change alters an earlier decision, preserve the history and document the new decision rather than silently rewriting the past.
+
+This protocol remains active through **MVP → private pilot → production hardening → launch → post-launch fixes → future releases**.
