@@ -224,3 +224,7 @@ Authenticated approved partner.
 Actions: accept or decline.
 
 Accept marks the assignment accepted. Decline clears the assignment, returns booking to SEARCHING_PARTNER and records incident/assignment event.
+
+
+## Source API checkpoint
+Customer booking, pricing, payment, delivery, partner, admin, notification, matching, review and recovery routes are now represented in the repository. Each route still requires live integration verification before production status is granted.
