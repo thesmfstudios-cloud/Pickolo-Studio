@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase-admin';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -25,6 +26,7 @@ export async function POST(
 ) {
   try {
     const supabase = getClient(request);
+    const serviceClient = getServiceClient();
     const { id } = await context.params;
     const body = await request.json().catch(() => ({}));
     const reason = String(body?.reason || 'Customer requested cancellation.').slice(0, 500);
@@ -52,7 +54,7 @@ export async function POST(
       return NextResponse.json({ error: 'This booking can no longer be cancelled.' }, { status: 409 });
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await serviceClient
       .from('bookings')
       .update({ status: 'CANCELLED', cancellation_reason: reason })
       .eq('id', id)
@@ -64,7 +66,7 @@ export async function POST(
       return NextResponse.json({ error: 'Booking changed concurrently. Refresh and retry.' }, { status: 409 });
     }
 
-    await supabase.from('booking_status_history').insert({
+    await serviceClient.from('booking_status_history').insert({
       booking_id: id,
       from_status: booking.status,
       to_status: 'CANCELLED',
