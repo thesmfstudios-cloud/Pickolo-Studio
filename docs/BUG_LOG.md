@@ -330,3 +330,13 @@ Manual admin assignments could create PARTNER_ASSIGNED without the same expiry/a
 
 ### Fix
 Manual assignment now sets a five-minute offer expiry and writes a partner assignment event.
+
+
+## B-028 — Scheduled workers used POST while Vercel Cron invokes GET
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Vercel Cron sends scheduled invocations as HTTP GET requests, while the internal expiry, search-queue and notification workers were POST-only.
+
+### Fix
+All scheduled worker route handlers now expose GET endpoints and keep CRON_SECRET authorization checks.
