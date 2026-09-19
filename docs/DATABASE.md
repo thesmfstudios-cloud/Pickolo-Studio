@@ -88,3 +88,17 @@ Partner assignment requires:
 - overlapping availability
 
 The 5 KM geographic radius remains a future rule until location/routing behavior is finalized.
+
+
+## Migration 0003 — Failure recovery + delivery security
+**Status:** AUTHORED / LIVE VERIFICATION PENDING
+
+Added:
+- booking_incidents
+- booking_reassignments
+- partner delivery insert/update policies
+
+Operational audit trail now distinguishes failure incidents from normal booking history.
+
+## Geographic eligibility
+Bookings and partners already store latitude/longitude. Assignment now requires both sides to have coordinates and enforces the 5 KM pilot radius in application logic.
