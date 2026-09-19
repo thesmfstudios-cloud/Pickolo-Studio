@@ -103,3 +103,12 @@ This checklist is the final gate before private pilot and production release.
 - [ ] First 100 paid bookings KPI tracking enabled
 
 A release is not considered complete until every required checklist item has evidence recorded in the relevant documentation.
+
+
+## Legal / Store listing
+- [ ] Privacy policy reviewed and finalized
+- [ ] Terms reviewed and finalized
+- [ ] Cancellation/refund policy finalized
+- [ ] Company/legal entity details published
+- [ ] Support contact published
+- [ ] App Store / Play Store metadata reviewed
