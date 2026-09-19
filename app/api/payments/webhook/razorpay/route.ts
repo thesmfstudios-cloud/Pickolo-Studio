@@ -97,7 +97,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    await assignBestPartner(payment.booking_id).catch(() => undefined);
+    if (payload.event === 'payment.captured' || payload.event === 'order.paid') {
+      await assignBestPartner(payment.booking_id).catch(() => undefined);
+    }
 
     return NextResponse.json({ received: true });
   } catch (error) {
