@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { calculateBookingPrice, type ServiceLevelName } from '@/lib/pricing';
+import { calculateBookingPrice } from '@/lib/pricing';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -86,14 +86,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const levelName = level.name as ServiceLevelName;
-    if (!['Basic', 'Standard', 'Professional'].includes(levelName)) {
-      return NextResponse.json({ error: 'Unsupported service level.' }, { status: 400 });
+    const { data: priceConfig, error: priceError } = await supabase
+      .from('service_level_prices')
+      .select('amount_paise,platform_fee_bps')
+      .eq('service_level_id', service_level_id)
+      .eq('duration_minutes', Number(duration_minutes))
+      .eq('active', true)
+      .maybeSingle();
+
+    if (priceError || !priceConfig) {
+      return NextResponse.json({ error: 'Pricing is not configured for this booking option.' }, { status: 409 });
     }
 
     const bookingPricing = calculateBookingPrice({
-      level: levelName,
-      durationMinutes: Number(duration_minutes) as 30 | 60 | 120,
+      amountPaise: Number(priceConfig.amount_paise),
+      platformFeeBps: Number(priceConfig.platform_fee_bps),
     });
 
     const { data, error } = await supabase
