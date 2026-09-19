@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
 import { fetchRazorpayPayment, verifyPaymentSignature } from '@/lib/razorpay';
+import { assignBestPartner } from '@/lib/assignment';
 
 export const runtime = 'nodejs';
 
@@ -113,7 +114,8 @@ export async function POST(
       metadata: { actor_role: 'customer', provider: 'razorpay', provider_payment_id: paymentId },
     });
 
-    return NextResponse.json({ booking: updated });
+    const assignment = await assignBestPartner(updated.id);
+    return NextResponse.json({ booking: updated, assignment });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
     return NextResponse.json({ error: message }, { status: 500 });
