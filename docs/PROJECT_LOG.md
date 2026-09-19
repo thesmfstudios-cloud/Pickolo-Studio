@@ -400,3 +400,26 @@ No live environment is marked verified until the actual Pickolo Supabase project
 
 ### Validation standard
 Static source audits have been used after major integration blocks to catch undefined server clients, route mismatches, scope errors and inconsistent lifecycle edges. Runtime verification is still intentionally unmarked until live environments are available.
+
+
+## 2026-09-19 — Production Readiness Hardening
+**Status:** IN_PROGRESS
+
+### Changes
+- Replaced mobile auth session persistence based on AsyncStorage with SecureStore-backed persistence.
+- Added chunking so larger serialized auth payloads can be stored safely across SecureStore entries.
+- Pinned previously floating mobile dependencies instead of using latest for Supabase JS and the URL polyfill.
+- Added expo-secure-store for both mobile applications.
+- Hardened .gitignore so environment-specific .env.* files remain untracked while .env.example stays shareable.
+- Documented Vercel deployment-budget discipline and the current cron-plan requirement.
+
+### Verification
+- Source changes were committed to GitHub.
+- Vercel/Supabase runtime verification remains intentionally pending.
+- Local npm build remains unverified because the available runtime cannot resolve github.com.
+
+### Remaining risk
+The new mobile dependency set and SecureStore behavior still require Android/iOS build verification in a network-capable environment.
+
+### Next
+Continue source-level audit, then use one controlled Vercel/Supabase deployment checkpoint for live integration verification rather than deploying every incremental code change.
