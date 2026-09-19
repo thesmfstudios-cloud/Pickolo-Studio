@@ -120,3 +120,36 @@ Partner-only. Validates future start time and end-after-start, then creates an a
 
 ### GET /api/admin/bookings
 Admin-only. Returns booking records for operational monitoring, optionally filtered by status.
+
+
+## Failure recovery APIs
+
+### POST /api/bookings/[id]/cancel
+Customer cancellation for eligible pre-shoot states.
+
+### POST /api/partner/jobs/[id]/cancel
+Assigned partner cancellation. Records a PARTNER_CANCELLATION incident and returns the booking to an operational cancellation state.
+
+### POST /api/admin/no-show/[id]
+Admin records a partner no-show, clears the assignment and returns the booking to SEARCHING_PARTNER for recovery.
+
+### POST /api/admin/reassign
+Admin reassigns a SEARCHING_PARTNER booking after eligibility checks and records reassignment history.
+
+## Delivery
+
+### POST /api/partner/jobs/[id]/delivery
+Assigned partner submits a delivery record.
+
+### POST /api/bookings/[id]/confirm-delivery
+Customer confirms that the delivery is accessible.
+
+## Payout
+
+### POST /api/admin/payouts/[id]/release
+Admin-only payout release after CUSTOMER_CONFIRMED.
+
+## Location
+
+### PATCH /api/partner/profile
+Partner updates their base coordinates for local assignment eligibility.
