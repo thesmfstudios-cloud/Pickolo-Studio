@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
 import { getApprovedPartner } from '@/lib/partner-auth';
+import { assignBestPartner } from '@/lib/assignment';
 
 export const runtime = 'nodejs';
 
@@ -40,7 +41,7 @@ export async function POST(
 
     const { data: booking, error: bookingError } = await serviceClient
       .from('bookings')
-      .select('id,booking_code,status,assigned_partner_id,partner_acceptance_status')
+      .select('id,booking_code,status,assigned_partner_id,partner_acceptance_status,partner_offer_expires_at,customer_id')
       .eq('id', id)
       .eq('assigned_partner_id', user.id)
       .single();
@@ -51,12 +52,17 @@ export async function POST(
       return NextResponse.json({ error: 'This assignment is no longer awaiting your response.' }, { status: 409 });
     }
 
+    if (booking.partner_offer_expires_at && new Date(booking.partner_offer_expires_at).getTime() <= Date.now()) {
+      return NextResponse.json({ error: 'This assignment offer has expired.' }, { status: 409 });
+    }
+
     if (action === 'accept') {
       const { data: updated, error } = await serviceClient
         .from('bookings')
         .update({
           partner_acceptance_status: 'accepted',
           partner_acceptance_at: new Date().toISOString(),
+          partner_offer_expires_at: null,
         })
         .eq('id', id)
         .eq('status', 'PARTNER_ASSIGNED')
@@ -91,6 +97,7 @@ export async function POST(
         status: 'SEARCHING_PARTNER',
         partner_acceptance_status: 'declined',
         partner_declined_at: new Date().toISOString(),
+        partner_offer_expires_at: null,
       })
       .eq('id', id)
       .eq('status', 'PARTNER_ASSIGNED')
@@ -116,7 +123,8 @@ export async function POST(
       recorded_by: user.id,
     });
 
-    return NextResponse.json({ booking: updated });
+    const nextAssignment = await assignBestPartner(id);
+    return NextResponse.json({ booking: updated, reassignment: nextAssignment });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
     return NextResponse.json({ error: message }, { status: 500 });
