@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import * as Location from 'expo-location';
+import * as DocumentPicker from 'expo-document-picker';
 import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
@@ -12,6 +13,8 @@ export default function PartnerApply() {
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [documents, setDocuments] = useState<Array<{ id: string; document_type: string; file_name: string; status: string }>>([]);
+  const [docBusy, setDocBusy] = useState(false);
 
   async function locate() {
     setLocating(true);
@@ -27,6 +30,72 @@ export default function PartnerApply() {
       Alert.alert('Location unavailable', 'Enter your details now. Location can be added later.');
     } finally {
       setLocating(false);
+    }
+  }
+
+  async function loadDocuments(token: string) {
+    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+    const response = await fetch(baseUrl + '/api/partner/documents', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const result = await response.json().catch(() => ({}));
+    if (response.ok) setDocuments(result.documents || []);
+  }
+
+  async function uploadDocument() {
+    if (!supabase) return;
+    const permission = await DocumentPicker.getDocumentAsync({
+      type: ['image/*', 'application/pdf'],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+
+    if (permission.canceled) return;
+    const asset = permission.assets[0];
+    if (!asset) return;
+
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      router.replace('/auth');
+      return;
+    }
+
+    setDocBusy(true);
+    try {
+      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+      const response = await fetch(baseUrl + '/api/partner/documents/upload-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token,
+        },
+        body: JSON.stringify({
+          document_type: 'identity',
+          file_name: asset.name,
+          mime_type: asset.mimeType || 'application/octet-stream',
+          size_bytes: asset.size || 0,
+        }),
+      });
+      const upload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(upload.error || 'Unable to prepare document upload.');
+
+      const fileResponse = await fetch(asset.uri);
+      const blob = await fileResponse.blob();
+      const { error: uploadError } = await supabase.storage
+        .from('partner-documents')
+        .uploadToSignedUrl(upload.path, upload.token, blob, {
+          contentType: asset.mimeType || 'application/octet-stream',
+        });
+
+      if (uploadError) throw new Error(uploadError.message);
+
+      await loadDocuments(token);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Document upload failed.';
+      Alert.alert('Document upload', message);
+    } finally {
+      setDocBusy(false);
     }
   }
 
@@ -69,7 +138,9 @@ export default function PartnerApply() {
       return;
     }
 
-    Alert.alert('Application submitted', 'Your Pickolo Partner application is now pending verification.', [
+    await loadDocuments(token);
+
+    Alert.alert('Application saved', 'Your Pickolo Partner application is pending verification.', [
       { text: 'Continue', onPress: () => router.replace('/home') },
     ]);
   }
@@ -90,6 +161,22 @@ export default function PartnerApply() {
         <Pressable style={styles.secondary} onPress={locate} disabled={locating}>
           <Text style={styles.secondaryText}>{locating ? 'Locating...' : coords ? 'Location added' : 'Use current location'}</Text>
         </Pressable>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Verification documents</Text>
+          <Text style={styles.muted}>Upload identity or verification documents. Files remain private until reviewed.</Text>
+          <Pressable style={styles.secondary} onPress={uploadDocument} disabled={docBusy}>
+            <Text style={styles.secondaryText}>{docBusy ? 'Uploading...' : 'Upload document'}</Text>
+          </Pressable>
+          {documents.map((doc) => (
+            <View key={doc.id} style={styles.documentRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.documentName}>{doc.file_name}</Text>
+                <Text style={styles.muted}>{doc.document_type} · {doc.status}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
 
         <Pressable style={styles.primary} onPress={submit} disabled={busy}>
           <Text style={styles.primaryText}>{busy ? 'Submitting...' : 'Submit application'}</Text>
@@ -112,4 +199,6 @@ const styles = StyleSheet.create({
   secondaryText: { color: '#1e3a8a', fontWeight: '800' },
   primary: { marginTop: 12, borderRadius: 14, backgroundColor: '#2563eb', paddingVertical: 15, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800' },
+  documentRow: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
+  documentName: { fontWeight: '800', color: '#13213a' },
 });
