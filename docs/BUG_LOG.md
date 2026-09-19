@@ -311,3 +311,22 @@ Added automatic matcher using distance, service-level eligibility, time availabi
 
 ### Remaining
 Weight tuning must be driven by pilot data.
+
+
+## B-026 — Reassignment location NaN bypass
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Emergency reassignment did not select booking coordinates before performing the 5 KM check. Missing coordinates could produce NaN, and NaN comparisons do not reject the candidate.
+
+### Fix
+Reassignment now explicitly selects and validates booking and partner coordinates before distance calculation.
+
+## B-027 — Manual assignment offer state incomplete
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Manual admin assignments could create PARTNER_ASSIGNED without the same expiry/audit event model used by automatic matching.
+
+### Fix
+Manual assignment now sets a five-minute offer expiry and writes a partner assignment event.
