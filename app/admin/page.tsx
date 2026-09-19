@@ -33,6 +33,16 @@ type Partner = {
   service_level?: { name?: string | null } | null;
 };
 
+type Dispute = {
+  id: string;
+  booking_id: string;
+  reason_code: string;
+  description: string;
+  status: string;
+  resolution: string | null;
+  created_at: string;
+};
+
 type PriceConfig = {
   id: string;
   duration_minutes: number;
@@ -48,6 +58,7 @@ export default function AdminPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [pricing, setPricing] = useState<PriceConfig[]>([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [message, setMessage] = useState('');
   const [savingPriceId, setSavingPriceId] = useState<string | null>(null);
 
@@ -78,13 +89,15 @@ export default function AdminPage() {
       fetch('/api/admin/partners?status=pending', { headers }),
       fetch('/api/admin/partner-directory', { headers }),
       fetch('/api/admin/pricing', { headers }),
+      fetch('/api/admin/disputes?status=open', { headers }),
     ]);
 
-    const [bookingData, appData, partnerData, pricingData] = await Promise.all([
+    const [bookingData, appData, partnerData, pricingData, disputeData] = await Promise.all([
       bookingRes.json().catch(() => ({})),
       appRes.json().catch(() => ({})),
       partnerRes.json().catch(() => ({})),
       pricingRes.json().catch(() => ({})),
+      fetch('/api/admin/disputes?status=open', { headers }).then((response) => response.json()).catch(() => ({})),
     ]);
 
     if (!bookingRes.ok) setMessage(bookingData.error || 'Unable to load bookings.');
@@ -92,6 +105,7 @@ export default function AdminPage() {
     setApplications(appData.applications || []);
     setPartners(partnerData.partners || []);
     setPricing(pricingData.pricing || []);
+    setDisputes(disputeData.disputes || []);
     setLoading(false);
   }, [token]);
 
@@ -290,6 +304,22 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+        </section>
+
+        <section className="card section">
+          <h2>Open support cases</h2>
+          {disputes.length === 0 ? <p className="muted">No open disputes.</p> : disputes.map((dispute) => (
+            <div key={dispute.id} style={{padding:'16px 0',borderBottom:'1px solid var(--line)'}}>
+              <strong>{dispute.reason_code}</strong>
+              <div className="muted">Booking {dispute.booking_id}</div>
+              <p>{dispute.description}</p>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                <button className="button secondary" onClick={() => postAdmin('/api/admin/disputes', { id: dispute.id, status: 'under_review' })}>Review</button>
+                <button className="button" onClick={() => postAdmin('/api/admin/disputes', { id: dispute.id, status: 'resolved', resolution: 'Issue reviewed and resolved by Pickolo operations.' })}>Resolve</button>
+                <button className="button secondary" onClick={() => postAdmin('/api/admin/disputes', { id: dispute.id, status: 'rejected', resolution: 'Case reviewed and rejected by Pickolo operations.' })}>Reject</button>
+              </div>
+            </div>
+          ))}
         </section>
 
         <section className="card section">
