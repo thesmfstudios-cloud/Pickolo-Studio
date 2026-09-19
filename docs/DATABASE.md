@@ -186,6 +186,8 @@ Payout dispute guard, assignment events, scheduled search workers and related ac
 → 0014 lifecycle metrics
 → 0015 trust & safety
 → 0016 pending applicant documents
+→ 0017 admin audit trail
+→ 0018 profile role guard
 
 Execution against the real Pickolo Supabase project remains pending.
 
