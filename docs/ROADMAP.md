@@ -74,3 +74,22 @@ No move to payment implementation until the following are verified on the real d
 3. Booking persistence
 4. Booking isolation
 5. Preview build
+
+
+## 2026-09-19 Update — Customer Auth/Booking Foundation
+**Status:** IN_PROGRESS
+
+Implemented in source:
+- Customer auth UI foundation
+- Supabase browser client
+- Catalog-backed booking form
+- Authenticated booking API integration
+- Future-time validation
+- Active service/service-level validation
+
+Still required before Phase 2 is complete:
+- Live Supabase verification
+- Persisted booking test
+- Booking history UI
+- Booking status UI
+- Authoritative pricing
