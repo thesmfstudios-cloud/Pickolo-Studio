@@ -77,7 +77,7 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
 
   const excludedPartners = new Set(
     (priorEvents ?? [])
-      .filter((event) => ['DECLINED', 'EXPIRED'].includes(event.event_type))
+      .filter((event) => ['DECLINED', 'EXPIRED', 'CANCELLED', 'NO_SHOW'].includes(event.event_type))
       .map((event) => event.partner_id),
   );
 
