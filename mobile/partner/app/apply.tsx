@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 import * as DocumentPicker from 'expo-document-picker';
 import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -15,6 +15,17 @@ export default function PartnerApply() {
   const [busy, setBusy] = useState(false);
   const [documents, setDocuments] = useState<Array<{ id: string; document_type: string; file_name: string; status: string }>>([]);
   const [docBusy, setDocBusy] = useState(false);
+
+  useEffect(() => {
+    async function loadExistingDocuments() {
+      if (!supabase) return;
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      await loadDocuments(token);
+    }
+    loadExistingDocuments();
+  }, []);
 
   async function locate() {
     setLocating(true);
