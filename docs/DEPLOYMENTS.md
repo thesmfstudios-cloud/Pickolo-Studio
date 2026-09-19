@@ -1,7 +1,7 @@
 # Pickolo Studio — Deployment History
 
 ## Current state
-GitHub repository foundation is committed. First verified Vercel deployment is not yet recorded.
+GitHub repository foundation is committed. First verified Vercel deployment is recorded below; the current production alias is serving the Pickolo application.
 
 ## Environments
 - Local
