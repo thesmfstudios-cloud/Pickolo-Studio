@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase-admin';
 import { BOOKING_TRANSITIONS, type BookingState } from '@/types/pickolo';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -39,6 +40,7 @@ export async function POST(
 ) {
   try {
     const supabase = getClient(request);
+    const serviceClient = getServiceClient();
     const { id } = await context.params;
     const body = await request.json();
     const toStatus = body?.to_status as BookingState | undefined;
@@ -103,7 +105,7 @@ export async function POST(
       return NextResponse.json({ error: 'Booking changed concurrently. Refresh and retry.' }, { status: 409 });
     }
 
-    const { error: historyError } = await supabase
+    const { error: historyError } = await serviceClient
       .from('booking_status_history')
       .insert({
         booking_id: id,
