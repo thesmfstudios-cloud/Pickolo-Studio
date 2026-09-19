@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
       {children}
-      <footer className="footer"><div className="container">Pickolo App by SMF Studios · MVP Foundation</div></footer>
+      <footer className="footer"><div className="container"><div>Pickolo App by SMF Studios · MVP Foundation</div><div style={{display:'flex',gap:16,marginTop:8,fontSize:12}}><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/refund-policy">Refunds</Link></div></div></footer>
     </div>
   );
 }
