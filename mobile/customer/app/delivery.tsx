@@ -17,11 +17,15 @@ export default function DeliveryViewer() {
   const [busy, setBusy] = useState(true);
 
   const load = useCallback(async () => {
-    if (!supabase || !id) return;
+    if (!supabase || !id) {
+      setBusy(false);
+      return;
+    }
 
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) {
+      setBusy(false);
       router.replace('/auth');
       return;
     }
@@ -34,6 +38,7 @@ export default function DeliveryViewer() {
 
     if (!response.ok) {
       Alert.alert('Delivery unavailable', result.error || 'Unable to load delivery.');
+      setBusy(false);
       return;
     }
 
