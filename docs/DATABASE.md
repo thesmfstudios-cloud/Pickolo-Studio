@@ -64,3 +64,16 @@ Bookings now have explicit server-calculated money fields:
 The current values are development configuration and must not be treated as finalized commercial pricing.
 
 Booking status history records lifecycle transitions with actor identity and timestamps.
+
+
+## Migration 0002 — Admin / Assignment Security
+**Status:** AUTHORED / LIVE VERIFICATION PENDING
+
+Adds:
+- is_admin() authorization helper
+- admin booking access policy
+- admin partner read/update policies
+- admin performance/history visibility
+- assignment index
+
+Live policy verification remains pending until the Pickolo Supabase project is accessible.
