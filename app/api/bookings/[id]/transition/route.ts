@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getApprovedPartner } from '@/lib/partner-auth';
 import { getServiceClient } from '@/lib/supabase-admin';
 import { BOOKING_TRANSITIONS, type BookingState } from '@/types/pickolo';
 
@@ -74,6 +75,13 @@ export async function POST(
     const fromStatus = booking.status as BookingState;
 
     let allowedTargets: BookingState[] = [];
+
+    if (role === 'partner') {
+      const partner = await getApprovedPartner(serviceClient, user.id);
+      if (!partner) {
+        return NextResponse.json({ error: 'Approved partner access required.' }, { status: 403 });
+      }
+    }
 
     if (role === 'admin') {
       allowedTargets = ADMIN_ALLOWED[fromStatus] ?? [];
