@@ -551,3 +551,28 @@ A feature is only marked RELEASED/VERIFIED after live database, build, security 
 
 ### Current highest-priority gate
 **Live infrastructure access → migrations → Auth/RLS → Android/iOS development builds → payment sandbox → pilot verification.**
+
+
+---
+
+## 2026-09-19 — Live deployment verification update
+
+**Current verified state:**
+- Pickolo Vercel production project: `pickolo-studio`
+- Production alias: `https://pickolo-studio.vercel.app/`
+- Current `main` HEAD: `08167d03d1fc7d20ef427be25112821736dd707c`
+- Vercel deployment check for current HEAD: **success**
+- GitHub Pickolo CI Run #148 for current HEAD: **success**
+
+Live browser smoke tests passed for:
+- `/`
+- `/customer`
+- `/partner`
+- `/admin`
+- `/privacy`
+- `/terms`
+- `/refund-policy`
+
+The application is therefore **web-deployed and smoke-verified**, but this is not yet a production-ready release. The next gate is the correct Pickolo Supabase project, followed by migrations, Auth/RLS live testing, payment sandbox verification, and mobile build verification.
+
+The connected Supabase integration currently exposes only the unrelated `Aahana AI Influencer` project. No migration or database change should be applied until the intended Pickolo Supabase project is independently verified.
