@@ -310,3 +310,9 @@ Remaining:
 - offer expiry
 - timed reassignment
 - operational SLA monitoring
+
+
+## 2026-09-19 — Source MVP Checkpoint
+**Status:** SOURCE-COMPLETE / LIVE VERIFICATION PENDING
+
+The main customer-to-partner transaction loop is implemented in source. Remaining work is primarily live infrastructure verification, native device testing, commercial configuration, and pilot hardening rather than a redesign of the core architecture.
