@@ -35,3 +35,15 @@
 **Decision:** Meaningful features are incomplete until implementation, testing and documentation are updated together.  
 **Reason:** The repository must preserve engineering knowledge independently of chat history.  
 **Status:** ACTIVE
+
+
+## D-008 — Android + iOS cross-platform mobile
+**Date:** 2026-09-19  
+**Decision:** Customer and Partner experiences will be built as cross-platform React Native applications targeting Android and iOS. The Admin Panel remains a Next.js web application.  
+**Reason:** Maintain one mobile codebase across both platforms while sharing the same backend, API contracts and business rules.  
+**Status:** ACTIVE
+
+## D-009 — Mobile codebase structure
+**Decision:** Keep mobile application code separate from the Next.js admin/web application. Customer and Partner experiences may share common mobile UI/domain modules while retaining role-specific screens and workflows.  
+**Reason:** Avoid coupling the mobile runtime to the web admin application and make Android/iOS release testing explicit.  
+**Status:** ACTIVE
