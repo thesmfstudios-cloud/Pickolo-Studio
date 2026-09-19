@@ -40,7 +40,7 @@ export async function POST(
 
     if (bookingError || !booking) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     if (booking.assigned_partner_id !== user.id) return NextResponse.json({ error: 'Assigned partner access required.' }, { status: 403 });
-    if (!['SHOOT_COMPLETED', 'DATA_PENDING'].includes(booking.status)) {
+    if (booking.status !== 'DATA_PENDING') {
       return NextResponse.json({ error: 'Booking is not ready for delivery.' }, { status: 409 });
     }
 
@@ -95,19 +95,19 @@ export async function POST(
 
     if (deliveryError) return NextResponse.json({ error: deliveryError.message }, { status: 400 });
 
-    if (booking.status === 'SHOOT_COMPLETED') {
+    if (booking.status === 'DATA_PENDING') {
       const { data: updated } = await serviceClient
         .from('bookings')
         .update({ status: 'DATA_SUBMITTED' })
         .eq('id', id)
-        .eq('status', 'SHOOT_COMPLETED')
+        .eq('status', 'DATA_PENDING')
         .select('id,booking_code,status')
         .single();
 
       if (updated) {
         await serviceClient.from('booking_status_history').insert({
           booking_id: id,
-          from_status: 'SHOOT_COMPLETED',
+          from_status: 'DATA_PENDING',
           to_status: 'DATA_SUBMITTED',
           changed_by: user.id,
           metadata: { actor_role: 'partner', asset_count: saved?.length || 0 },
