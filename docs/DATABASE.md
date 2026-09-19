@@ -150,3 +150,10 @@ Added:
 
 ## Pricing configuration
 Migration 0011 moved customer booking pricing into service_level_prices so commercial rates can change without application redeploy.
+
+
+## Migration sequence
+Current authored migration sequence:
+0001 core → 0002 admin assignment → 0003 failure recovery → 0004 partner onboarding/notifications → 0005 notification/performance automation → 0006 payments → 0007 RLS hardening → 0008 reviews → 0009 private media → 0010 multi-file delivery → 0011 pricing configuration → 0012 booking history admin insert → 0013 partner acceptance → 0014 lifecycle metrics.
+
+All migrations remain source-authored until they are executed against the verified Pickolo Supabase project.
