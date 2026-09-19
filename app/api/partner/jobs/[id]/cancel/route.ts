@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getApprovedPartner } from '@/lib/partner-auth';
 import { getServiceClient } from '@/lib/supabase-admin';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,6 +25,9 @@ export async function POST(
     const { id } = await context.params;
     const body = await request.json().catch(() => ({}));
     const reason = String(body?.reason || 'Partner cancelled assignment.').slice(0, 500);
+
+    const partner = await getApprovedPartner(serviceClient, user.id);
+    if (!partner) return NextResponse.json({ error: 'Approved partner access required.' }, { status: 403 });
 
     const { data: booking, error } = await supabase
       .from('bookings')
