@@ -443,3 +443,13 @@ The admin verification queue exposed metadata but no secure way to inspect the p
 
 ### Fix
 Admin document list now creates 15-minute signed URLs, and the console exposes a Review file action. Documents remain in a private storage bucket.
+
+
+## B-040 — Public pricing API exposed internal unit economics
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The public pricing response included platform fee and partner payout values in addition to the customer total.
+
+### Fix
+Public pricing now returns only currency and customer total. Internal fee/payout values remain server-side.
