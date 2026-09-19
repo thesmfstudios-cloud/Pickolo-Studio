@@ -126,14 +126,14 @@ begin
   )
   values (
     new.partner_id,
-    case when new.incident_type = 'PARTNER_CANCELLATION' then 1 else 0 end,
+    case when new.incident_type in ('PARTNER_CANCELLATION','PARTNER_DECLINE') then 1 else 0 end,
     case when new.incident_type = 'PARTNER_NO_SHOW' then 1 else 0 end,
     now()
   )
   on conflict (partner_id)
   do update set
     cancellations = public.partner_performance.cancellations
-      + case when new.incident_type = 'PARTNER_CANCELLATION' then 1 else 0 end,
+      + case when new.incident_type in ('PARTNER_CANCELLATION','PARTNER_DECLINE') then 1 else 0 end,
     no_shows = public.partner_performance.no_shows
       + case when new.incident_type = 'PARTNER_NO_SHOW' then 1 else 0 end,
     updated_at = now();
