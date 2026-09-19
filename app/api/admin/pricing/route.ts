@@ -76,6 +76,7 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    await writeAdminAudit({ actorId: user.id, action: 'UPDATE_PRICING', entityType: 'service_level_price', entityId: id, metadata: { amount_paise: amountPaise, platform_fee_bps: platformFeeBps } });
     return NextResponse.json({ pricing: data });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
