@@ -49,6 +49,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const locationText = String(location_text).trim();
+    if (locationText.length < 3 || locationText.length > 300) {
+      return NextResponse.json(
+        { error: 'location_text must be between 3 and 300 characters.' },
+        { status: 400 },
+      );
+    }
+
+    const latitude = Number(location_lat);
+    const longitude = Number(location_long);
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+      return NextResponse.json({ error: 'location_lat must be a valid latitude.' }, { status: 400 });
+    }
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      return NextResponse.json({ error: 'location_long must be a valid longitude.' }, { status: 400 });
+    }
+
+    const normalizedNotes = notes == null ? null : String(notes).trim();
+    if (normalizedNotes && normalizedNotes.length > 2000) {
+      return NextResponse.json({ error: 'notes must be 2000 characters or fewer.' }, { status: 400 });
+    }
+
     const start = new Date(String(scheduled_start));
     if (Number.isNaN(start.getTime()) || start.getTime() <= Date.now()) {
       return NextResponse.json(
@@ -111,10 +133,10 @@ export async function POST(request: NextRequest) {
         service_level_id,
         scheduled_start,
         duration_minutes: Number(duration_minutes),
-        location_text,
-        location_lat: location_lat ?? null,
-        location_long: location_long ?? null,
-        notes: notes ?? null,
+        location_text: locationText,
+        location_lat: latitude,
+        location_long: longitude,
+        notes: normalizedNotes,
         customer_price_paise: bookingPricing.totalPaise,
         platform_fee_paise: bookingPricing.platformFeePaise,
         partner_payout_paise: bookingPricing.partnerPayoutPaise,
