@@ -4,7 +4,7 @@ import { assignBestPartner } from '@/lib/assignment';
 
 export const runtime = 'nodejs';
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get('x-cron-secret') !== secret) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
