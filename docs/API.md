@@ -264,3 +264,10 @@ Admin moves dispute to under_review, resolved or rejected.
 - Internal scheduled assignment and notification workers
 
 All state-changing routes authenticate the caller before controlled server-side writes. Live authorization remains pending verification.
+
+
+## Admin audit
+Sensitive admin routes write an independent audit record in `admin_audit_log` after successful authorization and operation.
+
+## Legacy delivery
+`POST /api/partner/jobs/[id]/delivery` is retired with HTTP 410. Use the signed multi-file delivery flow instead.
