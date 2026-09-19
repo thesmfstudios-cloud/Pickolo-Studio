@@ -156,3 +156,31 @@ A precise distance/routing rule has not yet been finalized in the live product.
 
 ### Required before pilot
 Implement and test the 5 KM eligibility calculation with customer and partner location data, including location permission/error handling.
+
+
+## B-013 — Missing 5 KM geographic enforcement
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Assignment previously validated partner approval, service level and availability but did not enforce the pilot geographic radius.
+
+### Fix
+Added Haversine distance calculation and 5 KM rule to admin assignment and reassignment.
+
+### Current behavior
+If customer or partner coordinates are missing, assignment is rejected. If distance exceeds 5 KM, assignment is rejected.
+
+### Remaining
+Live location accuracy and device permission behavior must be tested on Android/iOS.
+
+## B-014 — Failure path ended the booking too aggressively
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Partner cancellation could terminate the booking instead of preserving the customer's request for recovery.
+
+### Fix
+Partner no-show recovery returns eligible bookings to SEARCHING_PARTNER after recording an incident, enabling emergency reassignment.
+
+### Remaining
+Customer notification and operational SLA behavior need live integration testing.
