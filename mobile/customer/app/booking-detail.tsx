@@ -19,6 +19,59 @@ export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [booking, setBooking] = useState<Booking | null>(null);
 
+  async function confirmDelivery() {
+    if (!supabase || !id) return;
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      router.replace('/auth');
+      return;
+    }
+
+    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+    const response = await fetch(baseUrl + '/api/bookings/' + id + '/confirm-delivery', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      Alert.alert('Unable to confirm', result.error || 'Please try again.');
+      return;
+    }
+
+    Alert.alert('Delivery confirmed', 'Your booking is now ready for Pickolo payout processing.', [
+      { text: 'Done', onPress: () => router.replace({ pathname: '/booking-detail', params: { id } }) },
+    ]);
+  }
+
+  async function cancelBooking() {
+    if (!supabase || !id) return;
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      router.replace('/auth');
+      return;
+    }
+
+    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+    const response = await fetch(baseUrl + '/api/bookings/' + id + '/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ reason: 'Customer requested cancellation.' }),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      Alert.alert('Unable to cancel', result.error || 'Please try again.');
+      return;
+    }
+
+    Alert.alert('Booking cancelled', 'Your booking has been cancelled.', [
+      { text: 'Done', onPress: () => router.replace({ pathname: '/booking-detail', params: { id } }) },
+    ]);
+  }
+
   useEffect(() => {
     async function load() {
       if (!supabase || !id) return;
@@ -78,6 +131,18 @@ export default function BookingDetailScreen() {
           <Text style={styles.price}>₹{(booking.customer_price_paise / 100).toFixed(0)}</Text>
 
           {booking.notes ? <><Text style={styles.label}>Requirement</Text><Text style={styles.value}>{booking.notes}</Text></> : null}
+
+          {booking.status === 'DATA_SUBMITTED' && (
+            <Pressable style={styles.primary} onPress={confirmDelivery}>
+              <Text style={styles.primaryText}>Confirm delivery</Text>
+            </Pressable>
+          )}
+
+          {['REQUESTED', 'PAYMENT_CONFIRMED', 'SEARCHING_PARTNER', 'PARTNER_ASSIGNED'].includes(booking.status) && (
+            <Pressable style={styles.danger} onPress={cancelBooking}>
+              <Text style={styles.dangerText}>Cancel booking</Text>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -94,5 +159,9 @@ const styles = StyleSheet.create({
   label: { marginTop: 16, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, color: '#64748b' },
   value: { marginTop: 5, fontSize: 16, lineHeight: 23, color: '#13213a', fontWeight: '600' },
   price: { marginTop: 5, fontSize: 25, color: '#13213a', fontWeight: '800' },
+  primary: { marginTop: 18, backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  primaryText: { color: '#fff', fontWeight: '800' },
+  danger: { marginTop: 10, backgroundColor: '#fff1f2', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  dangerText: { color: '#be123c', fontWeight: '800' },
   muted: { color: '#64748b' },
 });
