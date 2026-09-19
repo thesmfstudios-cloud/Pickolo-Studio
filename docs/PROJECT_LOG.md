@@ -237,3 +237,32 @@ Partner cancellation/no-show can return an eligible booking to SEARCHING_PARTNER
 
 ### Verification
 Source committed. Live Supabase, device and payment verification remain pending.
+
+
+## 2026-09-19 — Payment Integration
+**Status:** IN_PROGRESS
+
+### Built
+- Razorpay server integration helper.
+- Server-authoritative payment order creation.
+- Payment signature verification.
+- Razorpay payment status fetch.
+- Razorpay webhook signature verification.
+- Captured payment → PAYMENT_CONFIRMED workflow.
+- Customer refund workflow for captured payments on cancelled bookings.
+- Native customer mobile payment screen using the React Native Razorpay wrapper.
+- Payment/review controls on customer booking detail.
+
+### Security
+- Razorpay secret stays server-side.
+- Mobile receives only the public key and trusted order details.
+- Order amount is derived from the stored booking amount.
+- Signature is verified before booking confirmation.
+- Provider payment amount/order/currency are checked against the database booking.
+- Webhooks are signature verified and provider state is independently fetched.
+
+### External dependency
+Razorpay merchant/test credentials are required before live payment testing.
+
+### Next
+Admin financial controls, payment reconciliation, and live sandbox/device verification.
