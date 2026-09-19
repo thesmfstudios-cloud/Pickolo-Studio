@@ -11,18 +11,52 @@ export default function PartnerAuth() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
 
-  async function login() {
+  async function submitAuth() {
     if (!supabase) {
       Alert.alert('Pickolo', 'Supabase is not configured.');
       return;
     }
-    setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setBusy(false);
-    if (error) {
-      Alert.alert('Login failed', error.message);
+
+    const normalizedEmail = email.trim();
+    const normalizedName = fullName.trim();
+    const normalizedPhone = phone.trim();
+
+    if (!normalizedEmail || !password || (mode === 'signup' && (!normalizedName || !normalizedPhone))) {
+      Alert.alert('Missing details', 'Please complete all required fields.');
       return;
     }
+
+    setBusy(true);
+
+    const result =
+      mode === 'login'
+        ? await supabase.auth.signInWithPassword({
+            email: normalizedEmail,
+            password,
+          })
+        : await supabase.auth.signUp({
+            email: normalizedEmail,
+            password,
+            options: {
+              data: {
+                full_name: normalizedName,
+                phone: normalizedPhone,
+              },
+            },
+          });
+
+    setBusy(false);
+
+    if (result.error) {
+      Alert.alert(mode === 'login' ? 'Login failed' : 'Account creation failed', result.error.message);
+      return;
+    }
+
+    if (mode === 'signup' && !result.data.session) {
+      Alert.alert('Account created', 'Check your email if confirmation is enabled.');
+      return;
+    }
+
     router.replace('/home');
   }
 
@@ -32,18 +66,41 @@ export default function PartnerAuth() {
         <Text style={styles.kicker}>PICKOLO PARTNER</Text>
         <Text style={styles.title}>{mode === 'login' ? 'Partner Login' : 'Create partner account'}</Text>
         <Text style={styles.subtitle}>Manage nearby assignments and your Pickolo work.</Text>
+
         <View style={styles.form}>
-          {mode === 'signup' && <>
-            <TextInput style={styles.input} placeholder="Full name" value={fullName} onChangeText={setFullName} />
-            <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-          </>}
-          <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-          <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-          <Pressable style={styles.primary} onPress={login} disabled={busy}>
-            <Text style={styles.primaryText}>{busy ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create account'}</Text>
+          {mode === 'signup' && (
+            <>
+              <TextInput style={styles.input} placeholder="Full name" value={fullName} onChangeText={setFullName} />
+              <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+            </>
+          )}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+
+          <Pressable style={styles.primary} onPress={submitAuth} disabled={busy}>
+            <Text style={styles.primaryText}>
+              {busy ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create account'}
+            </Text>
           </Pressable>
+
           <Pressable style={styles.secondary} onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}>
-            <Text style={styles.secondaryText}>{mode === 'login' ? 'Create partner account' : 'Already have an account? Login'}</Text>
+            <Text style={styles.secondaryText}>
+              {mode === 'login' ? 'Create partner account' : 'Already have an account? Login'}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -61,4 +118,6 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 15, paddingVertical: 14, fontSize: 16 },
   primary: { backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  secondary: { paddingVertical: 14, alignItems: 'center' },
+  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
 });
