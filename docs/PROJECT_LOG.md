@@ -266,3 +266,41 @@ Razorpay merchant/test credentials are required before live payment testing.
 
 ### Next
 Admin financial controls, payment reconciliation, and live sandbox/device verification.
+
+
+## 2026-09-19 — Major MVP Transaction Loop
+**Status:** SOURCE-COMPLETE / LIVE VERIFICATION PENDING
+
+### Implemented
+- Server-authoritative pricing
+- Customer payment order creation
+- Payment signature verification
+- Provider payment reconciliation
+- Payment webhooks
+- Refund workflow
+- Partner onboarding
+- Admin partner verification
+- Partner availability
+- Partner assignment and reassignment
+- 5 KM geographic rule
+- Partner cancellation/no-show recovery
+- Private storage
+- Signed multi-file delivery upload
+- Customer private delivery viewing
+- Delivery confirmation
+- Controlled payout release
+- Reviews and partner rating updates
+- Booking status notifications
+- Push token registration
+- Push dispatcher
+- Partner performance automation
+- Customer and partner notification screens
+- Android/iOS Expo foundations
+- EAS build profiles
+- Release checklist
+
+### Important unresolved gate
+Live Supabase project access is still not available through the connected integration, and local build verification is blocked by runtime network/DNS restrictions.
+
+### Engineering principle
+The codebase is now structured so live verification can proceed without redesigning the core transaction model.
