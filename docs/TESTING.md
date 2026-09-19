@@ -63,3 +63,11 @@ Build → Functional Test → Failure Test → Security/RLS Review → Documenta
 
 ### Blocker
 Live execution is pending access to the Pickolo Supabase project through the connected integration.
+
+
+## New checks added
+- [ ] Past booking time rejected
+- [ ] Invalid booking timestamp rejected
+- [ ] Inactive service rejected
+- [ ] Inactive service level rejected
+- [ ] Authenticated customer identity cannot be overridden by request payload
