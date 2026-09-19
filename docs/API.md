@@ -27,3 +27,25 @@ Every production endpoint must document:
 - Business-rule errors
 - Idempotency requirements
 - Audit/logging behavior
+
+
+## Implemented — Booking API
+
+### POST /api/bookings
+**Status:** CODED / LIVE TEST PENDING
+
+Authenticated customer creates a booking in REQUESTED state.
+
+Required fields: service_id, service_level_id, scheduled_start, duration_minutes, location_text.
+
+Duration is restricted to 30, 60 or 120 minutes for the MVP.
+
+Customer identity is taken from the authenticated Supabase user, not a client-supplied customer id.
+
+### GET /api/bookings
+**Status:** CODED / LIVE TEST PENDING
+
+Returns the authenticated customer's bookings ordered newest first.
+
+### Security
+The route forwards the caller's Authorization header to Supabase and relies on authenticated access plus database RLS. No client is trusted to choose another customer's identity.
