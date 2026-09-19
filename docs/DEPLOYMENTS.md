@@ -29,3 +29,7 @@ Applications:
 - Pickolo Partner — Android + iOS
 
 No verified APK/AAB or iOS archive has been produced yet. Build artifacts must only be recorded after actual platform build verification.
+
+
+## 2026-09-19 — Source deployment checkpoint
+Application source is committed to GitHub. No production deployment is marked verified because the Pickolo Vercel project is not currently visible through the connected Vercel integration.
