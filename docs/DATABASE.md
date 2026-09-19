@@ -199,3 +199,9 @@ Adds `admin_audit_log` for sensitive operator actions.
 - Failed partner events are excluded from rematching.
 - Pricing is configurable in `service_level_prices`.
 - Delivery media is stored privately and accessed via signed URLs.
+
+
+## Migration 0018 — Profile role guard
+Adds a server-side trigger that prevents an authenticated user from changing their own profile role. Existing admins may change another user's role through the controlled admin workflow, and server service-role operations remain permitted.
+
+This closes the role self-escalation path created by the general own-profile update policy.
