@@ -67,3 +67,21 @@ The Pickolo Vercel project is confirmed as `pickolo-studio` in the SMF team, wit
 The latest visible production deployment before this checkpoint used an older commit and failed during TypeScript setup because that revision did not contain the current root development dependencies. The current `main` branch contains the pinned TypeScript/type-definition dependencies and the GitHub CI source checkpoint is green.
 
 A single controlled Git deployment is being triggered from the current `main` revision. Build/runtime evidence will be recorded after the deployment result is known. The existing Vercel Hobby limitation for Pickolo's one-minute cron schedules remains a separate deployment/runtime constraint and will be handled based on the live result.
+
+## 2026-09-19 — First verified web deployment
+Vercel deployment commit `b1bd8f63dea9517455fea2bf3110232f9b794fc4` reached **Ready** in the `SMF` Hobby project `pickolo-studio`.
+
+Production deployment URL: `https://pickolo-studio-bzsohdtwg-smf5.vercel.app/`
+Project production alias also served the application successfully: `https://pickolo-studio.vercel.app/`
+
+Live smoke checks completed:
+- `/` loaded the Pickolo landing page.
+- `/customer` loaded the customer authentication screen.
+- `/partner` loaded the partner workspace/authentication screen.
+- `/admin` loaded the restricted admin sign-in screen.
+- `/privacy`, `/terms`, and `/refund-policy` loaded successfully.
+- Unauthenticated API checks returned expected protection responses for admin metrics, admin pricing, and customer bookings.
+
+Production environment currently contains Supabase-related variables. Razorpay sandbox configuration has not yet been verified as present, and the connected Supabase project/migrations are still a separate live-infrastructure gate.
+
+The three minute-level cron registrations remain removed from `vercel.json` for the Hobby deployment. Background worker routes remain in source but require a scheduler/plan that supports the required execution frequency before automated assignment expiry, search recovery, and notification dispatch are considered production-ready.
