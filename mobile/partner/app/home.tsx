@@ -1,9 +1,56 @@
 import { useEffect } from 'react';
 import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
 
 export default function PartnerHome() {
+  async function setCurrentLocation() {
+    if (!supabase) return;
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Location permission', 'Allow location access so Pickolo can match you with nearby jobs.');
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+
+      if (!token) {
+        router.replace('/auth');
+        return;
+      }
+
+      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+      const response = await fetch(baseUrl + '/api/partner/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token,
+        },
+        body: JSON.stringify({
+          base_lat: position.coords.latitude,
+          base_long: position.coords.longitude,
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        Alert.alert('Unable to save location', result.error || 'Please try again.');
+        return;
+      }
+
+      Alert.alert('Location saved', 'Your partner location is ready for nearby assignment matching.');
+    } catch {
+      Alert.alert('Location unavailable', 'We could not read your current location.');
+    }
+  }
+
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {
@@ -36,6 +83,14 @@ export default function PartnerHome() {
           <Text style={styles.badge}>AVAILABLE</Text>
           <Text style={styles.cardTitle}>Ready for nearby jobs</Text>
           <Text style={styles.muted}>Assignment matching, availability and job actions will connect to the backend in the next partner milestone.</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Location</Text>
+          <Text style={styles.muted}>Set your current base location for the 5 KM pilot matching rule.</Text>
+          <Pressable style={styles.secondary} onPress={setCurrentLocation}>
+            <Text style={styles.secondaryText}>Set current location</Text>
+          </Pressable>
         </View>
 
         <View style={styles.card}>
