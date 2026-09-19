@@ -129,6 +129,29 @@ export default function AdminPage() {
     await load();
   }
 
+  async function postAdmin(path: string, body?: Record<string, unknown>) {
+    const accessToken = await token();
+    if (!accessToken) return false;
+
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + accessToken,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setMessage(result.error || 'Operation failed.');
+      return false;
+    }
+
+    await load();
+    return true;
+  }
+
   async function logout() {
     await supabase?.auth.signOut();
     window.location.href = '/admin/login';
@@ -200,7 +223,7 @@ export default function AdminPage() {
         <section className="card section">
           <h2>Booking queue</h2>
           <table className="table">
-            <thead><tr><th>Booking</th><th>Status</th><th>Schedule</th><th>Level</th><th>Assignment</th></tr></thead>
+            <thead><tr><th>Booking</th><th>Status</th><th>Schedule</th><th>Level</th><th>Assignment</th><th>Operations</th></tr></thead>
             <tbody>
               {bookings.map((booking) => (
                 <tr key={booking.id}>
@@ -217,6 +240,16 @@ export default function AdminPage() {
                         ))}
                       </select>
                     )}
+                  </td>
+                  <td>
+                    <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                      {booking.assigned_partner_id && ['PARTNER_ASSIGNED','ON_THE_WAY'].includes(booking.status) && (
+                        <button className="button secondary" onClick={() => postAdmin('/api/admin/no-show/' + booking.id, { reason: 'Partner no-show recorded by admin.' })}>No-show</button>
+                      )}
+                      {booking.status === 'CUSTOMER_CONFIRMED' && (
+                        <button className="button" onClick={() => postAdmin('/api/admin/payouts/' + booking.id + '/release')}>Release payout</button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
