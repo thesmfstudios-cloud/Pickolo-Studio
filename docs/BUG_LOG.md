@@ -140,3 +140,19 @@ Admin assignment now checks partner approval, service-level eligibility and over
 
 ### Remaining
 Geographic radius/distance eligibility is not yet enforced because exact live location/route rules are not finalized.
+
+
+## B-012 — Geographic eligibility not yet enforced
+**Status:** DEFERRED / KNOWN LIMITATION
+
+### Context
+The investor pilot model uses a 5 KM controlled radius.
+
+### Current implementation
+Assignment checks approval, service level and time availability, but not geographic distance.
+
+### Reason
+A precise distance/routing rule has not yet been finalized in the live product.
+
+### Required before pilot
+Implement and test the 5 KM eligibility calculation with customer and partner location data, including location permission/error handling.
