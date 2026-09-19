@@ -296,3 +296,20 @@ Not yet executed:
 - Partner assigned-booking isolation using real sessions.
 - Admin authorization using a real admin session.
 - Booking POST/GET end-to-end through production APIs.
+
+
+## 2026-09-19 — Security Advisor Verification
+**Status:** VERIFIED
+
+### Supabase security
+- [x] Security advisor reviewed after all live schema migrations.
+- [x] SECURITY DEFINER RPC exposure hardened.
+- [x] Mutable trigger search paths hardened.
+- [x] Security advisor reports zero lints.
+
+### Performance
+- [ ] RLS init-plan optimizations
+- [ ] Foreign-key covering indexes
+- [ ] Permissive-policy consolidation
+
+These remain optimization work and are not a substitute for functional/security boundary tests with real authenticated sessions.
