@@ -44,6 +44,9 @@ export default function PartnerHome() {
           <Pressable style={styles.primary} onPress={() => router.push('/jobs')}>
             <Text style={styles.primaryText}>View assigned jobs</Text>
           </Pressable>
+          <Pressable style={styles.secondary} onPress={() => router.push('/availability')}>
+            <Text style={styles.secondaryText}>Manage availability</Text>
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
