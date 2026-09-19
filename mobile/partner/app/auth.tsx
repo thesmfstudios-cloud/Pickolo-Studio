@@ -7,6 +7,9 @@ export default function PartnerAuth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
 
   async function login() {
     if (!supabase) {
@@ -27,13 +30,20 @@ export default function PartnerAuth() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.kicker}>PICKOLO PARTNER</Text>
-        <Text style={styles.title}>Partner Login</Text>
+        <Text style={styles.title}>{mode === 'login' ? 'Partner Login' : 'Create partner account'}</Text>
         <Text style={styles.subtitle}>Manage nearby assignments and your Pickolo work.</Text>
         <View style={styles.form}>
+          {mode === 'signup' && <>
+            <TextInput style={styles.input} placeholder="Full name" value={fullName} onChangeText={setFullName} />
+            <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+          </>}
           <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
           <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
           <Pressable style={styles.primary} onPress={login} disabled={busy}>
-            <Text style={styles.primaryText}>{busy ? 'Please wait...' : 'Login'}</Text>
+            <Text style={styles.primaryText}>{busy ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create account'}</Text>
+          </Pressable>
+          <Pressable style={styles.secondary} onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}>
+            <Text style={styles.secondaryText}>{mode === 'login' ? 'Create partner account' : 'Already have an account? Login'}</Text>
           </Pressable>
         </View>
       </View>
