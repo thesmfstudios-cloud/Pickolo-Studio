@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Pickolo Customer",
+    "slug": "pickolo-customer",
+    "scheme": "pickolo-customer",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": { "supportsTablet": false },
+    "android": { "package": "com.smfstudios.pickolocustomer" },
+    "plugins": ["expo-router"]
+  }
+}
