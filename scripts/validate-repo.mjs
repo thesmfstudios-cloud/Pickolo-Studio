@@ -122,8 +122,14 @@ if (!read('mobile/shared/supabase.ts').includes('expo-secure-store')) {
   failures.push('Mobile Supabase client must use secure device storage.');
 }
 
-if (!read('mobile/partner/app/auth.tsx').includes('supabase.auth.signUp')) {
+if (!read('mobile/partner/app/auth.tsx').includes("supabase.auth.signUp")) {
   failures.push('Partner auth must contain a working signup path.');
+}
+if (!read('mobile/partner/app/auth.tsx').includes("mode === 'signup' ? '/apply' : '/home'")) {
+  failures.push('Partner signup must route through onboarding.');
+}
+if (!read('mobile/partner/app/home.tsx').includes("profile?.role === 'customer'")) {
+  failures.push('Partner home must gate the workspace by profile role.');
 }
 
 if (!read('app/api/internal/notifications/dispatch/route.ts').includes("ticket?.status !== 'ok'")) {
@@ -154,7 +160,7 @@ console.log(' - mobile typecheck scripts present');
 console.log(' - mobile dependencies pinned');
 console.log(' - secure mobile session storage present');
 console.log(' - server secret names absent from mobile source');
-console.log(' - partner signup path present');
+console.log(' - partner signup and onboarding gate present');
 console.log(' - Expo push ticket handling present');
 console.log(' - profile role escalation guard present');
 console.log(' - legacy delivery write path retired');
