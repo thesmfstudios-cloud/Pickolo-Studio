@@ -263,3 +263,16 @@ Added SHOOT_COMPLETED → DATA_PENDING to the Partner transition map.
 
 ### Verification
 Server and mobile lifecycle definitions now align for delivery preparation. Live E2E testing remains pending.
+
+
+## B-022 — Partner suspension state mismatch
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Admin suspension/rejection changed the application record but could leave an existing operational partner marked approved.
+
+### Fix
+Reject/suspend actions now synchronize the Partner record verification status.
+
+### Remaining
+Live authorization test must confirm a suspended partner cannot receive jobs or mutate operational data.
