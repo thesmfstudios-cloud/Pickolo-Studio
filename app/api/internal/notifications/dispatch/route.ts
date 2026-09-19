@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const cronSecret = process.env.CRON_SECRET;
 const expoAccessToken = process.env.EXPO_ACCESS_TOKEN;
 
@@ -34,7 +35,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'CRON_SECRET is not configured.' }, { status: 503 });
     }
 
-    const supabase = createClient(url, anonKey, { auth: { persistSession: false } });
+    if (!serviceRoleKey) return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY is not configured.' }, { status: 503 });
+
+    const supabase = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
 
     const { data: notifications, error: notificationError } = await supabase
       .from('notifications')
