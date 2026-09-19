@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getApprovedPartner } from '@/lib/partner-auth';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -30,6 +31,9 @@ export async function GET(request: NextRequest) {
     if (profile?.role !== 'partner') {
       return NextResponse.json({ error: 'Partner access required.' }, { status: 403 });
     }
+
+    const partner = await getApprovedPartner(supabase, user.id);
+    if (!partner) return NextResponse.json({ error: 'Approved partner access required.' }, { status: 403 });
 
     const { data, error } = await supabase
       .from('partner_availability')
