@@ -40,12 +40,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Pricing is not configured for this option.' }, { status: 409 });
     }
 
-    return NextResponse.json(
-      calculateBookingPrice({
-        amountPaise: Number(config.amount_paise),
-        platformFeeBps: Number(config.platform_fee_bps),
-      }),
-    );
+    const pricing = calculateBookingPrice({
+      amountPaise: Number(config.amount_paise),
+      platformFeeBps: Number(config.platform_fee_bps),
+    });
+
+    return NextResponse.json({
+      currency: pricing.currency,
+      totalPaise: pricing.totalPaise,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
     return NextResponse.json({ error: message }, { status: 500 });
