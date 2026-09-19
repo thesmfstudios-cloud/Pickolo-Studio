@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase-admin';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest) {
     const { data: admin } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (admin?.role !== 'admin') return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
 
-    const { data, error } = await supabase
+    const serviceClient = getServiceClient();
+    const { data, error } = await serviceClient
       .from('partners')
       .select('id,partner_code,verification_status,service_level_id,bio,base_lat,base_long,service_level:service_levels(id,name,sort_order)')
       .order('partner_code', { ascending: true });
