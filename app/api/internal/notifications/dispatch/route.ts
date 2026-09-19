@@ -69,10 +69,13 @@ export async function POST(request: NextRequest) {
     }
 
     const messages: Record<string, unknown>[] = [];
-    const sentNotificationIds: string[] = [];
+    const sentNotificationIds = new Set<string>();
 
     for (const item of notifications) {
-      for (const token of tokenByUser.get(item.user_id) ?? []) {
+      const userTokens = tokenByUser.get(item.user_id) ?? [];
+      if (!userTokens.length) continue;
+
+      for (const token of userTokens) {
         messages.push({
           to: token,
           title: item.title,
@@ -84,18 +87,25 @@ export async function POST(request: NextRequest) {
           },
         });
       }
-      sentNotificationIds.push(item.id);
+
+      sentNotificationIds.add(item.id);
     }
 
-    if (messages.length) await sendExpoPush(messages);
+    // Expo accepts batches. Keep requests bounded so a user with multiple
+    // devices cannot turn one dispatch job into an oversized provider call.
+    for (let index = 0; index < messages.length; index += 100) {
+      await sendExpoPush(messages.slice(index, index + 100));
+    }
 
-    await supabase
-      .from('notifications')
-      .update({ sent_at: new Date().toISOString() })
-      .in('id', sentNotificationIds);
+    if (sentNotificationIds.size) {
+      await supabase
+        .from('notifications')
+        .update({ sent_at: new Date().toISOString() })
+        .in('id', [...sentNotificationIds]);
+    }
 
     return NextResponse.json({
-      notifications: sentNotificationIds.length,
+      notifications: sentNotificationIds.size,
       messages: messages.length,
     });
   } catch (error) {
