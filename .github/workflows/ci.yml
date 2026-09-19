@@ -21,6 +21,7 @@ jobs:
           node-version: 22.13.0
           cache: npm
       - run: npm install
+      - run: npm run validate:repo
       - run: npm run lint
       - run: npm run build
 
