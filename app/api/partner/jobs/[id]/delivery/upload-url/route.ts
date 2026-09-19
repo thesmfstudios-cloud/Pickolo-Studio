@@ -42,7 +42,7 @@ export async function POST(
 
     if (bookingError || !booking) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     if (booking.assigned_partner_id !== user.id) return NextResponse.json({ error: 'Assigned partner access required.' }, { status: 403 });
-    if (!['SHOOT_COMPLETED', 'DATA_PENDING'].includes(booking.status)) {
+    if (booking.status !== 'DATA_PENDING') {
       return NextResponse.json({ error: 'Booking is not ready for delivery upload.' }, { status: 409 });
     }
 
