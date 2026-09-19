@@ -509,3 +509,22 @@ Real authenticated-session tests have not yet been executed, and Vercel environm
 
 ### Next
 Verify Vercel `NEXT_PUBLIC_SUPABASE_URL`, then run real Auth/RLS/customer-booking tests.
+
+
+## 2026-09-19 — Supabase Security Advisor Pass
+**Status:** VERIFIED
+
+### Found
+Security advisor flagged exposed SECURITY DEFINER functions and two trigger functions with mutable search paths.
+
+### Fixed
+- Added migration 0020 to revoke RPC execution from trigger-only functions and pin trigger search paths.
+- Added migration 0021 to place the SECURITY DEFINER admin implementation in `private.is_admin()` and keep `public.is_admin()` as an invoker wrapper.
+
+### Verification
+- Both migrations applied successfully to the live Pickolo Supabase project.
+- Supabase security advisor now reports zero security lints.
+- Performance advisor retains non-blocking informational/optimization findings.
+
+### Next
+Authenticated customer/partner/admin session testing and Vercel environment-value confirmation.
