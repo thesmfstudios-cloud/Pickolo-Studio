@@ -26,7 +26,15 @@ export async function POST(request: NextRequest) {
     if (error || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 
     const partner = await getApprovedPartner(serviceClient, user.id);
-    if (!partner) return NextResponse.json({ error: 'Approved partner access required.' }, { status: 403 });
+    const { data: application } = await serviceClient
+      .from('partner_applications')
+      .select('id,status')
+      .eq('applicant_id', user.id)
+      .maybeSingle();
+
+    if (!partner && application?.status !== 'pending') {
+      return NextResponse.json({ error: 'Partner application access required.' }, { status: 403 });
+    }
 
     const body = await request.json();
     const documentType = String(body?.document_type || '').trim().slice(0, 80);
@@ -54,7 +62,8 @@ export async function POST(request: NextRequest) {
     const { data: record, error: recordError } = await serviceClient
       .from('partner_verification_documents')
       .insert({
-        partner_id: user.id,
+        partner_id: partner?.id ?? null,
+        applicant_id: user.id,
         document_type: documentType,
         storage_path: storagePath,
         file_name: fileName,
