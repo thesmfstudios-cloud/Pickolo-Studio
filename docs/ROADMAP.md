@@ -52,3 +52,25 @@ Controlled 5 KM pilot with 20–25 verified partners and measurable real paid bo
 
 ### Exit criteria
 Expansion decision supported by observed fulfillment, repeat demand, contribution economics and partner utilization.
+
+
+## 2026-09-19 Update — Phase 1 Backend
+
+**Status:** IN_PROGRESS
+
+### Completed in source repository
+- Core database migration authored
+- Initial RLS policies authored
+- Booking API authored
+- Engineering documentation updated
+
+### Blocker
+Pickolo Supabase project is not currently visible through the connected Supabase integration.
+
+### Next development gate
+No move to payment implementation until the following are verified on the real database:
+1. Auth
+2. RLS
+3. Booking persistence
+4. Booking isolation
+5. Preview build
