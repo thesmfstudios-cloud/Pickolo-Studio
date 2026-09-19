@@ -135,6 +135,9 @@ if (!read('mobile/partner/app/home.tsx').includes("profile?.role === 'customer'"
 if (!read('app/api/internal/notifications/dispatch/route.ts').includes("ticket?.status !== 'ok'")) {
   failures.push('Notification dispatcher must inspect individual Expo push tickets.');
 }
+if (!read('app/api/admin/partner-documents/route.ts').includes('storage_path').toString()) {
+  failures.push('Admin document review route must access private storage paths internally.');
+}
 
 if (!read('supabase/migrations/0018_profile_role_guard.sql').includes('auth.uid() = old.id')) {
   failures.push('Profile role guard must reject self role changes.');
