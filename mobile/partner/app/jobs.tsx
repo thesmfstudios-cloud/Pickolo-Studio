@@ -18,6 +18,7 @@ const NEXT_ACTION: Record<string, { label: string; to: string }> = {
   PARTNER_ASSIGNED: { label: 'Mark on the way', to: 'ON_THE_WAY' },
   ON_THE_WAY: { label: 'Start shoot', to: 'SHOOT_STARTED' },
   SHOOT_STARTED: { label: 'Complete shoot', to: 'SHOOT_COMPLETED' },
+  SHOOT_COMPLETED: { label: 'Prepare delivery', to: 'DATA_PENDING' },
   DATA_PENDING: { label: 'Submit delivery', to: 'DATA_SUBMITTED' },
 };
 
@@ -124,7 +125,47 @@ export default function PartnerJobsScreen() {
                   onPress={() => transition(job)}
                   disabled={busyId === job.id}
                 >
-                  <Text style={styles.primaryText}>{busyId === job.id ? 'Updating…' : action.label}</Text>
+                  <Text style={styles.primaryText}>{busyId === job.id ? 'Updating...' : action.label}</Text>
+                </Pressable>
+              )}
+
+              {job.status === 'DATA_PENDING' && (
+                <Pressable
+                  style={styles.secondary}
+                  onPress={() => router.push({ pathname: '/delivery', params: { id: job.id } })}
+                >
+                  <Text style={styles.secondaryText}>Submit delivery</Text>
+                </Pressable>
+              )}
+
+              {['PARTNER_ASSIGNED', 'ON_THE_WAY'].includes(job.status) && (
+                <Pressable
+                  style={styles.danger}
+                  onPress={async () => {
+                    if (!supabase) return;
+                    const { data } = await supabase.auth.getSession();
+                    const token = data.session?.access_token;
+                    if (!token) return;
+
+                    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+                    const response = await fetch(baseUrl + '/api/partner/jobs/' + job.id + '/cancel', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: 'Bearer ' + token,
+                      },
+                      body: JSON.stringify({ reason: 'Partner cancelled the assignment.' }),
+                    });
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                      Alert.alert('Unable to cancel', result.error || 'Please try again.');
+                      return;
+                    }
+                    Alert.alert('Assignment cancelled', 'The booking has been returned to Pickolo for reassignment.');
+                    await load();
+                  }}
+                >
+                  <Text style={styles.dangerText}>Cancel assignment</Text>
                 </Pressable>
               )}
             </View>
@@ -151,4 +192,8 @@ const styles = StyleSheet.create({
   muted: { marginTop: 6, color: '#64748b', lineHeight: 21 },
   primary: { marginTop: 16, backgroundColor: '#2563eb', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800' },
+  secondary: { marginTop: 10, backgroundColor: '#eef2ff', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
+  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
+  danger: { marginTop: 10, backgroundColor: '#fff1f2', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
+  dangerText: { color: '#be123c', fontWeight: '800' },
 });
