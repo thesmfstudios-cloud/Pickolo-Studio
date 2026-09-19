@@ -64,6 +64,13 @@ export async function POST(
       return NextResponse.json({ error: 'Booking changed concurrently. Refresh and retry.' }, { status: 409 });
     }
 
+    await serviceClient.from('partner_assignment_events').insert({
+      booking_id: id,
+      partner_id: user.id,
+      event_type: 'CANCELLED',
+      reason: reason,
+    });
+
     await serviceClient.from('booking_incidents').insert({
       booking_id: id,
       partner_id: user.id,
