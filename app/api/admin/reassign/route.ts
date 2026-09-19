@@ -132,6 +132,9 @@ export async function POST(request: NextRequest) {
       .update({
         assigned_partner_id: partnerId,
         status: 'PARTNER_ASSIGNED',
+        partner_acceptance_status: 'pending',
+        partner_acceptance_at: null,
+        partner_declined_at: null,
       })
       .eq('id', bookingId)
       .eq('status', 'SEARCHING_PARTNER')
