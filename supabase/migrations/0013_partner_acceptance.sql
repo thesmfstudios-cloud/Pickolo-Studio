@@ -13,7 +13,8 @@ create type public.partner_acceptance_status as enum (
 alter table public.bookings
   add column if not exists partner_acceptance_status public.partner_acceptance_status not null default 'not_required',
   add column if not exists partner_acceptance_at timestamptz,
-  add column if not exists partner_declined_at timestamptz;
+  add column if not exists partner_declined_at timestamptz,
+  add column if not exists partner_offer_expires_at timestamptz;
 
 create index bookings_partner_acceptance_idx
 on public.bookings(assigned_partner_id, partner_acceptance_status, scheduled_start);
