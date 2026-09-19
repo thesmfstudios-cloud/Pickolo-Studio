@@ -104,6 +104,18 @@ export default function CustomerPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    // Capture form values before any await because React can clear the
+    // synthetic event's currentTarget after the handler yields.
+    const form = new FormData(event.currentTarget);
+    const serviceId = String(form.get('service_id') || '');
+    const serviceLevelId = String(form.get('service_level_id') || '');
+    const date = String(form.get('date') || '');
+    const time = String(form.get('time') || '');
+    const durationMinutes = Number(form.get('duration_minutes'));
+    const locationText = String(form.get('location_text') || '');
+    const notes = String(form.get('notes') || '');
+
     setBusy(true);
     setMessage('');
 
@@ -122,28 +134,19 @@ export default function CustomerPage() {
 
       let bookingCoordinates = coordinates;
       if (!bookingCoordinates) {
-        try {
-          bookingCoordinates = await getBrowserLocation();
-          setCoordinates(bookingCoordinates);
-        } catch (error) {
-          throw error instanceof Error
-            ? error
-            : new Error('Unable to access your location.');
-        }
+        bookingCoordinates = await getBrowserLocation();
+        setCoordinates(bookingCoordinates);
       }
 
-      const form = new FormData(event.currentTarget);
       const payload = {
-        service_id: String(form.get('service_id') || ''),
-        service_level_id: String(form.get('service_level_id') || ''),
-        scheduled_start: new Date(
-          String(form.get('date')) + 'T' + String(form.get('time')),
-        ).toISOString(),
-        duration_minutes: Number(form.get('duration_minutes')),
-        location_text: String(form.get('location_text') || ''),
+        service_id: serviceId,
+        service_level_id: serviceLevelId,
+        scheduled_start: new Date(date + 'T' + time).toISOString(),
+        duration_minutes: durationMinutes,
+        location_text: locationText,
         location_lat: bookingCoordinates.latitude,
         location_long: bookingCoordinates.longitude,
-        notes: String(form.get('notes') || ''),
+        notes,
       };
 
       const controller = new AbortController();
@@ -174,7 +177,7 @@ export default function CustomerPage() {
 
       if (!response.ok) {
         throw new Error(
-          result.error || `Booking request failed (HTTP ${response.status}).`,
+          result.error || ('Booking request failed (HTTP ' + response.status + ').'),
         );
       }
 
