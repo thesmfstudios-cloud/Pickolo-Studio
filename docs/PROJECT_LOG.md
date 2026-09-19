@@ -135,3 +135,30 @@ Live mobile installation/build verification has not been completed because the a
 
 ### Next
 Connect the real Pickolo Supabase project, configure mobile environment variables, then verify Android and iOS builds and authenticated booking integration.
+
+
+## 2026-09-19 — Customer Booking Phase 2 Progress
+**Status:** IN_PROGRESS
+
+### Built
+- Booking detail API.
+- Booking lifecycle transition API.
+- Server-side pricing module.
+- Pricing preview API.
+- Customer mobile booking history.
+- Customer mobile booking detail.
+- Customer mobile price estimate display.
+- Booking API now stores server-calculated total, platform fee and partner payout.
+
+### Correctness / security
+- Booking detail is scoped to authenticated customer ownership.
+- State transitions must exist in the declared state machine.
+- Transition updates use current-state matching to reduce concurrent overwrite risk.
+- Pricing is generated server-side, not accepted from the client.
+- Active service and service-level validation remains server-side.
+
+### Important commercial note
+Current price values are development configuration. They are not finalized commercial pricing. The investor blueprint treats the 20% platform commission as illustrative until economics are validated.
+
+### Next
+Live Supabase verification → customer booking E2E → partner assignment workflow.
