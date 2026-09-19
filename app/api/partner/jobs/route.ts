@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('bookings')
-      .select('id,booking_code,status,scheduled_start,duration_minutes,location_text,notes,service:services(name),service_level:service_levels(name)')
+      .select('id,booking_code,status,partner_acceptance_status,partner_offer_expires_at,scheduled_start,duration_minutes,location_text,location_lat,location_long,notes,service:services(name),service_level:service_levels(name)')
       .eq('assigned_partner_id', user.id)
       .order('scheduled_start', { ascending: true });
 
