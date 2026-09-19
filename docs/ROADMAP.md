@@ -202,3 +202,53 @@ Remaining:
 - Performance counter automation
 - Full Android/iOS device testing
 - Live Supabase verification
+
+
+## Payments
+**Status:** IN_PROGRESS
+
+Implemented:
+- Razorpay order creation
+- server-side signature verification
+- webhook verification
+- captured payment state transition
+- refund workflow
+- native mobile payment screen
+
+Remaining:
+- Razorpay test/live credentials
+- Android/iOS native checkout verification
+- reconciliation
+- production webhook configuration
+- payout provider integration
+
+## Trust / Partner
+**Status:** IN_PROGRESS
+
+Implemented:
+- partner applications
+- admin verification
+- Partner records
+- performance counters
+- review workflow
+
+Remaining:
+- document/KYC verification requirements
+- portfolio evidence
+- service-level advancement rules
+
+## Notifications
+**Status:** IN_PROGRESS
+
+Implemented:
+- in-app notification events
+- push token registration
+- Expo push dispatcher
+
+Remaining:
+- production EAS push credentials
+- notification routing/deep links
+- operational delivery monitoring
+
+## Next major validation gate
+Live Pickolo Supabase connection + migration execution + Android/iOS sandbox verification.
