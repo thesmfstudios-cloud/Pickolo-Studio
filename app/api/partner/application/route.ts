@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
 
-    const { data, error } = await supabase
+    const serviceClient = getServiceClient();
+    const { data, error } = await serviceClient
       .from('partner_applications')
       .select('id,display_name,phone,bio,skills,base_lat,base_long,status,rejection_reason,created_at,updated_at')
       .eq('applicant_id', user.id)
