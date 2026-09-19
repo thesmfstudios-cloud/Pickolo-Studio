@@ -20,6 +20,9 @@ export default function BookingDetailScreen() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeDescription, setDisputeDescription] = useState('');
+  const [disputeBusy, setDisputeBusy] = useState(false);
 
   async function confirmDelivery() {
     if (!supabase || !id) return;
@@ -201,6 +204,60 @@ export default function BookingDetailScreen() {
             </View>
           )}
 
+          {['DATA_SUBMITTED', 'CUSTOMER_CONFIRMED', 'PAYOUT_RELEASED', 'COMPLETED'].includes(booking.status) && (
+            <View style={styles.disputeCard}>
+              <Text style={styles.reviewTitle}>Need help with this booking?</Text>
+              <TextInput
+                style={styles.reviewInput}
+                placeholder="Issue type, e.g. missing photos"
+                value={disputeReason}
+                onChangeText={setDisputeReason}
+              />
+              <TextInput
+                style={styles.reviewInput}
+                placeholder="Describe the issue"
+                value={disputeDescription}
+                onChangeText={setDisputeDescription}
+                multiline
+              />
+              <Pressable
+                style={styles.danger}
+                disabled={disputeBusy || !disputeReason.trim() || !disputeDescription.trim()}
+                onPress={async () => {
+                  if (!supabase || !id) return;
+                  const { data } = await supabase.auth.getSession();
+                  const token = data.session?.access_token;
+                  if (!token) return;
+
+                  setDisputeBusy(true);
+                  const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+                  const response = await fetch(baseUrl + '/api/disputes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                    body: JSON.stringify({
+                      booking_id: id,
+                      reason_code: disputeReason.trim(),
+                      description: disputeDescription.trim(),
+                    }),
+                  });
+                  const result = await response.json().catch(() => ({}));
+                  setDisputeBusy(false);
+
+                  if (!response.ok) {
+                    Alert.alert('Unable to open dispute', result.error || 'Please try again.');
+                    return;
+                  }
+
+                  setDisputeReason('');
+                  setDisputeDescription('');
+                  Alert.alert('Case opened', 'Pickolo has recorded your issue for review.');
+                }}
+              >
+                <Text style={styles.dangerText}>{disputeBusy ? 'Opening case...' : 'Open support case'}</Text>
+              </Pressable>
+            </View>
+          )}
+
           {['REQUESTED', 'PAYMENT_CONFIRMED', 'SEARCHING_PARTNER', 'PARTNER_ASSIGNED'].includes(booking.status) && (
             <Pressable style={styles.danger} onPress={cancelBooking}>
               <Text style={styles.dangerText}>Cancel booking</Text>
@@ -236,5 +293,6 @@ const styles = StyleSheet.create({
   ratingText: { color: '#13213a', fontWeight: '800' },
   reviewHint: { marginTop: 6, color: '#94a3b8', fontSize: 12 },
   reviewInput: { marginTop: 12, minHeight: 90, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 13, backgroundColor: '#fff', padding: 12, textAlignVertical: 'top' },
+  disputeCard: { marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa' },
   muted: { color: '#64748b' },
 });
