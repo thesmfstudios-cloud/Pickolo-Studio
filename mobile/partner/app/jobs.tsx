@@ -7,6 +7,7 @@ type Job = {
   id: string;
   booking_code: string;
   status: string;
+  partner_acceptance_status?: 'not_required' | 'pending' | 'accepted' | 'declined' | 'expired';
   scheduled_start: string;
   duration_minutes: number;
   location_text: string;
@@ -119,7 +120,67 @@ export default function PartnerJobsScreen() {
               <Text style={styles.muted}>{job.service?.name || 'Photography'} · {job.service_level?.name || 'Standard'}</Text>
               <Text style={styles.muted}>{job.duration_minutes} min · {job.location_text}</Text>
 
-              {action && (
+              {job.status === 'PARTNER_ASSIGNED' && job.partner_acceptance_status === 'pending' && (
+                <View style={styles.offerRow}>
+                  <Pressable
+                    style={styles.primarySmall}
+                    onPress={async () => {
+                      if (!supabase) return;
+                      const { data } = await supabase.auth.getSession();
+                      const token = data.session?.access_token;
+                      if (!token) return;
+
+                      setBusyId(job.id);
+                      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+                      const response = await fetch(baseUrl + '/api/partner/jobs/' + job.id + '/respond', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                        body: JSON.stringify({ action: 'accept' }),
+                      });
+                      const result = await response.json().catch(() => ({}));
+                      setBusyId(null);
+                      if (!response.ok) {
+                        Alert.alert('Unable to accept', result.error || 'Please try again.');
+                        return;
+                      }
+                      await load();
+                    }}
+                    disabled={busyId === job.id}
+                  >
+                    <Text style={styles.primaryText}>{busyId === job.id ? 'Working...' : 'Accept job'}</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.secondarySmall}
+                    onPress={async () => {
+                      if (!supabase) return;
+                      const { data } = await supabase.auth.getSession();
+                      const token = data.session?.access_token;
+                      if (!token) return;
+
+                      setBusyId(job.id);
+                      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+                      const response = await fetch(baseUrl + '/api/partner/jobs/' + job.id + '/respond', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                        body: JSON.stringify({ action: 'decline', reason: 'Partner declined the assignment.' }),
+                      });
+                      const result = await response.json().catch(() => ({}));
+                      setBusyId(null);
+                      if (!response.ok) {
+                        Alert.alert('Unable to decline', result.error || 'Please try again.');
+                        return;
+                      }
+                      await load();
+                    }}
+                    disabled={busyId === job.id}
+                  >
+                    <Text style={styles.secondaryText}>Decline</Text>
+                  </Pressable>
+                </View>
+              )}
+
+              {action && !(job.status === 'PARTNER_ASSIGNED' && job.partner_acceptance_status === 'pending') && (
                 <Pressable
                   style={styles.primary}
                   onPress={() => transition(job)}
@@ -193,6 +254,9 @@ const styles = StyleSheet.create({
   primary: { marginTop: 16, backgroundColor: '#2563eb', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800' },
   secondary: { marginTop: 10, backgroundColor: '#eef2ff', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
+  offerRow: { marginTop: 16, flexDirection: 'row', gap: 9 },
+  primarySmall: { flex: 1, backgroundColor: '#2563eb', borderRadius: 13, paddingVertical: 13, alignItems: 'center' },
+  secondarySmall: { flex: 1, backgroundColor: '#eef2ff', borderRadius: 13, paddingVertical: 13, alignItems: 'center' },
   secondaryText: { color: '#1e3a8a', fontWeight: '800' },
   danger: { marginTop: 10, backgroundColor: '#fff1f2', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
   dangerText: { color: '#be123c', fontWeight: '800' },
