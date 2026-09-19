@@ -1,7 +1,198 @@
-import { BOOKING_STATES } from '@/types/pickolo';
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+
+type Booking = {
+  id: string;
+  booking_code: string;
+  status: string;
+  scheduled_start: string;
+  duration_minutes: number;
+  location_text: string;
+  customer_price_paise: number;
+  assigned_partner_id: string | null;
+  service?: { name?: string | null } | null;
+  service_level?: { name?: string | null } | null;
+};
+
+type Application = {
+  id: string;
+  applicant_id: string;
+  display_name: string;
+  phone: string;
+  status: string;
+  skills: string[];
+  created_at: string;
+};
+
+type Partner = {
+  id: string;
+  partner_code: string;
+  verification_status: string;
+  service_level?: { name?: string | null } | null;
+};
 
 export default function AdminPage() {
-  return <main className="main"><div className="container"><div className="kicker">Admin control room</div><h1 style={{fontSize:48,margin:'8px 0 10px'}}>Pickolo operations</h1><p className="muted">Manual intervention remains possible while automation grows around it.</p><div className="grid" style={{marginTop:20}}>{[['Pending bookings','4'],['Active jobs','2'],['Verified partners','23']].map(([label,val])=><div className="card" key={label}><div className="stat">{val}</div><div className="muted">{label}</div></div>)}</div>
-  <section className="section card"><h2>Booking state machine</h2><table className="table"><thead><tr><th>#</th><th>State</th><th>Purpose</th></tr></thead><tbody>{BOOKING_STATES.map((s,i)=><tr key={s}><td>{i+1}</td><td><strong>{s}</strong></td><td className="muted">Controlled transaction stage</td></tr>)}</tbody></table></section>
-  </div></main>;
+  const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [message, setMessage] = useState('');
+
+  const token = useCallback(async () => {
+    if (!supabase) return null;
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  }, []);
+
+  const load = useCallback(async () => {
+    const accessToken = await token();
+    if (!accessToken) {
+      window.location.href = '/admin/login';
+      return;
+    }
+
+    const profile = await supabase!.from('profiles').select('role').eq('id', (await supabase!.auth.getUser()).data.user?.id ?? '').single();
+    if (profile.data?.role !== 'admin') {
+      window.location.href = '/admin/login';
+      return;
+    }
+
+    setAuthorized(true);
+
+    const headers = { Authorization: 'Bearer ' + accessToken };
+    const [bookingRes, appRes, partnerRes] = await Promise.all([
+      fetch('/api/admin/bookings', { headers }),
+      fetch('/api/admin/partners?status=pending', { headers }),
+      fetch('/api/admin/partner-directory', { headers }),
+    ]);
+
+    const [bookingData, appData, partnerData] = await Promise.all([
+      bookingRes.json().catch(() => ({})),
+      appRes.json().catch(() => ({})),
+      partnerRes.json().catch(() => ({})),
+    ]);
+
+    if (!bookingRes.ok) setMessage(bookingData.error || 'Unable to load bookings.');
+    setBookings(bookingData.bookings || []);
+    setApplications(appData.applications || []);
+    setPartners(partnerData.partners || []);
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function verifyApplication(id: string, action: 'approve' | 'reject') {
+    const accessToken = await token();
+    if (!accessToken) return;
+    const response = await fetch('/api/admin/partners/' + id + '/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + accessToken },
+      body: JSON.stringify({ action }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setMessage(result.error || 'Verification failed.');
+      return;
+    }
+    await load();
+  }
+
+  async function assign(bookingId: string, partnerId: string) {
+    const accessToken = await token();
+    if (!accessToken || !partnerId) return;
+
+    const response = await fetch('/api/admin/assignments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + accessToken },
+      body: JSON.stringify({ booking_id: bookingId, partner_id: partnerId }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setMessage(result.error || 'Assignment failed.');
+      return;
+    }
+    await load();
+  }
+
+  async function logout() {
+    await supabase?.auth.signOut();
+    window.location.href = '/admin/login';
+  }
+
+  if (loading) return <main className="main"><div className="container"><p className="muted">Loading operations...</p></div></main>;
+  if (!authorized) return null;
+
+  const pendingBookings = bookings.filter((item) => ['REQUESTED', 'PAYMENT_CONFIRMED', 'SEARCHING_PARTNER'].includes(item.status));
+
+  return (
+    <main className="main">
+      <div className="container">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'end',gap:20}}>
+          <div>
+            <div className="kicker">Admin control room</div>
+            <h1 style={{fontSize:48,margin:'8px 0 10px'}}>Pickolo operations</h1>
+            <p className="muted">Bookings, partner verification and assignment.</p>
+          </div>
+          <button className="button secondary" onClick={logout}>Logout</button>
+        </div>
+
+        {message && <div className="card section"><strong>Attention</strong><p className="muted">{message}</p></div>}
+
+        <section className="grid section">
+          <div className="card"><div className="stat">{pendingBookings.length}</div><div className="muted">Needs operations</div></div>
+          <div className="card"><div className="stat">{applications.length}</div><div className="muted">Pending partner applications</div></div>
+          <div className="card"><div className="stat">{partners.filter((p) => p.verification_status === 'approved').length}</div><div className="muted">Approved partners</div></div>
+        </section>
+
+        <section className="card section">
+          <h2>Partner applications</h2>
+          {applications.length === 0 ? <p className="muted">No pending applications.</p> : applications.map((app) => (
+            <div key={app.id} style={{padding:'16px 0',borderBottom:'1px solid var(--line)'}}>
+              <div style={{display:'flex',justifyContent:'space-between',gap:20,alignItems:'start'}}>
+                <div>
+                  <strong>{app.display_name}</strong>
+                  <div className="muted">{app.phone}</div>
+                  <div className="muted">{app.skills?.join(', ') || 'No skills listed'}</div>
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button className="button" onClick={() => verifyApplication(app.id,'approve')}>Approve</button>
+                  <button className="button secondary" onClick={() => verifyApplication(app.id,'reject')}>Reject</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <section className="card section">
+          <h2>Booking queue</h2>
+          <table className="table">
+            <thead><tr><th>Booking</th><th>Status</th><th>Schedule</th><th>Level</th><th>Assignment</th></tr></thead>
+            <tbody>
+              {bookings.map((booking) => (
+                <tr key={booking.id}>
+                  <td><strong>{booking.booking_code}</strong><div className="muted">{booking.location_text}</div></td>
+                  <td>{booking.status}</td>
+                  <td>{new Date(booking.scheduled_start).toLocaleString()}</td>
+                  <td>{booking.service_level?.name || '—'}</td>
+                  <td>
+                    {booking.assigned_partner_id ? <span className="badge">ASSIGNED</span> : (
+                      <select className="input" style={{minWidth:220}} defaultValue="" onChange={(e) => assign(booking.id, e.target.value)}>
+                        <option value="" disabled>Assign partner...</option>
+                        {partners.filter((p) => p.verification_status === 'approved').map((partner) => (
+                          <option key={partner.id} value={partner.id}>{partner.partner_code} · {partner.service_level?.name || 'Standard'}</option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+  );
 }
