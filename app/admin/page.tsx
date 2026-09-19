@@ -54,6 +54,11 @@ type Dispute = {
   created_at: string;
 };
 
+type Metrics = {
+  bookings: { total: number; paid: number; active: number; completed: number; cancelled: number; completionRate: number };
+  money: { gmvPaise: number; platformRevenuePaise: number; partnerPayoutsPaise: number; payoutsReleasedPaise: number };
+};
+
 type PriceConfig = {
   id: string;
   duration_minutes: number;
@@ -73,6 +78,7 @@ export default function AdminPage() {
   const [documents, setDocuments] = useState<PartnerDocument[]>([]);
   const [message, setMessage] = useState('');
   const [savingPriceId, setSavingPriceId] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   const token = useCallback(async () => {
     if (!supabase) return null;
@@ -96,22 +102,24 @@ export default function AdminPage() {
     setAuthorized(true);
 
     const headers = { Authorization: 'Bearer ' + accessToken };
-    const [bookingRes, appRes, partnerRes, pricingRes, disputeRes, documentRes] = await Promise.all([
+    const [bookingRes, appRes, partnerRes, pricingRes, disputeRes, documentRes, metricsRes] = await Promise.all([
       fetch('/api/admin/bookings', { headers }),
       fetch('/api/admin/partners?status=pending', { headers }),
       fetch('/api/admin/partner-directory', { headers }),
       fetch('/api/admin/pricing', { headers }),
       fetch('/api/admin/disputes?status=open', { headers }),
       fetch('/api/admin/partner-documents?status=pending', { headers }),
+      fetch('/api/admin/metrics', { headers }),
     ]);
 
-    const [bookingData, appData, partnerData, pricingData, disputeData, documentData] = await Promise.all([
+    const [bookingData, appData, partnerData, pricingData, disputeData, documentData, metricsData] = await Promise.all([
       bookingRes.json().catch(() => ({})),
       appRes.json().catch(() => ({})),
       partnerRes.json().catch(() => ({})),
       pricingRes.json().catch(() => ({})),
       disputeRes.json().catch(() => ({})),
       documentRes.json().catch(() => ({})),
+      metricsRes.json().catch(() => ({})),
     ]);
 
     if (!bookingRes.ok) setMessage(bookingData.error || 'Unable to load bookings.');
@@ -121,6 +129,7 @@ export default function AdminPage() {
     setPricing(pricingData.pricing || []);
     setDisputes(disputeData.disputes || []);
     setDocuments(documentData.documents || []);
+    setMetrics(metricsData);
     setLoading(false);
   }, [token]);
 
@@ -239,6 +248,12 @@ export default function AdminPage() {
           <div className="card"><div className="stat">{pendingBookings.length}</div><div className="muted">Needs operations</div></div>
           <div className="card"><div className="stat">{applications.length}</div><div className="muted">Pending partner applications</div></div>
           <div className="card"><div className="stat">{partners.filter((p) => p.verification_status === 'approved').length}</div><div className="muted">Approved partners</div></div>
+        </section>
+
+        <section className="grid section">
+          <div className="card"><div className="stat">₹{((metrics?.money.gmvPaise ?? 0) / 100).toLocaleString()}</div><div className="muted">GMV</div></div>
+          <div className="card"><div className="stat">₹{((metrics?.money.platformRevenuePaise ?? 0) / 100).toLocaleString()}</div><div className="muted">Platform revenue</div></div>
+          <div className="card"><div className="stat">{Math.round((metrics?.bookings.completionRate ?? 0) * 100)}%</div><div className="muted">Completion rate</div></div>
         </section>
 
         <section className="card section">
