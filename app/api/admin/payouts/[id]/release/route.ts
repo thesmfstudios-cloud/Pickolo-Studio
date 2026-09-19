@@ -34,6 +34,17 @@ export async function POST(
       return NextResponse.json({ error: 'Booking is not payout-ready.' }, { status: 409 });
     }
 
+    const { data: activeDispute } = await serviceClient
+      .from('booking_disputes')
+      .select('id,status')
+      .eq('booking_id', id)
+      .in('status', ['open', 'under_review'])
+      .maybeSingle();
+
+    if (activeDispute) {
+      return NextResponse.json({ error: 'Payout is blocked while this booking has an active dispute.' }, { status: 409 });
+    }
+
     const { data: existing } = await supabase
       .from('payouts')
       .select('id,status')
