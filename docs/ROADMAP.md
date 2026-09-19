@@ -386,3 +386,16 @@ The application source now covers the planned core MVP transaction loop and main
 
 ### Live deployment policy
 Vercel and Supabase remain deployment targets for controlled validation checkpoints. Routine source changes stay in GitHub until live verification is actually required.
+
+
+## 2026-09-19 — Supabase foundation live
+**Status:** IN_PROGRESS
+
+The verified Pickolo Supabase project is now provisioned and the authored migration chain `0001`–`0019` is applied.
+
+Next exit criteria:
+- Vercel environment URL matches the Pickolo project.
+- Real Auth signup/login/session test.
+- Customer booking persistence and isolation test.
+- Partner/admin RLS boundary tests.
+- Then proceed to payment sandbox and native device verification.
