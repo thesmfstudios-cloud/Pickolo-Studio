@@ -33,6 +33,17 @@ type Partner = {
   service_level?: { name?: string | null } | null;
 };
 
+type PartnerDocument = {
+  id: string;
+  partner_id: string;
+  document_type: string;
+  file_name: string;
+  mime_type: string | null;
+  status: string;
+  rejection_reason: string | null;
+  created_at: string;
+};
+
 type Dispute = {
   id: string;
   booking_id: string;
@@ -59,6 +70,7 @@ export default function AdminPage() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [pricing, setPricing] = useState<PriceConfig[]>([]);
   const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [documents, setDocuments] = useState<PartnerDocument[]>([]);
   const [message, setMessage] = useState('');
   const [savingPriceId, setSavingPriceId] = useState<string | null>(null);
 
@@ -84,20 +96,22 @@ export default function AdminPage() {
     setAuthorized(true);
 
     const headers = { Authorization: 'Bearer ' + accessToken };
-    const [bookingRes, appRes, partnerRes, pricingRes, disputeRes] = await Promise.all([
+    const [bookingRes, appRes, partnerRes, pricingRes, disputeRes, documentRes] = await Promise.all([
       fetch('/api/admin/bookings', { headers }),
       fetch('/api/admin/partners?status=pending', { headers }),
       fetch('/api/admin/partner-directory', { headers }),
       fetch('/api/admin/pricing', { headers }),
       fetch('/api/admin/disputes?status=open', { headers }),
+      fetch('/api/admin/partner-documents?status=pending', { headers }),
     ]);
 
-    const [bookingData, appData, partnerData, pricingData, disputeData] = await Promise.all([
+    const [bookingData, appData, partnerData, pricingData, disputeData, documentData] = await Promise.all([
       bookingRes.json().catch(() => ({})),
       appRes.json().catch(() => ({})),
       partnerRes.json().catch(() => ({})),
       pricingRes.json().catch(() => ({})),
       disputeRes.json().catch(() => ({})),
+      documentRes.json().catch(() => ({})),
     ]);
 
     if (!bookingRes.ok) setMessage(bookingData.error || 'Unable to load bookings.');
@@ -106,6 +120,7 @@ export default function AdminPage() {
     setPartners(partnerData.partners || []);
     setPricing(pricingData.pricing || []);
     setDisputes(disputeData.disputes || []);
+    setDocuments(documentData.documents || []);
     setLoading(false);
   }, [token]);
 
@@ -245,6 +260,27 @@ export default function AdminPage() {
           ))}
         </section>
 
+
+
+        <section className="card section">
+          <h2>Verification documents</h2>
+          {documents.length === 0 ? <p className="muted">No pending verification documents.</p> : documents.map((doc) => (
+            <div key={doc.id} style={{padding:'16px 0',borderBottom:'1px solid var(--line)'}}>
+              <div style={{display:'flex',justifyContent:'space-between',gap:20,alignItems:'start'}}>
+                <div>
+                  <strong>{doc.file_name}</strong>
+                  <div className="muted">Partner {doc.partner_id}</div>
+                  <div className="muted">{doc.document_type} · {doc.mime_type || 'file'}</div>
+                  <div className="muted">Submitted {new Date(doc.created_at).toLocaleString()}</div>
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button className="button" onClick={() => postAdmin('/api/admin/partner-documents', { id: doc.id, status: 'approved' })}>Approve</button>
+                  <button className="button secondary" onClick={() => postAdmin('/api/admin/partner-documents', { id: doc.id, status: 'rejected', rejection_reason: 'Document requires correction.' })}>Reject</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
 
         <section className="card section">
           <h2>Pricing configuration</h2>
