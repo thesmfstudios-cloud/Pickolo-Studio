@@ -11,6 +11,7 @@ type Booking = {
   location_text: string;
   notes?: string | null;
   customer_price_paise: number;
+  payment?: { status?: string | null } | null;
   service?: { name?: string | null } | null;
   service_level?: { name?: string | null } | null;
 };
@@ -140,6 +141,35 @@ export default function BookingDetailScreen() {
           {booking.status === 'REQUESTED' && (
             <Pressable style={styles.primary} onPress={() => router.replace({ pathname: '/payment', params: { id } })}>
               <Text style={styles.primaryText}>Pay booking</Text>
+            </Pressable>
+          )}
+
+          {booking.status === 'CANCELLED' && booking.payment?.status === 'captured' && (
+            <Pressable
+              style={styles.primary}
+              onPress={async () => {
+                if (!supabase || !id) return;
+                const { data } = await supabase.auth.getSession();
+                const token = data.session?.access_token;
+                if (!token) return;
+
+                const response = await fetch(baseUrl + '/api/payments/refund/' + id, {
+                  method: 'POST',
+                  headers: { Authorization: 'Bearer ' + token },
+                });
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                  Alert.alert('Refund unavailable', result.error || 'Please try again.');
+                  return;
+                }
+
+                Alert.alert('Refund initiated', 'Your payment refund has been submitted to the payment provider.', [
+                  { text: 'Done', onPress: () => router.replace({ pathname: '/booking-detail', params: { id } }) },
+                ]);
+              }}
+            >
+              <Text style={styles.primaryText}>Request full refund</Text>
             </Pressable>
           )}
 
