@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase-admin';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -37,7 +38,14 @@ export async function GET(
       return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     }
 
-    return NextResponse.json({ booking: data });
+    const serviceClient = getServiceClient();
+    const { data: payment } = await serviceClient
+      .from('payments')
+      .select('id,status,provider_payment_id,amount_paise,captured_at,failed_at')
+      .eq('booking_id', id)
+      .maybeSingle();
+
+    return NextResponse.json({ booking: { ...data, payment: payment ?? null } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
     return NextResponse.json({ error: message }, { status: 500 });
