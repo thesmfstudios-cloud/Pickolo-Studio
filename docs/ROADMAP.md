@@ -327,3 +327,23 @@ Added scheduled processors for:
 - push notification dispatch
 
 The three jobs are configured at one-minute cadence in vercel.json. Actual cadence depends on the deployed Vercel plan and deployment state.
+
+
+## Trust & Safety / Pilot hardening
+**Status:** SOURCE-IMPLEMENTED / LIVE VERIFICATION PENDING
+
+Implemented:
+- pending applicant document flow
+- private verification storage
+- admin document review
+- customer dispute intake
+- admin dispute resolution
+- dispute-aware payout guard
+- failed-partner rematching exclusion
+- scheduled search recovery
+
+Remaining:
+- live RLS verification
+- document requirement policy/KYC rules
+- operational evidence retention policy
+- production deployment and monitoring
