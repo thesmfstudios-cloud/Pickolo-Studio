@@ -100,6 +100,9 @@ const rootPackage = JSON.parse(read('package.json'));
 if (rootPackage.dependencies?.['@supabase/supabase-js'] === 'latest') {
   failures.push('root package.json must pin @supabase/supabase-js');
 }
+if (rootPackage.devDependencies?.typescript !== '5.9.3') {
+  failures.push('root package.json must pin TypeScript 5.9.3 for deterministic CI builds.');
+}
 
 const mobileCodeDirs = ['mobile/customer', 'mobile/partner', 'mobile/shared'];
 for (const dir of mobileCodeDirs) {

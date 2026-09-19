@@ -210,6 +210,9 @@ const styles = StyleSheet.create({
   secondaryText: { color: '#1e3a8a', fontWeight: '800' },
   primary: { marginTop: 12, borderRadius: 14, backgroundColor: '#2563eb', paddingVertical: 15, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800' },
+  card: { marginTop: 18, padding: 18, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0' },
+  cardTitle: { fontSize: 19, fontWeight: '800', color: '#13213a' },
+  muted: { marginTop: 6, color: '#64748b', lineHeight: 21 },
   documentRow: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
   documentName: { fontWeight: '800', color: '#13213a' },
 });

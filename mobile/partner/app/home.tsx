@@ -148,4 +148,8 @@ const styles = StyleSheet.create({
   badge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: '800' },
   cardTitle: { marginTop: 12, fontSize: 21, fontWeight: '800', color: '#13213a' },
   muted: { marginTop: 8, color: '#64748b', fontSize: 15, lineHeight: 22 },
+  secondary: { marginTop: 10, backgroundColor: '#eef2ff', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
+  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
+  primary: { marginTop: 10, backgroundColor: '#2563eb', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
+  primaryText: { color: '#fff', fontWeight: '800' },
 });
