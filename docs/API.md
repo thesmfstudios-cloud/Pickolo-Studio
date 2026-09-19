@@ -228,3 +228,30 @@ Accept marks the assignment accepted. Decline clears the assignment, returns boo
 
 ## Source API checkpoint
 Customer booking, pricing, payment, delivery, partner, admin, notification, matching, review and recovery routes are now represented in the repository. Each route still requires live integration verification before production status is granted.
+
+
+## Trust & Safety APIs
+
+### POST /api/partner/documents/upload-url
+Authenticated pending applicant or approved partner. Creates a signed upload URL for private verification storage.
+
+### GET /api/partner/documents
+Returns the authenticated user's verification documents during pending/approved partner workflow.
+
+### GET /api/admin/partner-documents
+Admin-only verification document queue.
+
+### POST /api/admin/partner-documents
+Admin-only document approval/rejection.
+
+### POST /api/disputes
+Customer opens a dispute for an eligible booking.
+
+### GET /api/disputes
+Customer's own dispute list.
+
+### GET /api/admin/disputes
+Admin dispute queue.
+
+### POST /api/admin/disputes
+Admin moves dispute to under_review, resolved or rejected.
