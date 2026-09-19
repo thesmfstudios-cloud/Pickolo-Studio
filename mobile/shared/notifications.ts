@@ -2,6 +2,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 import { supabase } from './supabase';
 
 Notifications.setNotificationHandler({
@@ -12,6 +13,30 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+let responseSubscription: Notifications.Subscription | null = null;
+let responseRole: 'customer' | 'partner' | null = null;
+
+function ensureNotificationNavigation(appRole: 'customer' | 'partner') {
+  if (responseSubscription && responseRole === appRole) return;
+
+  responseSubscription?.remove();
+  responseRole = appRole;
+
+  responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    const data = response.notification.request.content.data as { bookingId?: string } | undefined;
+    if (!data?.bookingId) return;
+
+    if (appRole === 'customer') {
+      router.push({
+        pathname: '/booking-detail',
+        params: { id: data.bookingId },
+      });
+    } else {
+      router.push('/jobs');
+    }
+  });
+}
 
 export async function registerPushToken(appRole: 'customer' | 'partner') {
   if (!supabase || !Device.isDevice) return null;
@@ -43,8 +68,9 @@ export async function registerPushToken(appRole: 'customer' | 'partner') {
     undefined;
 
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-  const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+  ensureNotificationNavigation(appRole);
 
+  const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
   const response = await fetch(baseUrl + '/api/notifications/register-token', {
     method: 'POST',
     headers: {
