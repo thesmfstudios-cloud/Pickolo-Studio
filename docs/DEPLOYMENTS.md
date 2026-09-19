@@ -60,3 +60,10 @@ Application source is committed to GitHub. No production deployment is marked ve
 
 ## 2026-09-19 — Deployment budget decision
 Routine source hardening will stay off Vercel until a meaningful runtime checkpoint requires deployment. The repository remains the primary working source, while Vercel is treated as a controlled validation/deployment target rather than a development scratchpad.
+
+## 2026-09-19 — Controlled live deployment trigger
+The Pickolo Vercel project is confirmed as `pickolo-studio` in the SMF team, with the Git repository `thesmfstudios-cloud/Pickolo-Studio` connected to `main`.
+
+The latest visible production deployment before this checkpoint used an older commit and failed during TypeScript setup because that revision did not contain the current root development dependencies. The current `main` branch contains the pinned TypeScript/type-definition dependencies and the GitHub CI source checkpoint is green.
+
+A single controlled Git deployment is being triggered from the current `main` revision. Build/runtime evidence will be recorded after the deployment result is known. The existing Vercel Hobby limitation for Pickolo's one-minute cron schedules remains a separate deployment/runtime constraint and will be handled based on the live result.
