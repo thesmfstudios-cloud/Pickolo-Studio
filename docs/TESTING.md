@@ -159,3 +159,21 @@ Once a network-capable build environment is available:
 - [ ] Non-admin receives 403
 - [ ] Status filter works
 - [ ] Sensitive booking fields are unavailable to non-admin roles
+
+
+## Failure recovery tests
+- [ ] Customer can cancel only eligible pre-shoot booking
+- [ ] Customer cannot cancel after delivery
+- [ ] Assigned partner can cancel own job only
+- [ ] Partner cancellation creates incident
+- [ ] Admin can record no-show
+- [ ] No-show clears assignment
+- [ ] No-show returns booking to SEARCHING_PARTNER
+- [ ] Admin can reassign recovered booking
+- [ ] Reassignment audit record created
+- [ ] Unapproved/out-of-level partner rejected
+- [ ] Partner outside 5 KM rejected
+- [ ] Missing coordinates rejected
+- [ ] Delivery submission limited to assigned partner
+- [ ] Customer can confirm submitted delivery
+- [ ] Payout release limited to admin after customer confirmation
