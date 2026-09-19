@@ -479,3 +479,19 @@ Source path updated and committed. Live Supabase/auth verification remains pendi
 
 ### Regression risk
 Both login and signup must be exercised on Android and iOS once the real Pickolo Supabase project is connected.
+
+
+## B-043 — Push dispatcher trusted HTTP 200 as delivery success
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The Expo push API can return HTTP 200 while individual push tickets report an error. The dispatcher previously marked notifications sent after a successful HTTP response, which could suppress retries for failed device deliveries.
+
+### Fix
+The dispatcher now inspects individual Expo tickets and only marks a notification sent when all of its targeted device sends in the current batch report success. Failed notifications remain eligible for retry.
+
+### Verification
+Source path updated and committed. Live push-provider verification remains pending.
+
+### Remaining
+Invalid device-token handling and provider delivery receipts require physical-device testing during pilot hardening.
