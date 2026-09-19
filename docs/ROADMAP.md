@@ -93,3 +93,25 @@ Still required before Phase 2 is complete:
 - Booking history UI
 - Booking status UI
 - Authoritative pricing
+
+
+## 2026-09-19 Update — Mobile Foundation
+**Status:** IN_PROGRESS
+
+### Completed
+- Customer Android/iOS Expo shell
+- Partner Android/iOS Expo shell
+- Shared mobile constants
+- Shared Supabase session client
+- Customer auth/home/booking foundation
+- Partner auth/home foundation
+
+### Remaining for mobile foundation exit
+- Pickolo Supabase project access
+- Mobile environment configuration
+- Android build verification
+- iOS build verification
+- Auth session verification on both platforms
+- Booking API integration verification on device/simulator
+- Error/retry behavior testing
+- Deep link strategy verification
