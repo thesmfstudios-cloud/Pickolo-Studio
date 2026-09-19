@@ -49,7 +49,16 @@ export async function POST(
       return NextResponse.json({ error: 'Provide between 1 and 100 uploaded assets.' }, { status: 400 });
     }
 
-    const assets = incoming.map((item: unknown) => ({
+    type DeliveryAsset = {
+      booking_id: string;
+      storage_path: string;
+      file_name: string;
+      mime_type: string;
+      size_bytes: number | null;
+      created_by: string;
+    };
+
+    const assets: DeliveryAsset[] = incoming.map((item: unknown) => ({
       booking_id: id,
       storage_path: typeof item === 'object' && item !== null && 'path' in item ? String((item as { path?: unknown }).path || '') : '',
       file_name: typeof item === 'object' && item !== null && 'fileName' in item ? String((item as { fileName?: unknown }).fileName || 'photo') : 'photo',
