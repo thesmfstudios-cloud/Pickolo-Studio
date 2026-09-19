@@ -87,6 +87,7 @@ export async function POST(
     });
 
     await writeAdminAudit({ actorId: user.id, action: 'RELEASE_PAYOUT', entityType: 'booking', entityId: id, metadata: { partner_id: booking.assigned_partner_id, amount_paise: booking.partner_payout_paise } });
+    await serviceClient.from('notifications').insert({ user_id: booking.assigned_partner_id, booking_id: id, channel: 'in_app', title: 'Payout released', body: 'Payout for booking ' + updated.booking_code + ' has been released.' });
     return NextResponse.json({ booking: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
