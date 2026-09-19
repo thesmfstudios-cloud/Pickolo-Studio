@@ -112,3 +112,31 @@ Added mobile booking list and booking detail screens using authenticated APIs.
 
 ### Verification
 Source flow is implemented; live database/device testing remains pending.
+
+
+## B-010 — Over-broad booking transitions
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The first transition API checked only booking participation plus global state validity, which was too broad for actor permissions.
+
+### Fix
+Added explicit role-based transition maps:
+- Admin: operational/payment progression
+- Partner: assigned-job execution
+- Customer: delivery confirmation
+
+### Verification
+The API now checks authenticated role, booking ownership/assignment, declared transition and current state.
+
+### Remaining
+Live RLS and end-to-end authorization tests are still pending.
+
+## B-011 — Partner assignment eligibility
+**Status:** IMPLEMENTED / LIVE TEST PENDING
+
+### Risk controlled
+Admin assignment now checks partner approval, service-level eligibility and overlapping availability before assignment.
+
+### Remaining
+Geographic radius/distance eligibility is not yet enforced because exact live location/route rules are not finalized.
