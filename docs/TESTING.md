@@ -238,3 +238,19 @@ Once a network-capable build environment is available:
 
 ## Release status
 No feature in this checkpoint is marked fully RELEASED because live infrastructure/device evidence is still pending. Source-level implementation and code-path checks are recorded separately from runtime verification.
+
+
+## Trust & Safety tests
+- [ ] Pending applicant can upload verification document
+- [ ] Pending applicant sees own verification documents
+- [ ] Rejected applicant cannot keep uploading documents
+- [ ] Admin sees document queue
+- [ ] Admin can approve document
+- [ ] Admin can reject document with reason
+- [ ] Customer can open one dispute per booking
+- [ ] Duplicate dispute rejected
+- [ ] Admin can move dispute to under_review
+- [ ] Final dispute decision requires resolution text
+- [ ] Payout blocked for open dispute
+- [ ] Payout blocked for under_review dispute
+- [ ] Payout proceeds after dispute resolved and booking remains eligible
