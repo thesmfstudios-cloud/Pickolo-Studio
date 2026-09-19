@@ -52,6 +52,8 @@ export async function POST(request: NextRequest) {
     const { data, error: updateError } = await serviceClient.from('booking_disputes').update({ status, resolution: resolution || null, resolved_by: ['resolved','rejected'].includes(status) ? user.id : null, resolved_at: ['resolved','rejected'].includes(status) ? new Date().toISOString() : null }).eq('id', id).select('id,booking_id,status,resolution,resolved_by,resolved_at').single();
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
     await writeAdminAudit({ actorId: user.id, action: 'DISPUTE_' + status.toUpperCase(), entityType: 'booking_dispute', entityId: id, metadata: { resolution: resolution || null } });
+    const { data: disputeOwner } = await serviceClient.from('booking_disputes').select('opened_by').eq('id', id).single();
+    if (disputeOwner?.opened_by) await serviceClient.from('notifications').insert({ user_id: disputeOwner.opened_by, booking_id: data.booking_id, channel: 'in_app', title: 'Support case updated', body: 'Your Pickolo support case is now ' + status.replace('_', ' ') + '.' });
     return NextResponse.json({ dispute: data });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Dispute update failed.';
