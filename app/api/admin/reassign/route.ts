@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase-admin';
 import { distanceKm, PICKOLO_PILOT_RADIUS_KM } from '@/lib/geo';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,6 +17,7 @@ function getClient(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = getClient(request);
+    const serviceClient = getServiceClient();
     const body = await request.json();
     const bookingId = String(body?.booking_id || '');
     const partnerId = String(body?.partner_id || '');
@@ -125,7 +127,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Partner has no matching availability.' }, { status: 400 });
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await serviceClient
       .from('bookings')
       .update({
         assigned_partner_id: partnerId,
@@ -140,7 +142,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Reassignment failed because booking changed concurrently.' }, { status: 409 });
     }
 
-    const { error: historyError } = await supabase
+    const { error: historyError } = await serviceClient
       .from('booking_status_history')
       .insert({
         booking_id: bookingId,
