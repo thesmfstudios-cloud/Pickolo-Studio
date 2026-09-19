@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     const { data: updated, error: updateError } = await serviceClient
       .from('bookings')
-      .update({ assigned_partner_id: partnerId, status: 'PARTNER_ASSIGNED' })
+      .update({ assigned_partner_id: partnerId, status: 'PARTNER_ASSIGNED', partner_acceptance_status: 'pending', partner_acceptance_at: null, partner_declined_at: null })
       .eq('id', bookingId)
       .in('status', ['SEARCHING_PARTNER', 'PAYMENT_CONFIRMED'])
       .select('id,booking_code,status,assigned_partner_id')
