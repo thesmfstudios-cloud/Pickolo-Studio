@@ -184,3 +184,16 @@ Partner no-show recovery returns eligible bookings to SEARCHING_PARTNER after re
 
 ### Remaining
 Customer notification and operational SLA behavior need live integration testing.
+
+
+## B-015 — Partner cancellation recovery state mismatch
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Partner cancellation initially marked the booking CANCELLED, which prevented the intended operational recovery flow.
+
+### Fix
+Partner cancellation now clears the failed assignment and returns the booking to SEARCHING_PARTNER so an admin can reassign an eligible backup partner.
+
+### Verification
+Route updated. Live end-to-end recovery test remains pending.
