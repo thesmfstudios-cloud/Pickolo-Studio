@@ -220,3 +220,28 @@ Adds:
 The matching engine continues to use the server-only Supabase client, so customer-facing APIs do not need direct access to partner base coordinates.
 
 Execution against the real Pickolo Supabase project remains pending.
+
+
+## 2026-09-19 — Pickolo Supabase live foundation
+**Status:** VERIFIED
+
+The intended empty Supabase project was confirmed as:
+- Project: `Pickolo Studio`
+- Ref: `ewfvmvakdmpismnddrmt`
+- URL: `https://ewfvmvakdmpismnddrmt.supabase.co`
+- Region: Mumbai / `ap-south-1`
+
+Applied the full authored migration chain `0001` through `0019` in order.
+
+### Verification
+- 19 migrations recorded by Supabase.
+- 23 public tables present.
+- 57 public RLS policies present.
+- 9 non-system public triggers present.
+- 3 service levels seeded: Basic, Standard, Professional.
+- 1 Photography service seeded.
+- All 23 public tables have RLS enabled.
+- Anonymous reads expose the active service catalog while profiles/bookings remain unreadable without an authenticated user context.
+
+### Remaining live gate
+Authentication with real users, owner-isolation tests with real sessions, Vercel environment-value match, Razorpay sandbox, push notifications, storage signed URLs, and Android/iOS device builds remain to be verified.
