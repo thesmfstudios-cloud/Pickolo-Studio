@@ -365,3 +365,7 @@ Remaining:
 - Tune automatic matching weights using pilot data.
 - Finalize KYC/document requirements and operating policies.
 - Add production error monitoring and alerting.
+
+
+## Current release gate
+The application source now covers the planned core MVP transaction loop and main operational failure paths. The remaining work is validation and pilot hardening: live Supabase, Vercel, EAS/native builds, Razorpay sandbox, push delivery, monitoring, policies and controlled pilot execution.
