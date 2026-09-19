@@ -84,7 +84,7 @@ export default function AdminPage() {
     setAuthorized(true);
 
     const headers = { Authorization: 'Bearer ' + accessToken };
-    const [bookingRes, appRes, partnerRes, pricingRes] = await Promise.all([
+    const [bookingRes, appRes, partnerRes, pricingRes, disputeRes] = await Promise.all([
       fetch('/api/admin/bookings', { headers }),
       fetch('/api/admin/partners?status=pending', { headers }),
       fetch('/api/admin/partner-directory', { headers }),
@@ -97,7 +97,7 @@ export default function AdminPage() {
       appRes.json().catch(() => ({})),
       partnerRes.json().catch(() => ({})),
       pricingRes.json().catch(() => ({})),
-      fetch('/api/admin/disputes?status=open', { headers }).then((response) => response.json()).catch(() => ({})),
+      disputeRes.json().catch(() => ({})),
     ]);
 
     if (!bookingRes.ok) setMessage(bookingData.error || 'Unable to load bookings.');
