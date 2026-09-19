@@ -385,3 +385,18 @@ Source code was repeatedly re-read after each major change and concrete route/au
 
 ### Release truth
 No live environment is marked verified until the actual Pickolo Supabase project, Pickolo Vercel project, Android build, iOS build and payment sandbox are exercised successfully.
+
+
+## 2026-09-19 — Audit & Delivery Consolidation
+**Status:** SOURCE-COMPLETE / LIVE VERIFICATION PENDING
+
+### Added
+- Independent admin_audit_log for sensitive operator actions.
+- Admin review links for private partner verification documents.
+- Customer refund action for paid cancelled bookings.
+- Notification deep-link handling.
+- Partner offer expiry/rematch and scheduled search recovery.
+- Legacy single-link delivery write endpoint retired; multi-file private delivery is authoritative.
+
+### Validation standard
+Static source audits have been used after major integration blocks to catch undefined server clients, route mismatches, scope errors and inconsistent lifecycle edges. Runtime verification is still intentionally unmarked until live environments are available.
