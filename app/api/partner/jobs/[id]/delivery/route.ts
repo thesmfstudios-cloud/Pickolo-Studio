@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabase-admin';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -18,6 +19,7 @@ export async function POST(
 ) {
   try {
     const supabase = getClient(request);
+    const serviceClient = getServiceClient();
     const { id } = await context.params;
     const body = await request.json();
 
@@ -47,7 +49,7 @@ export async function POST(
       return NextResponse.json({ error: 'Booking is not ready for delivery submission.' }, { status: 409 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await serviceClient
       .from('delivery_records')
       .upsert({
         booking_id: id,
@@ -62,7 +64,7 @@ export async function POST(
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
     if (booking.status === 'SHOOT_COMPLETED') {
-      const { data: updated } = await supabase
+      const { data: updated } = await serviceClient
         .from('bookings')
         .update({ status: 'DATA_SUBMITTED' })
         .eq('id', id)
@@ -71,7 +73,7 @@ export async function POST(
         .single();
 
       if (updated) {
-        await supabase.from('booking_status_history').insert({
+        await serviceClient.from('booking_status_history').insert({
           booking_id: id,
           from_status: 'SHOOT_COMPLETED',
           to_status: 'DATA_SUBMITTED',
