@@ -105,6 +105,7 @@ export async function POST(
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
 
     await writeAdminAudit({ actorId: user.id, action: action.toUpperCase(), entityType: 'partner_application', entityId: id, metadata: { applicant_id: application.applicant_id } });
+    await supabase.from('notifications').insert({ user_id: application.applicant_id, booking_id: null, channel: 'in_app', title: 'Partner application ' + nextStatus, body: action === 'approve' ? 'Your Pickolo Partner application was approved.' : action === 'reject' ? 'Your Pickolo Partner application was rejected.' : 'Your Pickolo Partner access was suspended.' });
     return NextResponse.json({ application: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
