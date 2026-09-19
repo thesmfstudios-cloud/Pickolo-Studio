@@ -77,3 +77,14 @@ Adds:
 - assignment index
 
 Live policy verification remains pending until the Pickolo Supabase project is accessible.
+
+
+## Assignment readiness model
+Availability windows are stored per partner and can be matched against booking start/end windows.
+
+Partner assignment requires:
+- approved verification state
+- sufficient service-level eligibility
+- overlapping availability
+
+The 5 KM geographic radius remains a future rule until location/routing behavior is finalized.
