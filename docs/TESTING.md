@@ -129,3 +129,19 @@ Once a network-capable build environment is available:
 - [ ] Mobile booking detail loads
 - [ ] Android booking flow verified
 - [ ] iOS booking flow verified
+
+
+## Phase 3 Partner/Admin tests
+- [ ] Admin can assign approved eligible partner
+- [ ] Non-admin cannot assign partner
+- [ ] Unapproved partner rejected
+- [ ] Under-qualified partner rejected
+- [ ] Partner without matching availability rejected
+- [ ] Partner job inbox returns assigned jobs only
+- [ ] Unassigned partner cannot see job
+- [ ] Partner can transition only permitted lifecycle states
+- [ ] Customer cannot perform partner/admin transitions
+- [ ] Admin-only transitions reject customer/partner
+- [ ] Booking history records actor role
+- [ ] Android partner job flow verified
+- [ ] iOS partner job flow verified
