@@ -571,3 +571,19 @@ Migration 0019 adds database range constraints. The booking POST API also now re
 
 ### Remaining
 Live validation against the actual database and mobile location behavior is still pending.
+
+## B-050 — CI workspace and type-definition drift
+**Status:** FIXED / VERIFIED IN CI
+
+### Problem
+The repository's web and Expo workspaces were sharing TypeScript scope and dependency resolution in ways that caused CI-only failures, including missing React/Node typings and an invalid Expo package version.
+
+### Fix
+- Added a dedicated `mobile/package.json` workspace.
+- Corrected mobile dependency versions and typing packages.
+- Excluded `mobile/**` from the root web TypeScript project.
+- Updated CI to typecheck each Expo workspace explicitly.
+- Added deterministic Node/TypeScript type dependencies.
+
+### Verification
+GitHub Actions run #140 passed repository validation, web typecheck/build, and both mobile typechecks.
