@@ -10,13 +10,32 @@ function getClient(request: NextRequest) {
   if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
   const authorization = request.headers.get('authorization') ?? '';
   return createClient(url, anonKey, {
-    global: authorization ? { headers: { Authorization: authorization } } : undefined
+    global: authorization ? { headers: { Authorization: authorization } } : undefined,
   });
 }
 
+const PARTNER_ALLOWED: Partial<Record<BookingState, BookingState[]>> = {
+  PARTNER_ASSIGNED: ['ON_THE_WAY'],
+  ON_THE_WAY: ['SHOOT_STARTED'],
+  SHOOT_STARTED: ['SHOOT_COMPLETED'],
+  DATA_PENDING: ['DATA_SUBMITTED'],
+};
+
+const CUSTOMER_ALLOWED: Partial<Record<BookingState, BookingState[]>> = {
+  DATA_SUBMITTED: ['CUSTOMER_CONFIRMED'],
+};
+
+const ADMIN_ALLOWED: Partial<Record<BookingState, BookingState[]>> = {
+  REQUESTED: ['PAYMENT_CONFIRMED'],
+  PAYMENT_CONFIRMED: ['SEARCHING_PARTNER'],
+  SEARCHING_PARTNER: ['PARTNER_ASSIGNED'],
+  CUSTOMER_CONFIRMED: ['PAYOUT_RELEASED'],
+  PAYOUT_RELEASED: ['COMPLETED'],
+};
+
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = getClient(request);
@@ -43,11 +62,31 @@ export async function POST(
       return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     }
 
-    if (booking.customer_id !== user.id && booking.assigned_partner_id !== user.id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const role = profile?.role as 'customer' | 'partner' | 'admin' | undefined;
+    const fromStatus = booking.status as BookingState;
+
+    let allowedTargets: BookingState[] = [];
+
+    if (role === 'admin') {
+      allowedTargets = ADMIN_ALLOWED[fromStatus] ?? [];
+    } else if (role === 'partner' && booking.assigned_partner_id === user.id) {
+      allowedTargets = PARTNER_ALLOWED[fromStatus] ?? [];
+    } else if (role === 'customer' && booking.customer_id === user.id) {
+      allowedTargets = CUSTOMER_ALLOWED[fromStatus] ?? [];
+    } else {
       return NextResponse.json({ error: 'You are not authorized for this booking.' }, { status: 403 });
     }
 
-    const fromStatus = booking.status as BookingState;
+    if (!allowedTargets.includes(toStatus)) {
+      return NextResponse.json({ error: 'This role cannot perform the requested transition.' }, { status: 403 });
+    }
+
     if (!BOOKING_TRANSITIONS[fromStatus].includes(toStatus)) {
       return NextResponse.json({ error: 'Invalid booking state transition.' }, { status: 409 });
     }
@@ -70,11 +109,15 @@ export async function POST(
         booking_id: id,
         from_status: fromStatus,
         to_status: toStatus,
-        changed_by: user.id
+        changed_by: user.id,
+        metadata: { actor_role: role },
       });
 
     if (historyError) {
-      return NextResponse.json({ error: 'Transition applied but history write failed.' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Transition applied but history recording failed.' },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ booking: updated });
