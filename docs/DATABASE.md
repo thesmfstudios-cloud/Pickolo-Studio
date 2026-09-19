@@ -165,5 +165,5 @@ Adds partner verification documents and booking disputes.
 ## Migration 0016 — Pending applicant documents
 Adds `applicant_id` to verification documents and allows documents to exist before Partner approval.
 
-## Migration 0017+ operational hardening
-Payout dispute guard, assignment events, scheduled search workers and related access controls are now source-implemented. Live execution remains pending until the correct Pickolo Supabase project is connected.
+## Post-0016 operational hardening
+Payout dispute guard, assignment events, scheduled search workers and related access controls are source-implemented in application code and the preceding migrations. No additional migration number is implied by this section.
