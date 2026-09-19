@@ -71,3 +71,16 @@ Live execution is pending access to the Pickolo Supabase project through the con
 - [ ] Inactive service rejected
 - [ ] Inactive service level rejected
 - [ ] Authenticated customer identity cannot be overridden by request payload
+
+
+## Environment verification limitation — 2026-09-19
+
+A runtime build attempt was blocked because the available execution environment could not resolve github.com. Therefore no claim of a successful npm install or production build is being made.
+
+Once a network-capable build environment is available:
+- [ ] npm install
+- [ ] TypeScript compile
+- [ ] next build
+- [ ] Auth smoke test
+- [ ] Booking API smoke test
+- [ ] RLS tests
