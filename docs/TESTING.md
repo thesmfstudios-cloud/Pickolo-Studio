@@ -278,3 +278,21 @@ Passed:
 - partner mobile typecheck
 
 This is source/CI evidence only. It does not replace live Supabase, Razorpay, push-notification, Android, iOS or production deployment verification.
+
+
+## 2026-09-19 — Live Supabase smoke verification
+**Status:** TESTING
+
+Executed against Supabase project `ewfvmvakdmpismnddrmt`:
+- Migration chain verification: 19 applied.
+- Schema verification: 23 public tables.
+- RLS verification: all public tables report RLS enabled.
+- Policy verification: 57 public policies.
+- Trigger verification: 9 non-system public triggers.
+- Anonymous RLS behavior: active services visible; profiles and bookings not visible.
+
+Not yet executed:
+- Authenticated customer isolation using two real sessions.
+- Partner assigned-booking isolation using real sessions.
+- Admin authorization using a real admin session.
+- Booking POST/GET end-to-end through production APIs.
