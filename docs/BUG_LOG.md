@@ -396,3 +396,40 @@ The payout release route referenced the server-only Supabase client without a lo
 
 ### Fix
 Added the server client initialization before the admin authorization and payout workflow.
+
+
+## B-035 — Payment webhook triggered matching outside success events
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The Razorpay webhook handler invoked the matcher after processing any recognized payment webhook, including failure events.
+
+### Fix
+Automatic matching now runs only for captured/paid webhook events.
+
+## B-036 — Delivery could finalize missing files
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The delivery finalize endpoint trusted file paths without verifying the files existed in private storage.
+
+### Fix
+Finalize now verifies each storage path before creating delivery assets or moving the booking to DATA_SUBMITTED.
+
+## B-037 — Partner declines omitted from cancellation metrics
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+PARTNER_DECLINE incidents were not included in cancellations counters.
+
+### Fix
+Performance trigger now counts partner declines with other partner cancellation events.
+
+## B-038 — COMPLETED state had no admin UI path
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Payout release stopped at PAYOUT_RELEASED while the admin UI had no action to complete the final booking state.
+
+### Fix
+Added Complete booking action for PAYOUT_RELEASED records.
