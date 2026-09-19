@@ -145,3 +145,17 @@ Once a network-capable build environment is available:
 - [ ] Booking history records actor role
 - [ ] Android partner job flow verified
 - [ ] iOS partner job flow verified
+
+
+## Partner availability tests
+- [ ] Partner can create future availability
+- [ ] Past availability rejected
+- [ ] End before/equal start rejected
+- [ ] Customer cannot create availability
+- [ ] Partner sees only own availability
+
+## Admin queue tests
+- [ ] Admin can list bookings
+- [ ] Non-admin receives 403
+- [ ] Status filter works
+- [ ] Sensitive booking fields are unavailable to non-admin roles
