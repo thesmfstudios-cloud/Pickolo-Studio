@@ -37,4 +37,4 @@ A notification should never be treated as proof that the user saw or acted on an
 
 ## Mobile requirements
 
-Push notification behavior must be tested on physical Android and iOS builds. Expo documents that Android remote push notifications require a development build rather than Expo Go. citeturn572795search0
+Push notification behavior must be tested on physical Android and iOS development builds. Android remote push notifications require a development build rather than Expo Go.
