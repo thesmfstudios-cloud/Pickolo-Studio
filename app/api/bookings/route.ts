@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { calculateBookingPrice } from '@/lib/pricing';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -13,6 +12,11 @@ function getSupabase(request: NextRequest) {
   const authorization = request.headers.get('authorization') ?? '';
 
   return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
     global: authorization ? { headers: { Authorization: authorization } } : undefined,
   });
 }
@@ -32,15 +36,6 @@ export async function POST(request: NextRequest) {
       location_long,
       notes,
     } = body ?? {};
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-    }
 
     if (!service_id || !service_level_id || !scheduled_start || !location_text) {
       return NextResponse.json(
@@ -86,69 +81,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [{ data: service }, { data: level }] = await Promise.all([
-      supabase
-        .from('services')
-        .select('id')
-        .eq('id', service_id)
-        .eq('active', true)
-        .maybeSingle(),
-      supabase
-        .from('service_levels')
-        .select('id,name')
-        .eq('id', service_level_id)
-        .eq('active', true)
-        .maybeSingle(),
-    ]);
+    const { data, error } = await supabase.rpc('create_customer_booking', {
+      p_service_id: String(service_id),
+      p_service_level_id: String(service_level_id),
+      p_scheduled_start: String(scheduled_start),
+      p_duration_minutes: Number(duration_minutes),
+      p_location_text: locationText,
+      p_location_lat: latitude,
+      p_location_long: longitude,
+      p_notes: normalizedNotes,
+    });
 
-    if (!service || !level) {
+    if (error) {
+      const status = /Authentication required/i.test(error.message) ? 401
+        : /Pricing is not configured|not active/i.test(error.message) ? 409
+        : 400;
+      return NextResponse.json({ error: error.message }, { status });
+    }
+
+    const booking = Array.isArray(data) ? data[0] : data;
+    if (!booking?.id || !booking?.booking_code) {
       return NextResponse.json(
-        { error: 'Selected service or service level is not active.' },
-        { status: 400 },
+        { error: 'Booking was created but the server returned an invalid response.' },
+        { status: 500 },
       );
     }
 
-    const { data: priceConfig, error: priceError } = await supabase
-      .from('service_level_prices')
-      .select('amount_paise,platform_fee_bps')
-      .eq('service_level_id', service_level_id)
-      .eq('duration_minutes', Number(duration_minutes))
-      .eq('active', true)
-      .maybeSingle();
-
-    if (priceError || !priceConfig) {
-      return NextResponse.json({ error: 'Pricing is not configured for this booking option.' }, { status: 409 });
-    }
-
-    const bookingPricing = calculateBookingPrice({
-      amountPaise: Number(priceConfig.amount_paise),
-      platformFeeBps: Number(priceConfig.platform_fee_bps),
-    });
-
-    const { data, error } = await supabase
-      .from('bookings')
-      .insert({
-        customer_id: user.id,
-        service_id,
-        service_level_id,
-        scheduled_start,
-        duration_minutes: Number(duration_minutes),
-        location_text: locationText,
-        location_lat: latitude,
-        location_long: longitude,
-        notes: normalizedNotes,
-        customer_price_paise: bookingPricing.totalPaise,
-        platform_fee_paise: bookingPricing.platformFeePaise,
-        partner_payout_paise: bookingPricing.partnerPayoutPaise,
-      })
-      .select('id, booking_code, status, scheduled_start, duration_minutes, location_text, customer_price_paise, platform_fee_paise, partner_payout_paise')
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ booking: data }, { status: 201 });
+    return NextResponse.json({ booking }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
     return NextResponse.json({ error: message }, { status: 500 });
@@ -158,13 +117,9 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabase(request);
+    const authorization = request.headers.get('authorization') ?? '';
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
+    if (!authorization) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
@@ -173,7 +128,6 @@ export async function GET(request: NextRequest) {
       .select(
         'id, booking_code, status, scheduled_start, duration_minutes, location_text, created_at',
       )
-      .eq('customer_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
