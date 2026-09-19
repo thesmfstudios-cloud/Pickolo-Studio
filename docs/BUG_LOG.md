@@ -547,3 +547,27 @@ The API now selects storage_path internally, creates the signed URL, and omits t
 
 ### Verification
 Source path updated and committed. Live private-storage verification remains pending.
+
+## B-048 — Approved partner location data exposed by public RLS
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+The initial `partners` RLS policy allowed anonymous and authenticated reads of approved partner rows, including operational base coordinates.
+
+### Fix
+Migration 0019 removes the public approved-partner read policy and replaces it with authenticated owner-only read access. Server-side matching continues to use the service client.
+
+### Remaining
+Live RLS verification is still pending on the real Pickolo Supabase project.
+
+## B-049 — Booking/partner geographic input accepted malformed values
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Booking and partner coordinate columns did not enforce geographic ranges at the database layer, while the assignment engine depends on valid latitude/longitude.
+
+### Fix
+Migration 0019 adds database range constraints. The booking POST API also now requires valid latitude/longitude and bounds location/notes input lengths.
+
+### Remaining
+Live validation against the actual database and mobile location behavior is still pending.
