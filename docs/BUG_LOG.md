@@ -87,3 +87,28 @@ None established. This is a development-environment limitation.
 
 ### Next action
 Use network-capable local/CI environment for build verification and record the result.
+
+
+## B-008 — Client-side price authority risk
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Booking creation previously left price fields at zero because pricing logic was absent.
+
+### Fix
+The server now calculates the booking total, illustrative platform fee and partner payout before inserting the booking.
+
+### Remaining risk
+The current pricing values are development configuration. Before payment integration they must be replaced with an approved pricing configuration with server-side payment verification.
+
+## B-009 — Missing customer booking visibility
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Customer had no mobile booking history/detail experience.
+
+### Fix
+Added mobile booking list and booking detail screens using authenticated APIs.
+
+### Verification
+Source flow is implemented; live database/device testing remains pending.
