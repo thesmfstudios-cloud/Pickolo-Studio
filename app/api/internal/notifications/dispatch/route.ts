@@ -7,6 +7,11 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const cronSecret = process.env.CRON_SECRET;
 const expoAccessToken = process.env.EXPO_ACCESS_TOKEN;
 
+type ExpoTicket = {
+  status?: string;
+  details?: { error?: string };
+};
+
 async function sendExpoPush(messages: unknown[]) {
   const response = await fetch('https://exp.host/--/api/v2/push/send', {
     method: 'POST',
@@ -18,8 +23,11 @@ async function sendExpoPush(messages: unknown[]) {
   });
 
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.errors?.[0]?.message || 'Expo push request failed.');
-  return data;
+  if (!response.ok) {
+    throw new Error(data?.errors?.[0]?.message || 'Expo push request failed.');
+  }
+
+  return Array.isArray(data?.data) ? data.data as ExpoTicket[] : [];
 }
 
 export async function GET(request: NextRequest) {
@@ -35,7 +43,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'CRON_SECRET is not configured.' }, { status: 503 });
     }
 
-    if (!serviceRoleKey) return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY is not configured.' }, { status: 503 });
+    if (!serviceRoleKey) {
+      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY is not configured.' }, { status: 503 });
+    }
 
     const supabase = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
 
@@ -59,7 +69,9 @@ export async function GET(request: NextRequest) {
       .in('user_id', userIds)
       .eq('active', true);
 
-    if (tokenError) return NextResponse.json({ error: tokenError.message }, { status: 400 });
+    if (tokenError) {
+      return NextResponse.json({ error: tokenError.message }, { status: 400 });
+    }
 
     const tokenByUser = new Map<string, string[]>();
     for (const row of tokens ?? []) {
@@ -69,11 +81,14 @@ export async function GET(request: NextRequest) {
     }
 
     const messages: Record<string, unknown>[] = [];
-    const sentNotificationIds = new Set<string>();
+    const messageNotificationIds: string[] = [];
+    const successfulNotificationIds = new Set<string>();
 
     for (const item of notifications) {
       const userTokens = tokenByUser.get(item.user_id) ?? [];
       if (!userTokens.length) continue;
+
+      successfulNotificationIds.add(item.id);
 
       for (const token of userTokens) {
         messages.push({
@@ -86,30 +101,44 @@ export async function GET(request: NextRequest) {
             ...(item.metadata || {}),
           },
         });
+        messageNotificationIds.push(item.id);
       }
-
-      sentNotificationIds.add(item.id);
     }
 
     // Expo accepts batches. Keep requests bounded so a user with multiple
     // devices cannot turn one dispatch job into an oversized provider call.
     for (let index = 0; index < messages.length; index += 100) {
-      await sendExpoPush(messages.slice(index, index + 100));
+      const batch = messages.slice(index, index + 100);
+      const tickets = await sendExpoPush(batch);
+
+      // Expo can return HTTP 200 while individual tickets contain errors.
+      // Do not mark an entire notification sent when any of its device sends failed.
+      for (let ticketIndex = 0; ticketIndex < batch.length; ticketIndex += 1) {
+        const ticket = tickets[ticketIndex];
+        if (ticket?.status !== 'ok') {
+          const notificationId = messageNotificationIds[index + ticketIndex];
+          if (notificationId) successfulNotificationIds.delete(notificationId);
+        }
+      }
     }
 
-    if (sentNotificationIds.size) {
-      await supabase
+    if (successfulNotificationIds.size) {
+      const { error: sentError } = await supabase
         .from('notifications')
         .update({ sent_at: new Date().toISOString() })
-        .in('id', [...sentNotificationIds]);
+        .in('id', [...successfulNotificationIds]);
+
+      if (sentError) {
+        return NextResponse.json({ error: sentError.message }, { status: 500 });
+      }
     }
 
     return NextResponse.json({
-      notifications: sentNotificationIds.size,
+      notifications: successfulNotificationIds.size,
       messages: messages.length,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected server error.';
+    const message = error instanceof Error ? error.message : 'Notification dispatch failed.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
