@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getApprovedPartner } from '@/lib/partner-auth';
 import { getServiceClient } from '@/lib/supabase-admin';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -32,6 +33,9 @@ export async function POST(
     if (!storagePath && !deliveryUrl) {
       return NextResponse.json({ error: 'storage_path or delivery_url is required.' }, { status: 400 });
     }
+
+    const partner = await getApprovedPartner(serviceClient, user.id);
+    if (!partner) return NextResponse.json({ error: 'Approved partner access required.' }, { status: 403 });
 
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
