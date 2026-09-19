@@ -93,7 +93,7 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid booking state transition.' }, { status: 409 });
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await serviceClient
       .from('bookings')
       .update({ status: toStatus })
       .eq('id', id)
