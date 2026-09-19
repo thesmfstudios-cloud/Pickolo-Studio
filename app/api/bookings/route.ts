@@ -48,9 +48,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const start = new Date(String(scheduled_start));
+    if (Number.isNaN(start.getTime()) || start.getTime() <= Date.now()) {
+      return NextResponse.json(
+        { error: 'scheduled_start must be a valid future timestamp.' },
+        { status: 400 },
+      );
+    }
+
     if (![30, 60, 120].includes(Number(duration_minutes))) {
       return NextResponse.json(
         { error: 'duration_minutes must be 30, 60 or 120.' },
+        { status: 400 },
+      );
+    }
+
+    const [{ data: service }, { data: level }] = await Promise.all([
+      supabase
+        .from('services')
+        .select('id')
+        .eq('id', service_id)
+        .eq('active', true)
+        .maybeSingle(),
+      supabase
+        .from('service_levels')
+        .select('id')
+        .eq('id', service_level_id)
+        .eq('active', true)
+        .maybeSingle(),
+    ]);
+
+    if (!service || !level) {
+      return NextResponse.json(
+        { error: 'Selected service or service level is not active.' },
         { status: 400 },
       );
     }
