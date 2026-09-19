@@ -207,3 +207,16 @@ Adds `admin_audit_log` for sensitive operator actions.
 Adds a server-side trigger that prevents an authenticated user from changing their own profile role. Existing admins may change another user's role through the controlled admin workflow, and server service-role operations remain permitted.
 
 This closes the role self-escalation path created by the general own-profile update policy.
+
+## Migration 0019 — Partner privacy + geographic constraints
+**Status:** AUTHORED / LIVE VERIFICATION PENDING
+
+Adds:
+- Removes the public read policy that exposed approved partner rows.
+- Adds owner-only read access for authenticated partners.
+- Validates booking latitude/longitude ranges.
+- Validates partner base latitude/longitude ranges.
+
+The matching engine continues to use the server-only Supabase client, so customer-facing APIs do not need direct access to partner base coordinates.
+
+Execution against the real Pickolo Supabase project remains pending.
