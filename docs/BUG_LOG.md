@@ -286,3 +286,28 @@ The admin UI called a dynamic no-show URL while the server route was defined as 
 
 ### Fix
 Moved the endpoint to the dynamic route and routed state/audit writes through the server-only Supabase client after admin authentication.
+
+
+## B-024 — Partner offer acceptance missing from state control
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+A partner could move from PARTNER_ASSIGNED directly into execution without an explicit accept/decline event.
+
+### Fix
+Added partner_acceptance_status and partner acceptance API. Execution now requires accepted assignment.
+
+### Remaining
+Live end-to-end acceptance timing and expired-offer behavior require testing.
+
+## B-025 — Automatic assignment had no unified scoring model
+**Status:** FIXED / CODE-VERIFIED
+
+### Problem
+Manual assignment rules existed, but there was no shared automatic candidate-scoring engine.
+
+### Fix
+Added automatic matcher using distance, service-level eligibility, time availability, overlap protection and performance/reliability score.
+
+### Remaining
+Weight tuning must be driven by pilot data.
