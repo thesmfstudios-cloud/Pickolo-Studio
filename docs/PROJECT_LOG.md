@@ -511,6 +511,24 @@ Real authenticated-session tests have not yet been executed, and Vercel environm
 Verify Vercel `NEXT_PUBLIC_SUPABASE_URL`, then run real Auth/RLS/customer-booking tests.
 
 
+## 2026-09-20 — Partner On-demand Availability Model
+**Status:** IMPLEMENTED / LIVE VALIDATION NEXT
+
+### Changed
+- Replaced the partner-facing manual availability calendar with a simple Available / Offline state.
+- Added partners.is_accepting_jobs as the partner-controlled flag for receiving new marketplace offers.
+- Automatic matching now considers only approved partners who are actively accepting jobs.
+- Matching still checks 5 KM radius, service-level eligibility, existing booking conflicts, and prior decline/expiry events.
+- Assignment now creates an in-app notification for the matched partner.
+- Partner workspace now exposes online state, base-location control, real assigned jobs, and Accept/Decline actions.
+- The legacy partner_availability table/API remains for backwards compatibility but is no longer a required partner workflow or matching gate.
+
+### Rationale
+Pickolo is an on-demand marketplace: the customer requests a future slot, Pickolo finds eligible nearby partners, and an available partner receives a job offer to accept or decline. The partner should not have to pre-build availability windows for every day.
+
+### Next
+Validate the live Partner toggle, base location, automatic assignment, partner notification, and accept/decline flow, then connect matching to verified payment completion.
+
 ## 2026-09-19 — Supabase Security Advisor Pass
 **Status:** VERIFIED
 
