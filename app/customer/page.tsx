@@ -15,6 +15,12 @@ type Coordinates = {
   longitude: number;
 };
 
+type CustomerBooking = {
+  id: string;
+  booking_code: string;
+  status: string;
+};
+
 type RazorpayCheckout = {
   open: () => void;
 };
@@ -64,6 +70,7 @@ export default function CustomerPage() {
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [locating, setLocating] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [bookingCode, setBookingCode] = useState<string | null>(null);
   const [paymentBusy, setPaymentBusy] = useState(false);
 
   useEffect(() => {
@@ -93,6 +100,24 @@ export default function CustomerPage() {
       setLevels(levelsResult.data ?? []);
       if (servicesResult.error) setMessage(servicesResult.error.message);
       if (levelsResult.error) setMessage(levelsResult.error.message);
+
+      const accessToken = sessionData.session.access_token;
+      const bookingsResponse = await fetch('/api/bookings', {
+        headers: { Authorization: 'Bearer ' + accessToken },
+        cache: 'no-store',
+      });
+      const bookingsData = await bookingsResponse.json().catch(() => ({}));
+      const latestBooking = Array.isArray(bookingsData.bookings)
+        ? (bookingsData.bookings[0] as CustomerBooking | undefined)
+        : undefined;
+
+      if (latestBooking?.status === 'REQUESTED') {
+        setBookingId(latestBooking.id);
+        setBookingCode(latestBooking.booking_code);
+        setSubmitted(true);
+        setMessage('Pending payment: ' + latestBooking.booking_code);
+      }
+
       setSessionReady(true);
     }
 
@@ -306,6 +331,7 @@ export default function CustomerPage() {
       }
 
       setBookingId(result.booking.id ?? null);
+      setBookingCode(result.booking.booking_code);
       setSubmitted(true);
       setMessage('Booking created: ' + result.booking.booking_code);
     } catch (error) {
@@ -338,6 +364,9 @@ export default function CustomerPage() {
               <span className="badge">Booking created</span>
               <h2 style={{ marginTop: 14 }}>Your request is in Pickolo.</h2>
               <p className="muted">{message}</p>
+              {bookingCode && (
+                <p className="muted">Booking: {bookingCode}</p>
+              )}
               {bookingId && (
                 <button
                   className="button"
