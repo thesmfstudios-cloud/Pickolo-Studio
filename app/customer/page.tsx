@@ -288,7 +288,7 @@ export default function CustomerPage() {
       }
 
       const raw = await response.text();
-      let result: { error?: string; booking?: { booking_code?: string } } = {};
+      let result: { error?: string; booking?: { id?: string; booking_code?: string } } = {};
       try {
         result = raw ? JSON.parse(raw) : {};
       } catch {
