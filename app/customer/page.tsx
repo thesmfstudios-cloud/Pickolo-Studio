@@ -127,7 +127,7 @@ export default function CustomerPage() {
     };
   }, [router]);
 
-  async function startPayment() {
+  async function confirmCod() {
     if (!bookingId || !supabaseBrowser) return;
 
     setPaymentBusy(true);
@@ -142,93 +142,30 @@ export default function CustomerPage() {
         return;
       }
 
-      const orderResponse = await fetch('/api/payments/order/' + encodeURIComponent(bookingId), {
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer ' + accessToken,
+      const response = await fetch(
+        '/api/bookings/' + encodeURIComponent(bookingId) + '/confirm-cod',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + accessToken,
+          },
         },
-      });
+      );
 
-      const orderData = await orderResponse.json().catch(() => ({}));
+      const result = await response.json().catch(() => ({}));
 
-      if (!orderResponse.ok) {
-        throw new Error(orderData.error || 'Unable to prepare payment.');
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to confirm COD booking.');
       }
 
-      if (!orderData.keyId || !orderData.orderId || !orderData.amountPaise) {
-        throw new Error('Payment order response is incomplete.');
-      }
-
-      if (!window.Razorpay) {
-        await new Promise<void>((resolve, reject) => {
-          const existing = document.querySelector('script[data-razorpay-checkout="true"]') as HTMLScriptElement | null;
-          if (existing) {
-            existing.addEventListener('load', () => resolve(), { once: true });
-            existing.addEventListener('error', () => reject(new Error('Unable to load Razorpay checkout.')), { once: true });
-            return;
-          }
-
-          const script = document.createElement('script');
-          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-          script.async = true;
-          script.dataset.razorpayCheckout = 'true';
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error('Unable to load Razorpay checkout.'));
-          document.body.appendChild(script);
-        });
-      }
-
-      if (!window.Razorpay) {
-        throw new Error('Razorpay checkout is unavailable.');
-      }
-
-      const checkout = new window.Razorpay({
-        key: orderData.keyId,
-        amount: String(orderData.amountPaise),
-        currency: orderData.currency || 'INR',
-        name: 'Pickolo',
-        description: 'Photography booking',
-        order_id: orderData.orderId,
-        handler: async (response: Record<string, unknown>) => {
-          try {
-            const verificationResponse = await fetch(
-              '/api/payments/verify/' + encodeURIComponent(bookingId),
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: 'Bearer ' + accessToken,
-                },
-                body: JSON.stringify(response),
-              },
-            );
-
-            const verification = await verificationResponse.json().catch(() => ({}));
-
-            if (!verificationResponse.ok) {
-              throw new Error(verification.error || 'Payment verification failed.');
-            }
-
-            setMessage(
-              verification.assignment?.assigned
-                ? 'Payment confirmed. Partner assigned automatically.'
-                : 'Payment confirmed. Pickolo is searching for an eligible partner.',
-            );
-          } catch (error) {
-            setMessage(error instanceof Error ? error.message : 'Payment verification failed.');
-          } finally {
-            setPaymentBusy(false);
-          }
-        },
-        modal: {
-          ondismiss: () => setPaymentBusy(false),
-        },
-        theme: { color: '#2563eb' },
-      });
-
-      checkout.open();
+      setMessage(
+        result.assignment?.assigned
+          ? 'COD booking confirmed. Partner assigned automatically.'
+          : 'COD booking confirmed. Pickolo is searching for an eligible partner.',
+      );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to start payment.');
+      setMessage(error instanceof Error ? error.message : 'Unable to confirm COD booking.');
+    } finally {
       setPaymentBusy(false);
     }
   }
@@ -368,13 +305,18 @@ export default function CustomerPage() {
                 <p className="muted">Booking: {bookingCode}</p>
               )}
               {bookingId && (
-                <button
-                  className="button"
-                  onClick={startPayment}
-                  disabled={paymentBusy}
-                >
-                  {paymentBusy ? 'Opening payment…' : 'Pay securely'}
-                </button>
+                <div>
+                  <button
+                    className="button"
+                    onClick={confirmCod}
+                    disabled={paymentBusy}
+                  >
+                    {paymentBusy ? 'Confirming booking…' : 'Confirm Booking (COD)'}
+                  </button>
+                  <p className="muted" style={{ marginTop: 10 }}>
+                    Temporary testing mode. Online payment will be enabled later.
+                  </p>
+                </div>
               )}
               <button
                 className="button secondary"
