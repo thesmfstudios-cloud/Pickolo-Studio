@@ -19,11 +19,10 @@ export async function GET(request: NextRequest) {
     const supabase = getClient(request);
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-    const serviceClient = getServiceClient();
 
     const { data, error: profileError } = await supabase
       .from('partners')
-      .select('id,partner_code,verification_status,service_level_id,bio,base_lat,base_long')
+      .select('id,partner_code,verification_status,service_level_id,bio,base_lat,base_long,is_accepting_jobs')
       .eq('id', user.id)
       .single();
 
@@ -50,22 +49,51 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (role?.role !== 'partner') return NextResponse.json({ error: 'Partner access required.' }, { status: 403 });
+
     const partner = await getApprovedPartner(serviceClient, user.id);
     if (!partner) return NextResponse.json({ error: 'Approved partner access required.' }, { status: 403 });
 
     const body = await request.json();
-    const lat = Number(body?.base_lat);
-    const long = Number(body?.base_long);
+    const updates: {
+      base_lat?: number;
+      base_long?: number;
+      is_accepting_jobs?: boolean;
+      updated_at: string;
+    } = {
+      updated_at: new Date().toISOString(),
+    };
 
-    if (!Number.isFinite(lat) || !Number.isFinite(long) || lat < -90 || lat > 90 || long < -180 || long > 180) {
-      return NextResponse.json({ error: 'Valid base_lat and base_long are required.' }, { status: 400 });
+    const hasLat = body?.base_lat !== undefined && body?.base_lat !== null;
+    const hasLong = body?.base_long !== undefined && body?.base_long !== null;
+
+    if (hasLat || hasLong) {
+      const lat = Number(body?.base_lat);
+      const long = Number(body?.base_long);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(long) || lat < -90 || lat > 90 || long < -180 || long > 180) {
+        return NextResponse.json({ error: 'Valid base_lat and base_long are required.' }, { status: 400 });
+      }
+
+      updates.base_lat = lat;
+      updates.base_long = long;
+    }
+
+    if (body?.is_accepting_jobs !== undefined) {
+      if (typeof body.is_accepting_jobs !== 'boolean') {
+        return NextResponse.json({ error: 'is_accepting_jobs must be a boolean.' }, { status: 400 });
+      }
+      updates.is_accepting_jobs = body.is_accepting_jobs;
+    }
+
+    if (Object.keys(updates).length === 1) {
+      return NextResponse.json({ error: 'No partner profile changes supplied.' }, { status: 400 });
     }
 
     const { data, error: updateError } = await serviceClient
       .from('partners')
-      .update({ base_lat: lat, base_long: long, updated_at: new Date().toISOString() })
+      .update(updates)
       .eq('id', user.id)
-      .select('id,partner_code,verification_status,service_level_id,base_lat,base_long')
+      .select('id,partner_code,verification_status,service_level_id,base_lat,base_long,is_accepting_jobs')
       .single();
 
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
