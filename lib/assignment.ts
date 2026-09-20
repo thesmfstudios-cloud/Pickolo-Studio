@@ -91,7 +91,8 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
     if (!level || level.sort_order < requestedLevel.sort_order) continue;
 
     const distance = distanceKm(Number(booking.location_lat), Number(booking.location_long), Number(partner.base_lat), Number(partner.base_long));
-    if (distance > PICKOLO_PILOT_RADIUS_KM) continue;
+    // Temporary pilot-test mode: do not reject candidates by geographic radius.
+    // Keep distance calculation for scoring/observability; restore the 15 KM gate after testing.
 
 
     const { data: conflicts } = await supabase
