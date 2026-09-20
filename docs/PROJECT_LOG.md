@@ -511,6 +511,13 @@ Real authenticated-session tests have not yet been executed, and Vercel environm
 Verify Vercel `NEXT_PUBLIC_SUPABASE_URL`, then run real Auth/RLS/customer-booking tests.
 
 
+## 2026-09-20 — Pilot Matching Radius Expanded
+**Status:** IMPLEMENTED
+
+- Expanded the default Pickolo pilot partner-matching radius from 5 KM to **15 KM**.
+- Automatic matching now considers eligible partners within 15 KM of the customer's booking location.
+- Partner online/accepting-jobs state remains required.
+
 ## 2026-09-20 — Partner On-demand Availability Model
 **Status:** IMPLEMENTED / LIVE VALIDATION NEXT
 
