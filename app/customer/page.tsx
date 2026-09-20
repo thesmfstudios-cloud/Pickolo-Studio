@@ -170,18 +170,6 @@ export default function CustomerPage() {
     }
   }
 
-
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('autotest') !== 'cod') return;
-    if (!submitted || !bookingId || paymentBusy) return;
-
-    const alreadyStarted = window.sessionStorage.getItem('pickolo-cod-autotest');
-    if (alreadyStarted) return;
-
-    window.sessionStorage.setItem('pickolo-cod-autotest', '1');
-    void confirmCod();
-  }, [submitted, bookingId, paymentBusy]);
-
   async function captureLocation() {
     setLocating(true);
     setMessage('');
