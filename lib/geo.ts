@@ -1,4 +1,4 @@
-export const PICKOLO_PILOT_RADIUS_KM = 5;
+export const PICKOLO_PILOT_RADIUS_KM = 15;
 
 export function distanceKm(
   lat1: number,
