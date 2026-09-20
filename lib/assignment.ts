@@ -65,8 +65,9 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
 
   const { data: partners } = await supabase
     .from('partners')
-    .select('id,base_lat,base_long,service_level_id,service_level:service_levels(sort_order),partner_performance(completed_jobs,on_time_jobs,cancellations,no_shows,average_rating)')
-    .eq('verification_status', 'approved');
+    .select('id,base_lat,base_long,is_accepting_jobs,service_level_id,service_level:service_levels(sort_order),partner_performance(completed_jobs,on_time_jobs,cancellations,no_shows,average_rating)')
+    .eq('verification_status', 'approved')
+    .eq('is_accepting_jobs', true);
 
   const startsAt = new Date(booking.scheduled_start);
   const endsAt = new Date(startsAt.getTime() + Number(booking.duration_minutes) * 60000);
@@ -92,15 +93,6 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
     const distance = distanceKm(Number(booking.location_lat), Number(booking.location_long), Number(partner.base_lat), Number(partner.base_long));
     if (distance > PICKOLO_PILOT_RADIUS_KM) continue;
 
-    const { data: availability } = await supabase
-      .from('partner_availability')
-      .select('id')
-      .eq('partner_id', partner.id)
-      .eq('available', true)
-      .lt('starts_at', endsAt.toISOString())
-      .gt('ends_at', startsAt.toISOString())
-      .limit(1);
-    if (!availability?.length) continue;
 
     const { data: conflicts } = await supabase
       .from('bookings')
@@ -158,6 +150,14 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
     partner_id: selected.id,
     event_type: 'ASSIGNED',
     reason: 'Automatic marketplace match',
+  });
+
+  await supabase.from('notifications').insert({
+    user_id: selected.id,
+    booking_id: bookingId,
+    channel: 'in_app',
+    title: 'New Pickolo job request',
+    body: 'New booking ' + updated.booking_code + ' is waiting for your accept or decline.',
   });
 
   await supabase.from('booking_status_history').insert({
