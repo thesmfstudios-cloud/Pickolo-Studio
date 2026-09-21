@@ -171,31 +171,25 @@ export default function CustomerAuth() {
         <View style={styles.featureRow}>
           <View style={[styles.feature, { backgroundColor: '#DFF0FF' }]}>
             <FeatureIcon type="passport" />
-            <Text style={styles.featureLabel}>Passport{'
-'}Photo</Text>
+            <Text style={styles.featureLabel}>Passport{'\n'}Photo</Text>
           </View>
           <View style={[styles.feature, { backgroundColor: '#FFE9EF' }]}>
             <FeatureIcon type="edit" />
-            <Text style={styles.featureLabel}>Photo{'
-'}Editing</Text>
+            <Text style={styles.featureLabel}>Photo{'\n'}Editing</Text>
           </View>
           <View style={[styles.feature, { backgroundColor: '#EEE9FF' }]}>
             <FeatureIcon type="photographer" />
-            <Text style={styles.featureLabel}>Hire{'
-'}Photographer</Text>
+            <Text style={styles.featureLabel}>Hire{'\n'}Photographer</Text>
           </View>
           <View style={[styles.feature, { backgroundColor: '#E1F7ED' }]}>
             <FeatureIcon type="frame" />
-            <Text style={styles.featureLabel}>Frames{'
-'}& More</Text>
+            <Text style={styles.featureLabel}>Frames{'\n'}& More</Text>
           </View>
         </View>
 
         <View style={styles.servingPill}>
           <PinIcon />
-          <Text style={styles.servingText}>Serving{'
-'}Bhopal{'
-'}& Nearby</Text>
+          <Text style={styles.servingText}>Serving{'\n'}Bhopal{'\n'}& Nearby</Text>
         </View>
 
         <View style={styles.loginCard}>
