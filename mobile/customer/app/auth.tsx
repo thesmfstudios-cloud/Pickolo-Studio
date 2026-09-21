@@ -300,7 +300,6 @@ const styles = StyleSheet.create({
   outlineButton: { height: 58, borderRadius: 18, borderWidth: 1.2, borderColor: '#D6E0F0', backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, justifyContent: 'space-between', marginTop: 12 },
   outlineText: { color: '#18284F', fontSize: 16, fontWeight: '600', flex: 1, marginLeft: 17 },
   arrow: { color: '#617699', fontSize: 26, fontWeight: '400', lineHeight: 26 },
-  primaryButton: { height: 58, borderRadius: 18, backgroundColor: '#1967FF', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, justifyContent: 'space-between' },
   mailIcon: { width: 24, height: 18, borderWidth: 2, borderColor: '#FFFFFF', borderRadius: 4, justifyContent: 'center' },
   mailLine: { width: 13, height: 13, borderLeftWidth: 2, borderBottomWidth: 2, borderColor: '#FFFFFF', transform: [{ rotate: '-45deg' }], alignSelf: 'center', marginTop: -6 },
   phoneIcon: { width: 16, height: 25, borderWidth: 2, borderColor: '#1967FF', borderRadius: 4, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 3 },
