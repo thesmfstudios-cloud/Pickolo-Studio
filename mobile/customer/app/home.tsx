@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
 
   bookButton: {
     marginTop: 23,
-    width: compact ? 205 : 228,
+    width: 228,
     height: 56,
     paddingHorizontal: 23,
     borderRadius: 29,
@@ -418,10 +418,9 @@ const styles = StyleSheet.create({
 
   heroImageFrame: {
     position: 'absolute',
-    right: -horizontal * 0.35,
     top: 0,
-    width: width * 0.59,
-    height: heroHeight,
+    width: '59%',
+    height: '100%',
     overflow: 'hidden',
     borderTopLeftRadius: 155,
     borderBottomLeftRadius: 165,
@@ -460,16 +459,26 @@ const styles = StyleSheet.create({
 
   featureTitle: {
     color: COLORS.ink,
-    fontSize: compact ? 15 : 16,
-    lineHeight: compact ? 18 : 20,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: '500',
+  },
+
+  featureTitleCompact: {
+    fontSize: 15,
+    lineHeight: 18,
   },
 
   featureBody: {
     color: COLORS.ink,
-    fontSize: compact ? 15 : 16,
-    lineHeight: compact ? 18 : 20,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: '500',
+  },
+
+  featureBodyCompact: {
+    fontSize: 15,
+    lineHeight: 18,
   },
 
   boltIcon: {
@@ -553,10 +562,15 @@ const styles = StyleSheet.create({
 
   quoteText: {
     color: COLORS.green,
-    fontSize: compact ? 28 : 31,
-    lineHeight: compact ? 36 : 39,
+    fontSize: 31,
+    lineHeight: 39,
     fontWeight: '300',
     letterSpacing: -1,
+  },
+
+  quoteTextCompact: {
+    fontSize: 28,
+    lineHeight: 36,
   },
 
   quoteRule: {
