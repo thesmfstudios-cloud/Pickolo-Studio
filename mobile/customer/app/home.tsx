@@ -165,8 +165,7 @@ export default function CustomerHome() {
                   { fontSize: subtitleSize, lineHeight: subtitleSize + 8 },
                 ]}
               >
-                For every moment{'
-'}that matters.
+                For every moment{'\n'}that matters.
               </Text>
 
               <Pressable
@@ -229,10 +228,7 @@ export default function CustomerHome() {
             </View>
 
             <Text style={styles.quoteSide}>
-              P H O T O S{'
-'}T H A T{'
-'}S T A Y{'
-'}F O R E V E R
+              P H O T O S{'\n'}T H A T{'\n'}S T A Y{'\n'}F O R E V E R
             </Text>
           </View>
 
@@ -366,22 +362,22 @@ const styles = StyleSheet.create({
   heroCopy: {
     position: 'absolute',
     left: 0,
-    top: 76,
-    width: '50%',
+    top: 70,
+    width: '53%',
     zIndex: 3,
   },
 
   heroLight: {
     color: COLORS.ink,
     fontWeight: '300',
-    lineHeight: 1.0 * 50,
-    letterSpacing: -2.3,
+    lineHeight: 1.0 * 48,
+    letterSpacing: -2.1,
   },
 
   heroStrong: {
     color: COLORS.green,
     fontWeight: '900',
-    letterSpacing: -2.8,
+    letterSpacing: -2.3,
   },
 
   heroSubtitle: {
@@ -393,7 +389,7 @@ const styles = StyleSheet.create({
 
   bookButton: {
     marginTop: 23,
-    width: 228,
+    width: 220,
     height: 56,
     paddingHorizontal: 23,
     borderRadius: 29,
@@ -418,9 +414,10 @@ const styles = StyleSheet.create({
 
   heroImageFrame: {
     position: 'absolute',
-    top: 0,
-    width: '59%',
-    height: '100%',
+    right: 0,
+    top: 20,
+    width: '56%',
+    height: '95%',
     overflow: 'hidden',
     borderTopLeftRadius: 155,
     borderBottomLeftRadius: 165,
