@@ -79,12 +79,7 @@ export default function CustomerHome() {
     if (!supabase) return;
 
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        router.replace('/auth');
-        return;
-      }
-
-      setName(data.user.user_metadata?.full_name || '');
+      setName(data.user?.user_metadata?.full_name || '');
     });
   }, []);
 
