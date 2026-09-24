@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
+import { StatusBar } from 'react-native';
 
 const BACKGROUND = '#F5FAFF';
 
@@ -8,7 +8,7 @@ export default function CustomerLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar
-        style="dark"
+        barStyle="dark-content"
         backgroundColor={BACKGROUND}
         translucent={false}
       />
