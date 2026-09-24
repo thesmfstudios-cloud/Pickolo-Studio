@@ -142,8 +142,7 @@ export default function CustomerHome() {
               </Text>
 
               <Text style={styles.heroSubtitle}>
-                For every moment{'
-'}that matters.
+                For every moment{'\n'}that matters.
               </Text>
 
               <Pressable
@@ -177,24 +176,21 @@ export default function CustomerHome() {
             <View style={styles.featureItem}>
               <FeatureIcon type="bolt" />
               <Text style={styles.featureText}>
-                Quick{'
-'}Booking
+                Quick{'\n'}Booking
               </Text>
             </View>
 
             <View style={styles.featureItem}>
               <FeatureIcon type="shield" />
               <Text style={styles.featureText}>
-                Verified{'
-'}Photographers
+                Verified{'\n'}Photographers
               </Text>
             </View>
 
             <View style={styles.featureItem}>
               <FeatureIcon type="pin" />
               <Text style={styles.featureText}>
-                Available{'
-'}in Bhopal
+                Available{'\n'}in Bhopal
               </Text>
             </View>
           </View>
@@ -204,17 +200,13 @@ export default function CustomerHome() {
 
             <View style={styles.quoteCopy}>
               <Text style={styles.quoteText}>
-                Let’s capture{'
-'}your story.
+                Let’s capture{'\n'}your story.
               </Text>
               <View style={styles.quoteRule} />
             </View>
 
             <Text style={styles.quoteSide}>
-              P H O T O S{'
-'}T H A T{'
-'}S T A Y{'
-'}F O R E V E R
+              P H O T O S{'\n'}T H A T{'\n'}S T A Y{'\n'}F O R E V E R
             </Text>
           </View>
 
