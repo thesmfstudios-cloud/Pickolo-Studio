@@ -11,6 +11,7 @@ export default function PartnerApply() {
   const [bio, setBio] = useState('');
   const [upiId, setUpiId] = useState('');
   const [skills, setSkills] = useState('');
+  const [serviceTypes, setServiceTypes] = useState<string[]>(['Photography']);
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -138,6 +139,7 @@ export default function PartnerApply() {
         phone: phone.trim(),
         bio: bio.trim() || null,
         payout_upi_id: upiId.trim(),
+        service_types: serviceTypes,
         skills: skills.split(',').map((item) => item.trim()).filter(Boolean),
         base_lat: coords?.latitude ?? null,
         base_long: coords?.longitude ?? null,
@@ -170,6 +172,23 @@ export default function PartnerApply() {
         <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
         <TextInput style={[styles.input, styles.area]} placeholder="Short bio" value={bio} onChangeText={setBio} multiline />
         <TextInput style={styles.input} placeholder="Payout UPI ID · name@upi" value={upiId} onChangeText={setUpiId} autoCapitalize="none" />
+        <Text style={styles.cardTitle}>What can you shoot?</Text>
+        <View style={styles.serviceRow}>
+          {['Photography', 'Videography'].map((item) => {
+            const selected = serviceTypes.includes(item);
+            return (
+              <Pressable
+                key={item}
+                style={[styles.serviceChip, selected && styles.serviceChipActive]}
+                onPress={() => setServiceTypes((old) =>
+                  old.includes(item) ? old.filter((value) => value !== item) : [...old, item]
+                )}
+              >
+                <Text style={[styles.serviceChipText, selected && styles.serviceChipTextActive]}>{item}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
         <TextInput style={styles.input} placeholder="Skills, comma separated" value={skills} onChangeText={setSkills} />
 
         <Pressable style={styles.secondary} onPress={locate} disabled={locating}>
@@ -217,5 +236,10 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 19, fontWeight: '800', color: '#13213a' },
   muted: { marginTop: 6, color: '#64748b', lineHeight: 21 },
   documentRow: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
+  serviceRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  serviceChip: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#fff' },
+  serviceChipActive: { backgroundColor: '#edf2e7', borderColor: '#294f3b' },
+  serviceChipText: { color: '#64748b', fontWeight: '800' },
+  serviceChipTextActive: { color: '#294f3b' },
   documentName: { fontWeight: '800', color: '#13213a' },
 });
