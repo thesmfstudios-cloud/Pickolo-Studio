@@ -53,15 +53,47 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         .select('full_name,avatar_url')
         .eq('id', data.assigned_partner_id)
         .maybeSingle();
-      const { data: partner } = await serviceClient
-        .from('partners')
-        .select('bio')
-        .eq('id', data.assigned_partner_id)
-        .maybeSingle();
+      const [{ data: partner }, { data: performance }, { data: portfolio }, { data: recentReviews }] = await Promise.all([
+        serviceClient
+          .from('partners')
+          .select('bio,base_lat,base_long,verification_status,service_level:service_levels(name)')
+          .eq('id', data.assigned_partner_id)
+          .maybeSingle(),
+        serviceClient
+          .from('partner_performance')
+          .select('average_rating,review_count,completed_jobs')
+          .eq('partner_id', data.assigned_partner_id)
+          .maybeSingle(),
+        serviceClient
+          .from('partner_portfolio_media')
+          .select('id,image_url,caption,sort_order')
+          .eq('partner_id', data.assigned_partner_id)
+          .eq('active', true)
+          .order('sort_order', { ascending: true })
+          .limit(6),
+        serviceClient
+          .from('reviews')
+          .select('rating,comment,created_at')
+          .eq('partner_id', data.assigned_partner_id)
+          .order('created_at', { ascending: false })
+          .limit(3),
+      ]);
+      const partnerLevel = Array.isArray(partner?.service_level)
+        ? partner?.service_level[0]
+        : partner?.service_level;
       assignedPartner = {
         name: profile?.full_name || 'Your Pickolo professional',
         avatar_url: profile?.avatar_url,
         bio: partner?.bio,
+        verified: partner?.verification_status === 'approved',
+        level: partnerLevel?.name || null,
+        rating: performance?.average_rating ? Number(performance.average_rating) : null,
+        review_count: performance?.review_count || 0,
+        completed_jobs: performance?.completed_jobs || 0,
+        base_lat: partner?.base_lat == null ? null : Number(partner.base_lat),
+        base_long: partner?.base_long == null ? null : Number(partner.base_long),
+        portfolio: portfolio ?? [],
+        recent_reviews: recentReviews ?? [],
       };
     }
     const showCode =
