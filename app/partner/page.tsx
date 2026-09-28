@@ -66,7 +66,7 @@ export default function PartnerPage() {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
-  const [fileByJob, setFileByJob] = useState<Record<string, File | null>>({});
+  const [fileByJob, setFileByJob] = useState<Record<string, File[]>>({});
   const [handoffByJob, setHandoffByJob] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async (token: string) => {
@@ -304,43 +304,62 @@ export default function PartnerPage() {
 
   async function uploadDelivery(job: Job) {
     if (!session) return;
-    const file = fileByJob[job.id];
-    if (!file) {
-      setMsg('Choose an image before submitting delivery.');
+    const files = fileByJob[job.id] ?? [];
+    if (!files.length) {
+      setMsg('Choose at least one photo or video before submitting delivery.');
       return;
     }
     if (!handoffByJob[job.id]) {
       setMsg('Confirm that the customer received the files on site first.');
       return;
     }
-    if (!file.type.startsWith('image/')) {
-      setMsg('Only image files are supported for this MVP.');
+    const unsupported = files.find(
+      (file) => !file.type.startsWith('image/') && !file.type.startsWith('video/'),
+    );
+    if (unsupported) {
+      setMsg('Only photo and video files are supported.');
       return;
     }
 
     setBusy(true);
-    setMsg('Uploading delivery…');
+    setMsg(`Uploading ${files.length} ${files.length === 1 ? 'file' : 'files'}…`);
 
     try {
-      const signResponse = await fetch(
-        '/api/partner/jobs/' + encodeURIComponent(job.id) + '/delivery/upload-url',
-        {
-          method: 'POST',
-          headers: authHeaders(session.access_token),
-          body: JSON.stringify({
-            file_name: file.name,
-            mime_type: file.type,
-            size_bytes: file.size,
-          }),
-        },
-      );
-      const signed = await readJson(signResponse);
-      if (!signResponse.ok) throw new Error(signed.error || 'Unable to prepare upload.');
+      const assets: Array<{
+        path: string;
+        fileName: string;
+        mimeType: string;
+        sizeBytes: number;
+      }> = [];
 
-      const upload = await supabaseBrowser?.storage
-        .from('booking-deliveries')
-        .uploadToSignedUrl(signed.path, signed.token, file);
-      if (upload?.error) throw new Error(upload.error.message);
+      for (const file of files) {
+        const signResponse = await fetch(
+          '/api/partner/jobs/' + encodeURIComponent(job.id) + '/delivery/upload-url',
+          {
+            method: 'POST',
+            headers: authHeaders(session.access_token),
+            body: JSON.stringify({
+              file_name: file.name,
+              mime_type: file.type,
+              size_bytes: file.size,
+            }),
+          },
+        );
+        const signed = await readJson(signResponse);
+        if (!signResponse.ok) throw new Error(signed.error || 'Unable to prepare upload.');
+
+        const upload = await supabaseBrowser?.storage
+          .from('booking-deliveries')
+          .uploadToSignedUrl(signed.path, signed.token, file);
+        if (upload?.error) throw new Error(upload.error.message);
+
+        assets.push({
+          path: signed.path,
+          fileName: signed.fileName,
+          mimeType: file.type,
+          sizeBytes: file.size,
+        });
+      }
 
       const finalizeResponse = await fetch(
         '/api/partner/jobs/' + encodeURIComponent(job.id) + '/delivery/finalize',
@@ -348,14 +367,7 @@ export default function PartnerPage() {
           method: 'POST',
           headers: authHeaders(session.access_token),
           body: JSON.stringify({
-            assets: [
-              {
-                path: signed.path,
-                fileName: signed.fileName,
-                mimeType: file.type,
-                sizeBytes: file.size,
-              },
-            ],
+            assets,
             customer_handoff_confirmed: true,
           }),
         },
@@ -363,7 +375,7 @@ export default function PartnerPage() {
       const finalized = await readJson(finalizeResponse);
       if (!finalizeResponse.ok) throw new Error(finalized.error || 'Unable to finalize delivery.');
 
-      setFileByJob((current) => ({ ...current, [job.id]: null }));
+      setFileByJob((current) => ({ ...current, [job.id]: [] }));
       setHandoffByJob((current) => ({ ...current, [job.id]: false }));
       setMsg('On-site handoff recorded. Backup saved for the customer and Pickolo.');
       await load(session.access_token);
@@ -656,9 +668,13 @@ export default function PartnerPage() {
                     <input
                       className="input"
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/*"
+                      multiple
                       onChange={(event) =>
-                        setFileByJob((current) => ({ ...current, [job.id]: event.target.files?.[0] || null }))
+                        setFileByJob((current) => ({
+                          ...current,
+                          [job.id]: Array.from(event.target.files ?? []),
+                        }))
                       }
                     />
                     <button className="button" disabled={busy} onClick={() => uploadDelivery(job)}>

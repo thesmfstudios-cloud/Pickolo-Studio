@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = 500 * 1024 * 1024;
 
 function getClient(request: NextRequest) {
   if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
@@ -53,11 +53,11 @@ export async function POST(
     if (!originalName) return NextResponse.json({ error: 'file_name is required.' }, { status: 400 });
 
     if (sizeBytes !== null && (!Number.isFinite(sizeBytes) || sizeBytes <= 0 || sizeBytes > MAX_FILE_SIZE)) {
-      return NextResponse.json({ error: 'Each file must be between 1 byte and 50 MB.' }, { status: 400 });
+      return NextResponse.json({ error: 'Each file must be between 1 byte and 500 MB.' }, { status: 400 });
     }
 
-    if (!mimeType.startsWith('image/')) {
-      return NextResponse.json({ error: 'Only image delivery is enabled for the current MVP.' }, { status: 400 });
+    if (!mimeType.startsWith('image/') && !mimeType.startsWith('video/')) {
+      return NextResponse.json({ error: 'Only photo and video delivery files are supported.' }, { status: 400 });
     }
 
     const cleanName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
