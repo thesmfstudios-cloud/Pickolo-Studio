@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const { data, error } = await supabase
       .from('bookings')
       .select(
-        'id,booking_code,status,assigned_partner_id,scheduled_start,duration_minutes,location_text,notes,customer_price_paise,platform_fee_paise,partner_payout_paise,partner_acceptance_status,partner_offer_expires_at,partner_arrived_at,shoot_started_at,shoot_completed_at,data_submitted_at,payout_released_at,completed_at,created_at,service:services(id,name),service_level:service_levels(id,name)',
+        'id,booking_code,status,assigned_partner_id,scheduled_start,duration_minutes,location_text,location_lat,location_long,notes,customer_price_paise,platform_fee_paise,partner_payout_paise,partner_acceptance_status,partner_offer_expires_at,partner_arrived_at,shoot_started_at,shoot_completed_at,data_submitted_at,payout_released_at,completed_at,created_at,service:services(id,name),service_level:service_levels(id,name)',
       )
       .eq('id', id)
       .eq('customer_id', user.id)
