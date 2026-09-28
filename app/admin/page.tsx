@@ -23,6 +23,9 @@ type Application = {
   phone: string;
   status: string;
   skills: string[];
+  bio?: string | null;
+  base_lat?: number | null;
+  base_long?: number | null;
   created_at: string;
 };
 
@@ -30,6 +33,9 @@ type Partner = {
   id: string;
   partner_code: string;
   verification_status: string;
+  bio?: string | null;
+  base_lat?: number | null;
+  base_long?: number | null;
   service_level?: { name?: string | null } | null;
 };
 
@@ -230,6 +236,7 @@ export default function AdminPage() {
   if (!authorized) return null;
 
   const pendingBookings = bookings.filter((item) => ['REQUESTED', 'PAYMENT_CONFIRMED', 'SEARCHING_PARTNER'].includes(item.status));
+  const payoutReadyBookings = bookings.filter((item) => item.status === 'DATA_SUBMITTED');
 
   return (
     <main className="main">
@@ -238,7 +245,7 @@ export default function AdminPage() {
           <div>
             <div className="kicker">Admin control room</div>
             <h1 style={{fontSize:48,margin:'8px 0 10px'}}>Pickolo operations</h1>
-            <p className="muted">Bookings, partner verification and assignment.</p>
+            <p className="muted">Bookings, partner verification, delivery and payout operations.</p>
           </div>
           <button className="button secondary" onClick={logout}>Logout</button>
         </div>
@@ -249,6 +256,7 @@ export default function AdminPage() {
           <div className="card"><div className="stat">{pendingBookings.length}</div><div className="muted">Needs operations</div></div>
           <div className="card"><div className="stat">{applications.length}</div><div className="muted">Pending partner applications</div></div>
           <div className="card"><div className="stat">{partners.filter((p) => p.verification_status === 'approved').length}</div><div className="muted">Approved partners</div></div>
+          <div className="card"><div className="stat">{payoutReadyBookings.length}</div><div className="muted">Payouts ready after backup</div></div>
         </section>
 
         <section className="grid section">
@@ -266,6 +274,12 @@ export default function AdminPage() {
                   <strong>{app.display_name}</strong>
                   <div className="muted">{app.phone}</div>
                   <div className="muted">{app.skills?.join(', ') || 'No skills listed'}</div>
+                  {app.bio && <div className="muted" style={{ marginTop: 6 }}>{app.bio}</div>}
+                  {(app.base_lat != null && app.base_long != null) && (
+                    <div className="muted" style={{ marginTop: 6 }}>
+                      Base location: {Number(app.base_lat).toFixed(5)}, {Number(app.base_long).toFixed(5)}
+                    </div>
+                  )}
                 </div>
                 <div style={{display:'flex',gap:8}}>
                   <button className="button" onClick={() => verifyApplication(app.id,'approve')}>Approve</button>
@@ -274,6 +288,30 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
+        </section>
+
+        <section className="card section">
+          <h2>Approved partner directory</h2>
+          <p className="muted">Use this list for assignment decisions and launch-radius checks.</p>
+          {partners.filter((partner) => partner.verification_status === 'approved').length === 0 ? (
+            <p className="muted">No approved partners yet.</p>
+          ) : (
+            <table className="table">
+              <thead><tr><th>Partner</th><th>Level</th><th>Status</th><th>Base location</th></tr></thead>
+              <tbody>
+                {partners.filter((partner) => partner.verification_status === 'approved').map((partner) => (
+                  <tr key={partner.id}>
+                    <td><strong>{partner.partner_code}</strong><div className="muted">{partner.bio || 'Profile details pending'}</div></td>
+                    <td>{partner.service_level?.name || 'Standard'}</td>
+                    <td><span className="badge">APPROVED</span></td>
+                    <td>{partner.base_lat != null && partner.base_long != null
+                      ? `${Number(partner.base_lat).toFixed(5)}, ${Number(partner.base_long).toFixed(5)}`
+                      : 'Not set'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
 
 
