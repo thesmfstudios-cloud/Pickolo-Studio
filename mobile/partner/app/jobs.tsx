@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
-  Linking,
-  Pressable,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+  Alert, Linking, Pressable, RefreshControl, SafeAreaView, ScrollView,
+  StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
@@ -18,68 +10,85 @@ type Job = {
   id: string;
   booking_code: string;
   status: string;
-  partner_acceptance_status?: 'not_required' | 'pending' | 'accepted' | 'declined' | 'expired';
-  partner_offer_expires_at?: string | null;
-  location_lat?: number | null;
-  location_long?: number | null;
   scheduled_start: string;
   duration_minutes: number;
   location_text: string;
+  location_lat?: number | null;
+  location_long?: number | null;
+  partner_payout_paise?: number;
+  is_open_offer?: boolean;
+  offer_expires_at?: string | null;
   service?: { name?: string | null } | null;
   service_level?: { name?: string | null } | null;
 };
 
-const NEXT_ACTION: Record<string, { label: string; to: string }> = {
-  PARTNER_ASSIGNED: { label: 'Mark on the way', to: 'ON_THE_WAY' },
+const NEXT: Record<string, { label: string; to: string }> = {
+  PARTNER_ASSIGNED: { label: 'I am on the way', to: 'ON_THE_WAY' },
   ON_THE_WAY: { label: 'Start shoot', to: 'SHOOT_STARTED' },
   SHOOT_STARTED: { label: 'Complete shoot', to: 'SHOOT_COMPLETED' },
   SHOOT_COMPLETED: { label: 'Prepare delivery', to: 'DATA_PENDING' },
-  DATA_PENDING: { label: 'Submit delivery', to: 'DATA_SUBMITTED' },
 };
 
 export default function PartnerJobsScreen() {
-  const [bookingOtp, setBookingOtp] = useState<Record<string, string>>({});
   const [jobs, setJobs] = useState<Job[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [otp, setOtp] = useState<Record<string,string>>({});
 
   const load = useCallback(async () => {
     if (!supabase) return;
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
-
-    if (!token) {
-      router.replace('/auth');
-      return;
-    }
+    if (!token) return router.replace('/auth');
 
     const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
     const response = await fetch(baseUrl + '/api/partner/jobs', {
       headers: { Authorization: 'Bearer ' + token },
     });
     const result = await response.json().catch(() => ({}));
-
     if (!response.ok) {
       Alert.alert('Unable to load jobs', result.error || 'Please try again.');
       return;
     }
-
     setJobs(result.jobs || []);
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  async function transition(job: Job) {
-    const action = NEXT_ACTION[job.status];
-    if (!supabase || !action) return;
-
+  async function respond(job: Job, action: 'accept'|'decline') {
+    if (!supabase) return;
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
+    if (!token) return router.replace('/auth');
 
-    if (!token) {
-      router.replace('/auth');
+    setBusyId(job.id);
+    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+    const response = await fetch(baseUrl + '/api/partner/jobs/' + job.id + '/respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ action }),
+    });
+    const result = await response.json().catch(() => ({}));
+    setBusyId(null);
+
+    if (!response.ok) {
+      Alert.alert(action === 'accept' ? 'Job unavailable' : 'Unable to pass', result.error || 'Please refresh.');
+      await load();
+      return;
+    }
+    if (action === 'accept') Alert.alert('Job confirmed', 'This Pickolo booking is now yours.');
+    await load();
+  }
+
+  async function transition(job: Job) {
+    const action = NEXT[job.status];
+    if (!action || !supabase) return;
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return router.replace('/auth');
+
+    if (action.to === 'SHOOT_STARTED' && !otp[job.id]?.trim()) {
+      Alert.alert('Shoot start code', 'Ask the customer for the 4-digit start code.');
       return;
     }
 
@@ -87,21 +96,12 @@ export default function PartnerJobsScreen() {
     const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
     const response = await fetch(baseUrl + '/api/bookings/' + job.id + '/transition', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token,
-      },
-      body: JSON.stringify({ to_status: action.to, booking_otp: bookingOtp[job.id] }),
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ to_status: action.to, booking_otp: otp[job.id]?.trim() }),
     });
-
     const result = await response.json().catch(() => ({}));
     setBusyId(null);
-
-    if (!response.ok) {
-      Alert.alert('Action failed', result.error || 'Please refresh and try again.');
-      return;
-    }
-
+    if (!response.ok) return Alert.alert('Action failed', result.error || 'Please retry.');
     await load();
   }
 
@@ -113,295 +113,105 @@ export default function PartnerJobsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-      >
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.back}>‹ Back</Text>
-        </Pressable>
+      <ScrollView contentContainerStyle={styles.container}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
+        <Pressable onPress={() => router.back()}><Text style={styles.back}>‹ Back</Text></Pressable>
         <Text style={styles.title}>Jobs</Text>
-        <Text style={styles.subtitle}>
-          Only assignments linked to your Partner account appear here.
-        </Text>
+        <Text style={styles.subtitle}>Open jobs go to verified partners in your current Pickolo level. First accept wins.</Text>
 
         {jobs.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No assigned jobs</Text>
-            <Text style={styles.muted}>New eligible assignments will appear here.</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>No jobs right now</Text>
+            <Text style={styles.muted}>Stay online. Matching jobs in your level will appear here.</Text>
           </View>
-        ) : (
-          jobs.map((job) => {
-            const action = NEXT_ACTION[job.status];
-            return (
-              <View key={job.id} style={styles.card}>
-                <View style={styles.row}>
-                  <Text style={styles.code}>{job.booking_code}</Text>
-                  <Text style={styles.badge}>{job.status}</Text>
-                </View>
-                <Text style={styles.date}>{new Date(job.scheduled_start).toLocaleString()}</Text>
-                <Text style={styles.muted}>
-                  {job.service?.name || 'Photography'} · {job.service_level?.name || 'Standard'}
-                </Text>
-                <Text style={styles.muted}>
-                  {job.duration_minutes} min · {job.location_text}
-                </Text>
-                {job.partner_acceptance_status === 'pending' && job.partner_offer_expires_at && (
-                  <Text style={styles.offerExpiry}>
-                    Offer expires {new Date(job.partner_offer_expires_at).toLocaleTimeString()}
-                  </Text>
-                )}
-
-                {job.location_lat !== null &&
-                  job.location_lat !== undefined &&
-                  job.location_long !== null &&
-                  job.location_long !== undefined && (
-                    <Pressable
-                      style={styles.navigation}
-                      onPress={() => {
-                        const query = encodeURIComponent(
-                          String(job.location_lat) + ',' + String(job.location_long),
-                        );
-                        Linking.openURL(
-                          'https://www.google.com/maps/search/?api=1&query=' + query,
-                        ).catch(() => {
-                          Alert.alert('Maps unavailable', 'Unable to open navigation.');
-                        });
-                      }}
-                    >
-                      <Text style={styles.navigationText}>Navigate</Text>
-                    </Pressable>
-                  )}
-
-                {job.status === 'PARTNER_ASSIGNED' &&
-                  job.partner_acceptance_status === 'pending' && (
-                    <View style={styles.offerRow}>
-                      <Pressable
-                        style={styles.primarySmall}
-                        onPress={async () => {
-                          if (!supabase) return;
-                          const { data } = await supabase.auth.getSession();
-                          const token = data.session?.access_token;
-                          if (!token) return;
-
-                          setBusyId(job.id);
-                          const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-                          const response = await fetch(
-                            baseUrl + '/api/partner/jobs/' + job.id + '/respond',
-                            {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                Authorization: 'Bearer ' + token,
-                              },
-                              body: JSON.stringify({ action: 'accept' }),
-                            },
-                          );
-                          const result = await response.json().catch(() => ({}));
-                          setBusyId(null);
-                          if (!response.ok) {
-                            Alert.alert('Unable to accept', result.error || 'Please try again.');
-                            return;
-                          }
-                          await load();
-                        }}
-                        disabled={busyId === job.id}
-                      >
-                        <Text style={styles.primaryText}>
-                          {busyId === job.id ? 'Working...' : 'Accept job'}
-                        </Text>
-                      </Pressable>
-
-                      <Pressable
-                        style={styles.secondarySmall}
-                        onPress={async () => {
-                          if (!supabase) return;
-                          const { data } = await supabase.auth.getSession();
-                          const token = data.session?.access_token;
-                          if (!token) return;
-
-                          setBusyId(job.id);
-                          const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-                          const response = await fetch(
-                            baseUrl + '/api/partner/jobs/' + job.id + '/respond',
-                            {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                Authorization: 'Bearer ' + token,
-                              },
-                              body: JSON.stringify({
-                                action: 'decline',
-                                reason: 'Partner declined the assignment.',
-                              }),
-                            },
-                          );
-                          const result = await response.json().catch(() => ({}));
-                          setBusyId(null);
-                          if (!response.ok) {
-                            Alert.alert('Unable to decline', result.error || 'Please try again.');
-                            return;
-                          }
-                          await load();
-                        }}
-                        disabled={busyId === job.id}
-                      >
-                        <Text style={styles.secondaryText}>Decline</Text>
-                      </Pressable>
-                    </View>
-                  )}
-
-                {action &&
-                  !(
-                    job.status === 'PARTNER_ASSIGNED' && job.partner_acceptance_status === 'pending'
-                  ) && (
-                    <Pressable
-                      style={styles.primary}
-                      onPress={() => transition(job)}
-                      disabled={busyId === job.id}
-                    >
-                      <Text style={styles.primaryText}>
-                        {busyId === job.id ? 'Updating...' : action.label}
-                      </Text>
-                    </Pressable>
-                  )}
-
-                {job.status === 'DATA_PENDING' && (
-                  <Pressable
-                    style={styles.secondary}
-                    onPress={() => router.push({ pathname: '/delivery', params: { id: job.id } })}
-                  >
-                    <Text style={styles.secondaryText}>Submit delivery</Text>
-                  </Pressable>
-                )}
-
-                {['PARTNER_ASSIGNED', 'ON_THE_WAY'].includes(job.status) && (
-                  <Pressable
-                    style={styles.danger}
-                    onPress={async () => {
-                      if (!supabase) return;
-                      const { data } = await supabase.auth.getSession();
-                      const token = data.session?.access_token;
-                      if (!token) return;
-
-                      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-                      const response = await fetch(
-                        baseUrl + '/api/partner/jobs/' + job.id + '/cancel',
-                        {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: 'Bearer ' + token,
-                          },
-                          body: JSON.stringify({ reason: 'Partner cancelled the assignment.' }),
-                        },
-                      );
-                      const result = await response.json().catch(() => ({}));
-                      if (!response.ok) {
-                        Alert.alert('Unable to cancel', result.error || 'Please try again.');
-                        return;
-                      }
-                      Alert.alert(
-                        'Assignment cancelled',
-                        'The booking has been returned to Pickolo for reassignment.',
-                      );
-                      await load();
-                    }}
-                  >
-                    <Text style={styles.dangerText}>Cancel assignment</Text>
-                  </Pressable>
-                )}
+        ) : jobs.map((job) => {
+          const next = NEXT[job.status];
+          return (
+            <View key={job.id + String(job.is_open_offer)} style={[styles.card, job.is_open_offer && styles.offer]}>
+              <View style={styles.row}>
+                <Text style={styles.code}>{job.booking_code}</Text>
+                <Text style={styles.badge}>{job.is_open_offer ? 'NEW JOB' : job.status.replaceAll('_',' ')}</Text>
               </View>
-            );
-          })
-        )}
+              <Text style={styles.cardTitle}>{job.service?.name || 'Photography'} · {job.service_level?.name || 'Standard'}</Text>
+              <Text style={styles.muted}>{new Date(job.scheduled_start).toLocaleString()} · {job.duration_minutes / 60} hr</Text>
+              <Text style={styles.muted}>{job.location_text}</Text>
+              {typeof job.partner_payout_paise === 'number' && (
+                <Text style={styles.payout}>You earn ₹{(job.partner_payout_paise / 100).toFixed(0)}</Text>
+              )}
+              {job.is_open_offer && job.offer_expires_at ? (
+                <Text style={styles.expiry}>Open until {new Date(job.offer_expires_at).toLocaleTimeString()}</Text>
+              ) : null}
+
+              {job.location_lat != null && job.location_long != null && (
+                <Pressable style={styles.secondary} onPress={() => {
+                  const q = encodeURIComponent(String(job.location_lat) + ',' + String(job.location_long));
+                  Linking.openURL('https://www.google.com/maps/search/?api=1&query=' + q);
+                }}><Text style={styles.secondaryText}>Open location</Text></Pressable>
+              )}
+
+              {job.is_open_offer ? (
+                <View style={styles.actions}>
+                  <Pressable style={styles.primaryFlex} disabled={busyId === job.id} onPress={() => respond(job,'accept')}>
+                    <Text style={styles.primaryText}>{busyId === job.id ? 'Claiming...' : 'Accept job'}</Text>
+                  </Pressable>
+                  <Pressable style={styles.pass} disabled={busyId === job.id} onPress={() => respond(job,'decline')}>
+                    <Text style={styles.passText}>Pass</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <>
+                  {job.status === 'ON_THE_WAY' && (
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Customer start code"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      value={otp[job.id] || ''}
+                      onChangeText={(value) => setOtp((old) => ({ ...old, [job.id]: value }))}
+                    />
+                  )}
+                  {next && (
+                    <Pressable style={styles.primary} disabled={busyId === job.id} onPress={() => transition(job)}>
+                      <Text style={styles.primaryText}>{busyId === job.id ? 'Updating...' : next.label}</Text>
+                    </Pressable>
+                  )}
+                  {job.status === 'DATA_PENDING' && (
+                    <Pressable style={styles.primary} onPress={() => router.push({ pathname: '/delivery', params: { id: job.id } })}>
+                      <Text style={styles.primaryText}>Submit delivery</Text>
+                    </Pressable>
+                  )}
+                </>
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' },
+  safe: { flex: 1, backgroundColor: '#f6f5f0' },
   container: { padding: 20, paddingBottom: 40 },
-  back: { color: '#1e3a8a', fontWeight: '800', fontSize: 16 },
-  title: { marginTop: 18, fontSize: 32, fontWeight: '800', color: '#13213a' },
-  subtitle: { marginTop: 6, color: '#64748b', fontSize: 15, lineHeight: 22 },
-  empty: {
-    marginTop: 20,
-    padding: 20,
-    borderRadius: 18,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  emptyTitle: { fontSize: 20, fontWeight: '800', color: '#13213a' },
-  card: {
-    marginTop: 14,
-    padding: 18,
-    borderRadius: 18,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  code: { fontSize: 16, fontWeight: '800', color: '#13213a' },
-  badge: {
-    color: '#1d4ed8',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  date: { marginTop: 12, fontWeight: '700', color: '#334155' },
-  muted: { marginTop: 6, color: '#64748b', lineHeight: 21 },
-  primary: {
-    marginTop: 16,
-    backgroundColor: '#2563eb',
-    borderRadius: 13,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  primaryText: { color: '#fff', fontWeight: '800' },
-  secondary: {
-    marginTop: 10,
-    backgroundColor: '#eef2ff',
-    borderRadius: 13,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  offerRow: { marginTop: 16, flexDirection: 'row', gap: 9 },
-  primarySmall: {
-    flex: 1,
-    backgroundColor: '#2563eb',
-    borderRadius: 13,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  secondarySmall: {
-    flex: 1,
-    backgroundColor: '#eef2ff',
-    borderRadius: 13,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
-  danger: {
-    marginTop: 10,
-    backgroundColor: '#fff1f2',
-    borderRadius: 13,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  dangerText: { color: '#be123c', fontWeight: '800' },
-  offerExpiry: { marginTop: 8, color: '#b45309', fontSize: 12, fontWeight: '800' },
-  navigation: {
-    marginTop: 10,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 13,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  navigationText: { color: '#334155', fontWeight: '800' },
+  back: { color: '#34563d', fontWeight: '800', fontSize: 16 },
+  title: { marginTop: 18, fontSize: 32, fontWeight: '900', color: '#202e29' },
+  subtitle: { marginTop: 6, color: '#747d70', lineHeight: 22 },
+  card: { marginTop: 14, padding: 18, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#dfe3d7' },
+  offer: { borderColor: '#9fb5a4', backgroundColor: '#fbfcf8' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  code: { fontWeight: '900', color: '#202e29' },
+  badge: { color: '#34563d', backgroundColor: '#edf2e7', paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999, fontSize: 10, fontWeight: '900' },
+  cardTitle: { marginTop: 13, fontSize: 19, fontWeight: '900', color: '#202e29' },
+  muted: { marginTop: 7, color: '#747d70', lineHeight: 21 },
+  payout: { marginTop: 13, fontSize: 22, fontWeight: '900', color: '#294f3b' },
+  expiry: { marginTop: 7, color: '#a16207', fontWeight: '700' },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  primary: { marginTop: 14, backgroundColor: '#294f3b', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  primaryFlex: { flex: 1, backgroundColor: '#294f3b', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  primaryText: { color: '#fff', fontWeight: '900' },
+  pass: { paddingHorizontal: 22, borderRadius: 14, backgroundColor: '#f1f3ee', justifyContent: 'center' },
+  passText: { color: '#5d6b61', fontWeight: '800' },
+  secondary: { marginTop: 12, borderRadius: 13, backgroundColor: '#edf2e7', paddingVertical: 13, alignItems: 'center' },
+  secondaryText: { color: '#34563d', fontWeight: '800' },
+  input: { marginTop: 14, borderWidth: 1, borderColor: '#dfe3d7', backgroundColor: '#fff', borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16 },
 });
