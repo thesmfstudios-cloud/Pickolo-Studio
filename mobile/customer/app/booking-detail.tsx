@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  Image,
+  Linking,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -14,7 +16,20 @@ import { supabase } from '../../shared/supabase';
 
 type Booking = {
   booking_otp?: string;
-  assigned_partner?: { name: string; bio?: string };
+  assigned_partner?: {
+    name: string;
+    avatar_url?: string | null;
+    bio?: string | null;
+    verified?: boolean;
+    level?: string | null;
+    rating?: number | null;
+    review_count?: number;
+    completed_jobs?: number;
+    base_lat?: number | null;
+    base_long?: number | null;
+    portfolio?: Array<{ id: string; image_url: string; caption?: string | null }>;
+    recent_reviews?: Array<{ rating: number; comment?: string | null; created_at: string }>;
+  };
   shoot_started_at?: string;
   shoot_completed_at?: string;
   booking_code: string;
@@ -22,6 +37,8 @@ type Booking = {
   scheduled_start: string;
   duration_minutes: number;
   location_text: string;
+  location_lat?: number | null;
+  location_long?: number | null;
   notes?: string | null;
   customer_price_paise: number;
   payment?: { status?: string | null } | null;
@@ -162,9 +179,73 @@ export default function BookingDetailScreen() {
 
         {booking.assigned_partner ? (
           <View style={styles.card}>
-            <Text style={styles.reviewTitle}>Your professional</Text>
-            <Text style={styles.value}>{booking.assigned_partner.name}</Text>
-            <Text style={styles.value}>{booking.assigned_partner.bio}</Text>
+            <View style={styles.partnerHeader}>
+              {booking.assigned_partner.avatar_url ? (
+                <Image source={{ uri: booking.assigned_partner.avatar_url }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarFallback}><Text style={styles.avatarText}>P</Text></View>
+              )}
+              <View style={{ flex: 1 }}>
+                <View style={styles.partnerNameRow}>
+                  <Text style={styles.partnerName}>{booking.assigned_partner.name}</Text>
+                  {booking.assigned_partner.verified ? <Text style={styles.verified}>✓ VERIFIED</Text> : null}
+                </View>
+                <Text style={styles.partnerMeta}>
+                  {booking.assigned_partner.level || 'Pickolo Partner'}
+                  {booking.assigned_partner.rating ? ' · ' + booking.assigned_partner.rating.toFixed(1) + '★' : ''}
+                  {booking.assigned_partner.review_count ? ' · ' + booking.assigned_partner.review_count + ' reviews' : ''}
+                </Text>
+                {booking.assigned_partner.completed_jobs ? (
+                  <Text style={styles.partnerMeta}>{booking.assigned_partner.completed_jobs} Pickolo jobs completed</Text>
+                ) : null}
+              </View>
+            </View>
+
+            {booking.assigned_partner.bio ? <Text style={styles.partnerBio}>{booking.assigned_partner.bio}</Text> : null}
+
+            {booking.assigned_partner.portfolio?.length ? (
+              <>
+                <Text style={styles.profileSectionTitle}>Recent work</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.portfolioRow}>
+                  {booking.assigned_partner.portfolio.map((item) => (
+                    <Image key={item.id} source={{ uri: item.image_url }} style={styles.portfolioImage} />
+                  ))}
+                </ScrollView>
+              </>
+            ) : null}
+
+            {booking.assigned_partner.recent_reviews?.length ? (
+              <>
+                <Text style={styles.profileSectionTitle}>Customer feedback</Text>
+                {booking.assigned_partner.recent_reviews.map((item, index) => (
+                  <View key={String(item.created_at) + index} style={styles.customerReview}>
+                    <Text style={styles.reviewStars}>{'★'.repeat(Math.max(1, Math.min(5, item.rating)))}</Text>
+                    {item.comment ? <Text style={styles.reviewComment}>{item.comment}</Text> : null}
+                  </View>
+                ))}
+              </>
+            ) : null}
+
+            {booking.assigned_partner.base_lat != null &&
+              booking.assigned_partner.base_long != null &&
+              booking.location_lat != null &&
+              booking.location_long != null ? (
+              <Pressable
+                style={styles.secondary}
+                onPress={() => {
+                  const origin = encodeURIComponent(
+                    String(booking.assigned_partner?.base_lat) + ',' + String(booking.assigned_partner?.base_long),
+                  );
+                  const destination = encodeURIComponent(String(booking.location_lat) + ',' + String(booking.location_long));
+                  Linking.openURL(
+                    'https://www.google.com/maps/dir/?api=1&origin=' + origin + '&destination=' + destination,
+                  ).catch(() => Alert.alert('Maps unavailable', 'Unable to open route right now.'));
+                }}
+              >
+                <Text style={styles.secondaryText}>View partner route on map</Text>
+              </Pressable>
+            ) : null}
+            <Text style={styles.privacyNote}>Pickolo keeps personal contact details private. Your assigned professional is verified by Pickolo.</Text>
           </View>
         ) : ['PAYMENT_CONFIRMED', 'SEARCHING_PARTNER', 'PARTNER_ASSIGNED'].includes(
             booking.status,
@@ -527,5 +608,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fed7aa',
   },
+  partnerHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#edf2e7' },
+  avatarFallback: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#294f3b', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#fff', fontSize: 20, fontWeight: '900' },
+  partnerNameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7 },
+  partnerName: { fontSize: 20, fontWeight: '900', color: '#202e29' },
+  verified: { color: '#34563d', backgroundColor: '#edf2e7', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999, fontSize: 9, fontWeight: '900' },
+  partnerMeta: { marginTop: 4, color: '#747d70', fontSize: 13, fontWeight: '700' },
+  partnerBio: { marginTop: 14, color: '#202e29', lineHeight: 22 },
+  profileSectionTitle: { marginTop: 18, fontSize: 14, fontWeight: '900', color: '#202e29' },
+  portfolioRow: { marginTop: 10 },
+  portfolioImage: { width: 130, height: 130, borderRadius: 14, marginRight: 9, backgroundColor: '#edf0e9' },
+  customerReview: { marginTop: 10, padding: 12, borderRadius: 13, backgroundColor: '#f6f5f0' },
+  reviewStars: { color: '#8a6a17', fontWeight: '900', letterSpacing: 1 },
+  reviewComment: { marginTop: 5, color: '#465049', lineHeight: 20 },
+  privacyNote: { marginTop: 12, color: '#747d70', fontSize: 12, lineHeight: 18 },
   muted: { color: '#747d70' },
 });

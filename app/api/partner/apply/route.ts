@@ -24,6 +24,12 @@ export async function POST(request: NextRequest) {
     const phone = String(body?.phone || '').trim();
     const bio = String(body?.bio || '').trim();
     const payoutUpiId = String(body?.payout_upi_id || '').trim().toLowerCase();
+    const allowedServiceTypes = new Set(['Photography', 'Videography']);
+    const serviceTypes = Array.isArray(body?.service_types)
+      ? body.service_types.map((item: unknown) => String(item).trim()).filter((item: string) => allowedServiceTypes.has(item))
+      : ['Photography'];
+    if (!serviceTypes.length) serviceTypes.push('Photography');
+
     const skills = Array.isArray(body?.skills)
       ? body.skills.map((item: unknown) => String(item).trim()).filter(Boolean).slice(0, 20)
       : [];
@@ -56,10 +62,11 @@ export async function POST(request: NextRequest) {
         payout_upi_id: payoutUpiId,
         payout_upi_updated_at: new Date().toISOString(),
         skills,
+        service_types: serviceTypes,
         base_lat: lat,
         base_long: long,
       }, { onConflict: 'applicant_id' })
-      .select('id,applicant_id,display_name,phone,bio,skills,base_lat,base_long,payout_upi_id,status,created_at,updated_at')
+      .select('id,applicant_id,display_name,phone,bio,skills,service_types,base_lat,base_long,payout_upi_id,status,created_at,updated_at')
       .single();
 
     if (insertError) return NextResponse.json({ error: insertError.message }, { status: 400 });
