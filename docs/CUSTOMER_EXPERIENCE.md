@@ -10,7 +10,7 @@ The web home, auth and booking pages use a warm neutral/forest palette, responsi
 
 ## Setup before live bookings
 
-1. Install with `npm ci`. For native apps, run `npm ci` in `mobile/` too. Both lockfiles are included. Use Node 22.13+.
+1. Install with `npm install`. For native apps, run `npm install` in `mobile/` too. Use Node 22.13+.
 2. Apply existing Supabase migrations through 0025, then **0026, 0027, 0028 in order**. Review the pricing changes before applying: 0026 intentionally replaces photography rates with the requested amounts. Existing bookings keep their captured price.
 3. Configure web environment variables:
    - `NEXT_PUBLIC_SUPABASE_URL`
