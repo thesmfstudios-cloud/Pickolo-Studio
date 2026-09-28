@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const serviceClient = getServiceClient();
     const { data, error } = await serviceClient
       .from('partners')
-      .select('id,partner_code,verification_status,service_level_id,bio,base_lat,base_long,service_level:service_levels(id,name,sort_order)')
+      .select('id,partner_code,verification_status,service_level_id,bio,base_lat,base_long,payout_upi_id,service_level:service_levels(id,name,sort_order)')
       .order('partner_code', { ascending: true });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });

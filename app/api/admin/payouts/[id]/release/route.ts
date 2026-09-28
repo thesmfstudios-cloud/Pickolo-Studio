@@ -36,6 +36,16 @@ export async function POST(
       return NextResponse.json({ error: 'Booking is not payout-ready.' }, { status: 409 });
     }
 
+    const { data: payoutPartner } = await serviceClient
+      .from('partners')
+      .select('payout_upi_id')
+      .eq('id', booking.assigned_partner_id)
+      .single();
+
+    if (!payoutPartner?.payout_upi_id) {
+      return NextResponse.json({ error: 'Partner UPI ID is missing. Ask the partner to update payout details before release.' }, { status: 409 });
+    }
+
     if (booking.status === 'DATA_SUBMITTED') {
       const [{ data: delivery }, { count: assetCount }] = await Promise.all([
         serviceClient
@@ -119,6 +129,8 @@ export async function POST(
       metadata: {
         actor_role: 'admin',
         payout_trigger: fromStatus === 'DATA_SUBMITTED' ? 'studio_backup_received' : 'customer_confirmation',
+        payout_method: 'upi',
+        payout_upi_id: payoutPartner.payout_upi_id,
       },
     });
 

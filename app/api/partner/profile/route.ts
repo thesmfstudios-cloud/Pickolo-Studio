@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error: profileError } = await supabase
       .from('partners')
-      .select('id,partner_code,verification_status,service_level_id,bio,base_lat,base_long,is_accepting_jobs')
+      .select('id,partner_code,verification_status,service_level_id,bio,base_lat,base_long,is_accepting_jobs,payout_upi_id')
       .eq('id', user.id)
       .single();
 
@@ -58,6 +58,8 @@ export async function PATCH(request: NextRequest) {
       base_lat?: number;
       base_long?: number;
       is_accepting_jobs?: boolean;
+      payout_upi_id?: string;
+      payout_upi_updated_at?: string;
       updated_at: string;
     } = {
       updated_at: new Date().toISOString(),
@@ -85,6 +87,15 @@ export async function PATCH(request: NextRequest) {
       updates.is_accepting_jobs = body.is_accepting_jobs;
     }
 
+    if (body?.payout_upi_id !== undefined) {
+      const payoutUpiId = String(body.payout_upi_id || '').trim().toLowerCase();
+      if (!/^[a-z0-9._-]{2,}@[a-z0-9._-]{2,}$/.test(payoutUpiId)) {
+        return NextResponse.json({ error: 'Enter a valid UPI ID, for example name@upi.' }, { status: 400 });
+      }
+      updates.payout_upi_id = payoutUpiId;
+      updates.payout_upi_updated_at = new Date().toISOString();
+    }
+
     if (Object.keys(updates).length === 1) {
       return NextResponse.json({ error: 'No partner profile changes supplied.' }, { status: 400 });
     }
@@ -93,7 +104,7 @@ export async function PATCH(request: NextRequest) {
       .from('partners')
       .update(updates)
       .eq('id', user.id)
-      .select('id,partner_code,verification_status,service_level_id,base_lat,base_long,is_accepting_jobs')
+      .select('id,partner_code,verification_status,service_level_id,base_lat,base_long,is_accepting_jobs,payout_upi_id')
       .single();
 
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });

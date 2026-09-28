@@ -8,6 +8,7 @@ type App = {
   phone: string;
   bio: string | null;
   skills: string[];
+  payout_upi_id: string | null;
   status: string;
   rejection_reason: string | null;
 };
@@ -19,6 +20,7 @@ type Partner = {
   base_lat: number | null;
   base_long: number | null;
   is_accepting_jobs: boolean;
+  payout_upi_id: string | null;
 };
 
 type Job = {
@@ -60,6 +62,7 @@ export default function PartnerPage() {
   const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
   const [skills, setSkills] = useState('');
+  const [payoutUpiId, setPayoutUpiId] = useState('');
   const [app, setApp] = useState<App | null>(null);
   const [partner, setPartner] = useState<Partner | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -173,6 +176,7 @@ export default function PartnerPage() {
           phone,
           bio,
           skills: skills.split(',').map((item) => item.trim()).filter(Boolean),
+          payout_upi_id: payoutUpiId,
         }),
       });
 
@@ -509,6 +513,16 @@ export default function PartnerPage() {
                   value={bio}
                   onChange={(event) => setBio(event.target.value)}
                 />
+                <input
+                  className="input"
+                  placeholder="UPI ID for partner payout (example: name@upi)"
+                  value={payoutUpiId}
+                  onChange={(event) => setPayoutUpiId(event.target.value)}
+                  required
+                />
+                <p className="muted" style={{ margin: 0 }}>
+                  Pickolo releases your payout to this UPI ID after the Studio backup is received.
+                </p>
                 <button className="button" disabled={busy}>
                   Submit application
                 </button>
@@ -548,6 +562,26 @@ export default function PartnerPage() {
             </p>
             <button className="button secondary" onClick={captureLocation} disabled={busy}>
               {partner.base_lat !== null ? 'Update base location' : 'Set base location'}
+            </button>
+          </div>
+
+          <div className="card">
+            <span className="badge">PAYOUT</span>
+            <h2>UPI payout details</h2>
+            <p className="muted">Payouts are released to the saved UPI ID after customer handoff and Studio backup.</p>
+            <input
+              className="input"
+              placeholder="name@upi"
+              value={partner.payout_upi_id || ''}
+              onChange={(event) => setPartner((current) => current ? { ...current, payout_upi_id: event.target.value } : current)}
+            />
+            <button
+              className="button secondary"
+              style={{ marginTop: 10 }}
+              disabled={busy || !(partner.payout_upi_id || '').trim()}
+              onClick={() => updatePartner({ payout_upi_id: partner.payout_upi_id }, 'UPI payout details saved.')}
+            >
+              Save UPI ID
             </button>
           </div>
 

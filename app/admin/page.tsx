@@ -26,6 +26,7 @@ type Application = {
   bio?: string | null;
   base_lat?: number | null;
   base_long?: number | null;
+  payout_upi_id?: string | null;
   created_at: string;
 };
 
@@ -36,6 +37,7 @@ type Partner = {
   bio?: string | null;
   base_lat?: number | null;
   base_long?: number | null;
+  payout_upi_id?: string | null;
   service_level?: { name?: string | null } | null;
 };
 
@@ -73,6 +75,14 @@ type PriceConfig = {
   platform_fee_bps: number;
   service_level?: { name?: string | null } | null;
 };
+
+function maskUpi(value: string | null | undefined) {
+  if (!value) return 'UPI missing';
+  const [name, handle] = value.split('@');
+  if (!handle) return 'UPI saved';
+  const visible = name.length > 2 ? name.slice(0, 2) : name.slice(0, 1);
+  return `${visible}***@${handle}`;
+}
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
@@ -280,6 +290,7 @@ export default function AdminPage() {
                       Base location: {Number(app.base_lat).toFixed(5)}, {Number(app.base_long).toFixed(5)}
                     </div>
                   )}
+                  <div className="muted" style={{ marginTop: 6 }}>Payout UPI: {maskUpi(app.payout_upi_id)}</div>
                 </div>
                 <div style={{display:'flex',gap:8}}>
                   <button className="button" onClick={() => verifyApplication(app.id,'approve')}>Approve</button>
@@ -297,13 +308,14 @@ export default function AdminPage() {
             <p className="muted">No approved partners yet.</p>
           ) : (
             <table className="table">
-              <thead><tr><th>Partner</th><th>Level</th><th>Status</th><th>Base location</th></tr></thead>
+            <thead><tr><th>Partner</th><th>Level</th><th>Status</th><th>UPI payout</th><th>Base location</th></tr></thead>
               <tbody>
                 {partners.filter((partner) => partner.verification_status === 'approved').map((partner) => (
                   <tr key={partner.id}>
                     <td><strong>{partner.partner_code}</strong><div className="muted">{partner.bio || 'Profile details pending'}</div></td>
                     <td>{partner.service_level?.name || 'Standard'}</td>
                     <td><span className="badge">APPROVED</span></td>
+                    <td>{maskUpi(partner.payout_upi_id)}</td>
                     <td>{partner.base_lat != null && partner.base_long != null
                       ? `${Number(partner.base_lat).toFixed(5)}, ${Number(partner.base_long).toFixed(5)}`
                       : 'Not set'}</td>

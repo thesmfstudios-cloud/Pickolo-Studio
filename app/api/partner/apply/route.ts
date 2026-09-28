@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     const displayName = String(body?.display_name || '').trim();
     const phone = String(body?.phone || '').trim();
     const bio = String(body?.bio || '').trim();
+    const payoutUpiId = String(body?.payout_upi_id || '').trim().toLowerCase();
     const skills = Array.isArray(body?.skills)
       ? body.skills.map((item: unknown) => String(item).trim()).filter(Boolean).slice(0, 20)
       : [];
@@ -30,8 +31,12 @@ export async function POST(request: NextRequest) {
     const lat = body?.base_lat === undefined || body?.base_lat === null ? null : Number(body.base_lat);
     const long = body?.base_long === undefined || body?.base_long === null ? null : Number(body.base_long);
 
-    if (!displayName || !phone) {
-      return NextResponse.json({ error: 'display_name and phone are required.' }, { status: 400 });
+    if (!displayName || !phone || !payoutUpiId) {
+      return NextResponse.json({ error: 'Name, phone and UPI ID are required.' }, { status: 400 });
+    }
+
+    if (!/^[a-z0-9._-]{2,}@[a-z0-9._-]{2,}$/.test(payoutUpiId)) {
+      return NextResponse.json({ error: 'Enter a valid UPI ID, for example name@upi.' }, { status: 400 });
     }
 
     if (
@@ -48,11 +53,13 @@ export async function POST(request: NextRequest) {
         display_name: displayName,
         phone,
         bio: bio || null,
+        payout_upi_id: payoutUpiId,
+        payout_upi_updated_at: new Date().toISOString(),
         skills,
         base_lat: lat,
         base_long: long,
       }, { onConflict: 'applicant_id' })
-      .select('id,applicant_id,display_name,phone,bio,skills,base_lat,base_long,status,created_at,updated_at')
+      .select('id,applicant_id,display_name,phone,bio,skills,base_lat,base_long,payout_upi_id,status,created_at,updated_at')
       .single();
 
     if (insertError) return NextResponse.json({ error: insertError.message }, { status: 400 });

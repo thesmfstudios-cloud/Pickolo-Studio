@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const status = request.nextUrl.searchParams.get('status');
     let query = supabase
       .from('partner_applications')
-      .select('id,applicant_id,display_name,phone,bio,skills,base_lat,base_long,status,created_at,updated_at,rejection_reason')
+      .select('id,applicant_id,display_name,phone,bio,skills,base_lat,base_long,payout_upi_id,status,created_at,updated_at,rejection_reason')
       .order('created_at', { ascending: false });
 
     if (status) query = query.eq('status', status);

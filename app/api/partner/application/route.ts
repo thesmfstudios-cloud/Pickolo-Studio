@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const serviceClient = getServiceClient();
     const { data, error } = await serviceClient
       .from('partner_applications')
-      .select('id,display_name,phone,bio,skills,base_lat,base_long,status,rejection_reason,created_at,updated_at')
+      .select('id,display_name,phone,bio,skills,base_lat,base_long,payout_upi_id,status,rejection_reason,created_at,updated_at')
       .eq('applicant_id', user.id)
       .maybeSingle();
 

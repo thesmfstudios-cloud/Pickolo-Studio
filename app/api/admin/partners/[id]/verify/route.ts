@@ -42,7 +42,7 @@ export async function POST(
 
     const { data: application, error: applicationError } = await supabase
       .from('partner_applications')
-      .select('id,applicant_id,display_name,phone,bio,skills,base_lat,base_long,status')
+      .select('id,applicant_id,display_name,phone,bio,skills,base_lat,base_long,payout_upi_id,status')
       .eq('id', id)
       .single();
 
@@ -71,6 +71,8 @@ export async function POST(
         bio: application.bio,
         base_lat: application.base_lat,
         base_long: application.base_long,
+        payout_upi_id: application.payout_upi_id,
+        payout_upi_updated_at: application.payout_upi_id ? new Date().toISOString() : null,
       }, { onConflict: 'id' });
 
       if (partnerError) return NextResponse.json({ error: partnerError.message }, { status: 400 });
