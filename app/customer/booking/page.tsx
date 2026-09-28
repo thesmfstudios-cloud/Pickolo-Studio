@@ -295,7 +295,7 @@ export default function BookingPage() {
                         : 'Your files are on their way.'}
                     </h2>
                     <p className="helper">
-                      Original, unedited files from your shoot. Download and keep a backup.
+                      Your partner hands over the originals on site. Download the secure Pickolo backup and keep a copy.
                     </p>
                     {stage >= 6 && (
                       <button className="customer-primary" disabled={busy} onClick={delivery}>

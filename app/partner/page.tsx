@@ -67,6 +67,7 @@ export default function PartnerPage() {
   const [busy, setBusy] = useState(false);
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
   const [fileByJob, setFileByJob] = useState<Record<string, File | null>>({});
+  const [handoffByJob, setHandoffByJob] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async (token: string) => {
     const h = { Authorization: 'Bearer ' + token };
@@ -308,6 +309,10 @@ export default function PartnerPage() {
       setMsg('Choose an image before submitting delivery.');
       return;
     }
+    if (!handoffByJob[job.id]) {
+      setMsg('Confirm that the customer received the files on site first.');
+      return;
+    }
     if (!file.type.startsWith('image/')) {
       setMsg('Only image files are supported for this MVP.');
       return;
@@ -351,6 +356,7 @@ export default function PartnerPage() {
                 sizeBytes: file.size,
               },
             ],
+            customer_handoff_confirmed: true,
           }),
         },
       );
@@ -358,7 +364,8 @@ export default function PartnerPage() {
       if (!finalizeResponse.ok) throw new Error(finalized.error || 'Unable to finalize delivery.');
 
       setFileByJob((current) => ({ ...current, [job.id]: null }));
-      setMsg('Files delivered. Customer can download them now.');
+      setHandoffByJob((current) => ({ ...current, [job.id]: false }));
+      setMsg('On-site handoff recorded. Backup saved for the customer and Pickolo.');
       await load(session.access_token);
     } catch (error) {
       setMsg(error instanceof Error ? error.message : 'Delivery upload failed.');
@@ -630,6 +637,22 @@ export default function PartnerPage() {
                 )}
                 {job.status === 'DATA_PENDING' && (
                   <div style={{ marginTop: 12 }}>
+                    <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(handoffByJob[job.id])}
+                        onChange={(event) =>
+                          setHandoffByJob((current) => ({
+                            ...current,
+                            [job.id]: event.target.checked,
+                          }))
+                        }
+                      />
+                      <span>Customer received the files on site</span>
+                    </label>
+                    <p className="helper" style={{ marginTop: 0 }}>
+                      Hand the originals to the customer first, then upload a backup copy for Pickolo.
+                    </p>
                     <input
                       className="input"
                       type="file"

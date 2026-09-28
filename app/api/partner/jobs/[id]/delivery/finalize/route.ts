@@ -44,6 +44,13 @@ export async function POST(
       return NextResponse.json({ error: 'Booking is not ready for delivery.' }, { status: 409 });
     }
 
+    if (body?.customer_handoff_confirmed !== true) {
+      return NextResponse.json(
+        { error: 'Confirm that the customer received the files on site before submitting the backup.' },
+        { status: 400 },
+      );
+    }
+
     const incoming = Array.isArray(body?.assets) ? body.assets : [];
     if (!incoming.length || incoming.length > 100) {
       return NextResponse.json({ error: 'Provide between 1 and 100 uploaded assets.' }, { status: 400 });
@@ -119,7 +126,11 @@ export async function POST(
           from_status: 'DATA_PENDING',
           to_status: 'DATA_SUBMITTED',
           changed_by: user.id,
-          metadata: { actor_role: 'partner', asset_count: saved?.length || 0 },
+          metadata: {
+            actor_role: 'partner',
+            asset_count: saved?.length || 0,
+            customer_handoff: 'on_site',
+          },
         });
       }
     }
