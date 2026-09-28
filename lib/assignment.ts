@@ -1,121 +1,75 @@
 import { getServiceClient } from '@/lib/supabase-admin';
 import { distanceKm, PICKOLO_PILOT_RADIUS_KM } from '@/lib/geo';
 
-type Candidate = {
-  id: string;
-  distance: number;
-  rating: number;
-  onTimeRate: number;
-  cancellationRate: number;
-  noShowRate: number;
-  score: number;
-};
+type Candidate = { id: string; distance: number };
 
 export async function assignBestPartner(bookingId: string, actorId?: string) {
   const supabase = getServiceClient();
 
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select(
-      'id,status,scheduled_start,duration_minutes,service_id,service_level_id,location_lat,location_long,assigned_partner_id',
-    )
+    .select('id,booking_code,status,customer_id,scheduled_start,duration_minutes,service_id,service_level_id,location_lat,location_long,assigned_partner_id')
     .eq('id', bookingId)
     .single();
 
   if (bookingError || !booking) throw new Error('Booking not found.');
-  if (!['PAYMENT_CONFIRMED', 'SEARCHING_PARTNER'].includes(booking.status)) {
+  if (!['PAYMENT_CONFIRMED','SEARCHING_PARTNER'].includes(booking.status)) {
     return { assigned: false, reason: 'Booking is not ready for partner matching.' };
   }
 
   if (booking.status === 'PAYMENT_CONFIRMED') {
-    const { data: searching, error: searchError } = await supabase
+    const { data: changed } = await supabase
       .from('bookings')
       .update({ status: 'SEARCHING_PARTNER' })
       .eq('id', booking.id)
       .eq('status', 'PAYMENT_CONFIRMED')
-      .select('id,status')
-      .single();
+      .is('assigned_partner_id', null)
+      .select('id')
+      .maybeSingle();
 
-    if (searchError || !searching) {
-      return { assigned: false, reason: 'Booking changed before partner search could start.' };
+    if (changed) {
+      await supabase.from('booking_status_history').insert({
+        booking_id: booking.id,
+        from_status: 'PAYMENT_CONFIRMED',
+        to_status: 'SEARCHING_PARTNER',
+        changed_by: actorId ?? null,
+        metadata: { assignment_mode: 'pool_first_accept' },
+      });
     }
-
-    await supabase.from('booking_status_history').insert({
-      booking_id: booking.id,
-      from_status: 'PAYMENT_CONFIRMED',
-      to_status: 'SEARCHING_PARTNER',
-      changed_by: actorId ?? null,
-      metadata: { actor_role: actorId ? 'admin' : 'system', assignment_mode: 'automatic' },
-    });
-
     booking.status = 'SEARCHING_PARTNER';
   }
+
   if (booking.assigned_partner_id) {
-    return {
-      assigned: false,
-      reason: 'Booking already has a partner.',
-      partnerId: booking.assigned_partner_id,
-    };
+    return { assigned: false, reason: 'Booking already has a partner.' };
   }
   if (booking.location_lat === null || booking.location_long === null) {
-    return { assigned: false, reason: 'Customer location is required for pilot matching.' };
+    return { assigned: false, reason: 'Customer location is required for matching.' };
   }
 
-  const { data: requestedLevel } = await supabase
-    .from('service_levels')
-    .select('sort_order')
-    .eq('id', booking.service_level_id)
-    .single();
-
-  if (!requestedLevel) throw new Error('Booking service level not found.');
+  const { data: service } = await supabase.from('services').select('name').eq('id', booking.service_id).single();
+  const { data: servicePartners } = service?.name === 'Photography'
+    ? { data: null }
+    : await supabase.from('partner_services').select('partner_id').eq('service_id', booking.service_id);
+  const capableIds = servicePartners ? new Set(servicePartners.map((row) => row.partner_id)) : null;
 
   const { data: partners } = await supabase
     .from('partners')
-    .select(
-      'id,base_lat,base_long,is_accepting_jobs,service_level_id,service_level:service_levels(sort_order),partner_performance(completed_jobs,on_time_jobs,cancellations,no_shows,average_rating)',
-    )
+    .select('id,base_lat,base_long,service_level_id')
     .eq('verification_status', 'approved')
-    .eq('is_accepting_jobs', true);
+    .eq('is_accepting_jobs', true)
+    .eq('service_level_id', booking.service_level_id);
 
   const startsAt = new Date(booking.scheduled_start);
   const endsAt = new Date(startsAt.getTime() + Number(booking.duration_minutes) * 60000);
-  const { data: priorEvents } = await supabase
-    .from('partner_assignment_events')
-    .select('partner_id,event_type')
-    .eq('booking_id', bookingId);
-
-  const excludedPartners = new Set(
-    (priorEvents ?? [])
-      .filter((event) => ['DECLINED', 'EXPIRED', 'CANCELLED', 'NO_SHOW'].includes(event.event_type))
-      .map((event) => event.partner_id),
-  );
-
-  const { data: service } = await supabase
-    .from('services')
-    .select('name')
-    .eq('id', booking.service_id)
-    .single();
-  const { data: capable } = await supabase
-    .from('partner_services')
-    .select('partner_id')
-    .eq('service_id', booking.service_id);
-  const capableIds = new Set((capable ?? []).map((row) => row.partner_id));
   const candidates: Candidate[] = [];
 
   for (const partner of partners ?? []) {
-    if (excludedPartners.has(partner.id)) continue;
-    if (service?.name !== 'Photography' && !capableIds.has(partner.id)) continue;
+    if (capableIds && !capableIds.has(partner.id)) continue;
     if (partner.base_lat === null || partner.base_long === null) continue;
-    const level = Array.isArray(partner.service_level)
-      ? partner.service_level[0]
-      : partner.service_level;
-    if (!level || level.sort_order < requestedLevel.sort_order) continue;
 
     const distance = distanceKm(
-      Number(booking.location_lat),
-      Number(booking.location_long),
-      Number(partner.base_lat),
-      Number(partner.base_long),
+      Number(booking.location_lat), Number(booking.location_long),
+      Number(partner.base_lat), Number(partner.base_long),
     );
     if (distance > PICKOLO_PILOT_RADIUS_KM) continue;
 
@@ -131,96 +85,40 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
       const existingEnd = existingStart + Number(existing.duration_minutes) * 60000;
       return startsAt.getTime() < existingEnd && endsAt.getTime() > existingStart;
     });
-    if (conflict) continue;
-
-    const perf = Array.isArray(partner.partner_performance)
-      ? partner.partner_performance[0]
-      : partner.partner_performance;
-    const completed = Number(perf?.completed_jobs || 0);
-    const onTime = Number(perf?.on_time_jobs || 0);
-    const cancellations = Number(perf?.cancellations || 0);
-    const noShows = Number(perf?.no_shows || 0);
-    const onTimeRate = completed ? onTime / completed : 0.8;
-    const cancellationRate =
-      completed + cancellations ? cancellations / (completed + cancellations) : 0;
-    const noShowRate = completed + noShows ? noShows / (completed + noShows) : 0;
-    const rating = Number(perf?.average_rating || 4);
-    const distanceScore = Math.max(0, 1 - distance / PICKOLO_PILOT_RADIUS_KM);
-    const score =
-      distanceScore * 50 +
-      (Math.min(5, rating) / 5) * 20 +
-      onTimeRate * 20 -
-      cancellationRate * 10 -
-      noShowRate * 20;
-
-    candidates.push({
-      id: partner.id,
-      distance,
-      rating,
-      onTimeRate,
-      cancellationRate,
-      noShowRate,
-      score,
-    });
+    if (!conflict) candidates.push({ id: partner.id, distance });
   }
 
-  candidates.sort((a, b) => b.score - a.score);
-  const selected = candidates[0];
-  if (!selected)
-    return { assigned: false, reason: 'No eligible partner found.', candidateCount: 0 };
+  if (!candidates.length) {
+    return { assigned: false, reason: 'No eligible partners are online in this pool.', candidateCount: 0 };
+  }
 
-  const { data: updated, error: updateError } = await supabase
-    .from('bookings')
-    .update({
-      assigned_partner_id: selected.id,
-      status: 'PARTNER_ASSIGNED',
-      partner_acceptance_status: 'pending',
-      partner_acceptance_at: null,
-      partner_declined_at: null,
-      partner_offer_expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-    })
-    .eq('id', bookingId)
-    .in('status', ['PAYMENT_CONFIRMED', 'SEARCHING_PARTNER'])
-    .is('assigned_partner_id', null)
-    .select('id,booking_code,status,assigned_partner_id,partner_acceptance_status')
-    .single();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  await supabase.from('partner_job_offers').upsert(
+    candidates.map((partner) => ({
+      booking_id: booking.id,
+      partner_id: partner.id,
+      status: 'pending',
+      expires_at: expiresAt,
+      responded_at: null,
+    })),
+    { onConflict: 'booking_id,partner_id' },
+  );
 
-  if (updateError || !updated) return { assigned: false, reason: 'Booking changed concurrently.' };
-
-  await supabase.from('partner_assignment_events').insert({
-    booking_id: bookingId,
-    partner_id: selected.id,
-    event_type: 'ASSIGNED',
-    reason: 'Automatic marketplace match',
-  });
-
-  await supabase.from('notifications').insert({
-    user_id: selected.id,
-    booking_id: bookingId,
-    channel: 'in_app',
-    title: 'New Pickolo job request',
-    body: 'New booking ' + updated.booking_code + ' is waiting for your accept or decline.',
-  });
-
-  await supabase.from('booking_status_history').insert({
-    booking_id: bookingId,
-    from_status: booking.status,
-    to_status: 'PARTNER_ASSIGNED',
-    changed_by: actorId ?? null,
-    metadata: {
-      actor_role: actorId ? 'admin' : 'system',
-      assignment_mode: 'automatic',
-      score: Number(selected.score.toFixed(3)),
-      distance_km: Number(selected.distance.toFixed(3)),
-    },
-  });
+  await supabase.from('notifications').insert(
+    candidates.map((partner) => ({
+      user_id: partner.id,
+      booking_id: booking.id,
+      channel: 'in_app',
+      title: 'New Pickolo job',
+      body: booking.booking_code + ' is open in your level. First verified partner to accept gets the job.',
+    })),
+  );
 
   return {
-    assigned: true,
-    booking: updated,
-    partnerId: selected.id,
-    score: selected.score,
-    distanceKm: selected.distance,
+    assigned: false,
+    broadcast: true,
+    bookingId: booking.id,
     candidateCount: candidates.length,
+    expiresAt,
   };
 }
