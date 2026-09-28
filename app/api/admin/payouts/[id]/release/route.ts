@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
 import { writeAdminAudit } from '@/lib/admin-audit';
+import { createRazorpayXUpiPayout, razorpayXPayoutsEnabled } from '@/lib/razorpayx';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -27,7 +28,7 @@ export async function POST(
     const { id } = await context.params;
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
-      .select('id,status,assigned_partner_id,partner_payout_paise')
+      .select('id,booking_code,status,assigned_partner_id,partner_payout_paise')
       .eq('id', id)
       .single();
 
@@ -38,7 +39,7 @@ export async function POST(
 
     const { data: payoutPartner } = await serviceClient
       .from('partners')
-      .select('payout_upi_id')
+      .select('payout_upi_id,partner_code')
       .eq('id', booking.assigned_partner_id)
       .single();
 
@@ -89,6 +90,30 @@ export async function POST(
       return NextResponse.json({ error: 'Payout is blocked while this booking has an active dispute.' }, { status: 409 });
     }
 
+    let providerPayout: { id: string; status: string } | null = null;
+    if (razorpayXPayoutsEnabled()) {
+      const [{ data: partnerProfile }, { data: authUser }] = await Promise.all([
+        serviceClient.from('profiles').select('full_name,phone').eq('id', booking.assigned_partner_id).single(),
+        serviceClient.auth.admin.getUserById(booking.assigned_partner_id),
+      ]);
+
+      try {
+        providerPayout = await createRazorpayXUpiPayout({
+          amountPaise: Number(booking.partner_payout_paise),
+          bookingId: booking.id,
+          bookingCode: booking.booking_code,
+          partnerId: booking.assigned_partner_id,
+          partnerName: partnerProfile?.full_name || payoutPartner.partner_code || 'Pickolo Partner',
+          partnerEmail: authUser.user?.email,
+          partnerPhone: partnerProfile?.phone,
+          payoutUpiId: payoutPartner.payout_upi_id,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'RazorpayX payout request failed.';
+        return NextResponse.json({ error: message }, { status: 502 });
+      }
+    }
+
     const { data: existing } = await supabase
       .from('payouts')
       .select('id,status')
@@ -101,6 +126,7 @@ export async function POST(
         partner_id: booking.assigned_partner_id,
         amount_paise: booking.partner_payout_paise,
         status: 'pending',
+        provider_payout_id: providerPayout?.id || null,
       });
       if (payoutError) return NextResponse.json({ error: payoutError.message }, { status: 400 });
     }
@@ -117,7 +143,7 @@ export async function POST(
     if (updateError || !updated) return NextResponse.json({ error: 'Booking changed concurrently. Refresh and retry.' }, { status: 409 });
 
     await serviceClient.from('payouts').update({
-      status: 'released',
+      status: providerPayout?.status || 'released',
       released_at: new Date().toISOString(),
     }).eq('booking_id', id);
 
@@ -131,6 +157,8 @@ export async function POST(
         payout_trigger: fromStatus === 'DATA_SUBMITTED' ? 'studio_backup_received' : 'customer_confirmation',
         payout_method: 'upi',
         payout_upi_id: payoutPartner.payout_upi_id,
+        provider: providerPayout ? 'razorpayx' : 'internal_release',
+        provider_payout_id: providerPayout?.id || null,
       },
     });
 
