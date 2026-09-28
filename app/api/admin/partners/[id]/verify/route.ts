@@ -42,7 +42,7 @@ export async function POST(
 
     const { data: application, error: applicationError } = await supabase
       .from('partner_applications')
-      .select('id,applicant_id,display_name,phone,bio,skills,base_lat,base_long,payout_upi_id,status')
+      .select('id,applicant_id,display_name,phone,bio,skills,service_types,base_lat,base_long,payout_upi_id,status')
       .eq('id', id)
       .single();
 
@@ -53,7 +53,7 @@ export async function POST(
     const { data: existingLevel } = await supabase
       .from('service_levels')
       .select('id')
-      .eq('name', 'Standard')
+      .eq('name', 'Basic')
       .single();
 
     if (action === 'approve' && !existingLevel) {
@@ -76,6 +76,23 @@ export async function POST(
       }, { onConflict: 'id' });
 
       if (partnerError) return NextResponse.json({ error: partnerError.message }, { status: 400 });
+
+      const requestedServices = Array.isArray(application.service_types) && application.service_types.length
+        ? application.service_types
+        : ['Photography'];
+      const { data: services } = await supabase
+        .from('services')
+        .select('id,name')
+        .in('name', requestedServices);
+      if (services?.length) {
+        await supabase.from('partner_services').upsert(
+          services.map((service) => ({
+            partner_id: application.applicant_id,
+            service_id: service.id,
+          })),
+          { onConflict: 'partner_id,service_id' },
+        );
+      }
 
       const { error: roleError } = await supabase
         .from('profiles')
