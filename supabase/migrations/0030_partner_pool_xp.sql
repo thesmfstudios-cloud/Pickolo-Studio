@@ -4,6 +4,27 @@
 
 begin;
 
+alter table public.partner_applications
+  add column if not exists service_types text[] not null default array['Photography']::text[];
+
+create table if not exists public.partner_services (
+  partner_id uuid not null references public.partners(id) on delete cascade,
+  service_id uuid not null references public.services(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (partner_id, service_id)
+);
+
+create index if not exists partner_services_service_idx
+  on public.partner_services(service_id, partner_id);
+
+alter table public.partner_services enable row level security;
+
+drop policy if exists "partner_services_owner_read" on public.partner_services;
+create policy "partner_services_owner_read"
+on public.partner_services for select
+to authenticated
+using (partner_id = auth.uid() or public.is_admin());
+
 create table if not exists public.partner_job_offers (
   id uuid primary key default gen_random_uuid(),
   booking_id uuid not null references public.bookings(id) on delete cascade,
@@ -304,6 +325,35 @@ $$;
 
 revoke all on function public.claim_partner_job(uuid) from public, anon;
 grant execute on function public.claim_partner_job(uuid) to authenticated;
+
+create or replace function public.log_completed_job_xp()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $
+begin
+  if new.status = 'COMPLETED'
+     and old.status is distinct from new.status
+     and new.assigned_partner_id is not null then
+    insert into public.partner_xp_events(partner_id, booking_id, xp_delta, reason)
+    select new.assigned_partner_id, new.id, 100, 'Completed Pickolo job'
+    where not exists (
+      select 1 from public.partner_xp_events
+      where partner_id = new.assigned_partner_id
+        and booking_id = new.id
+        and review_id is null
+        and reason = 'Completed Pickolo job'
+    );
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists bookings_log_completed_job_xp on public.bookings;
+create trigger bookings_log_completed_job_xp
+after update of status on public.bookings
+for each row execute procedure public.log_completed_job_xp();
 
 create or replace function public.award_review_xp()
 returns trigger
