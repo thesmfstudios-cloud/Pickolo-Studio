@@ -1,102 +1,136 @@
 import { useState } from 'react';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
-
 export default function CustomerAuth() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [otp, setOtp] = useState('');
+  const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [fullName, setFullName] = useState('');
-
-  async function login() {
-    if (!supabase) {
-      Alert.alert('Pickolo', 'Supabase is not configured.');
-      return;
-    }
+  async function submit() {
+    if (!supabase) return Alert.alert('Pickolo', 'Sign-in is not available yet.');
+    if (!name.trim() || !/^[6-9]\d{9}$/.test(phone))
+      return Alert.alert(
+        'Check your details',
+        'Enter your name and a 10-digit Indian mobile number.',
+      );
     setBusy(true);
-
-    const result =
-      mode === 'login'
-        ? await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password,
-          })
-        : await supabase.auth.signUp({
-            email: email.trim(),
-            password,
-            options: { data: { full_name: fullName.trim() } },
-          });
-
-    setBusy(false);
-
-    const error = result.error;
-    if (error) {
-      Alert.alert('Login failed', error.message);
-      return;
+    try {
+      if (!sent) {
+        const r = await supabase.auth.signInWithOtp({
+          phone: '+91' + phone,
+          options: { data: { full_name: name.trim() } },
+        });
+        if (r.error) throw r.error;
+        setSent(true);
+      } else {
+        const r = await supabase.auth.verifyOtp({ phone: '+91' + phone, token: otp, type: 'sms' });
+        if (r.error) throw r.error;
+        const saved = await supabase
+          .from('profiles')
+          .update({ full_name: name.trim() })
+          .eq('id', r.data.user!.id);
+        if (saved.error) throw saved.error;
+        router.replace('/home');
+      }
+    } catch (e) {
+      Alert.alert('Sign-in', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setBusy(false);
     }
-    if (mode === 'signup' && !result.data.session) {
-      Alert.alert('Account created', 'Check your email if confirmation is enabled.');
-      return;
-    }
-
-    router.replace('/home');
   }
-
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Text style={styles.kicker}>PICKOLO</Text>
-        <Text style={styles.title}>{mode === 'login' ? 'Customer Login' : 'Create your account'}</Text>
-        <Text style={styles.subtitle}>Book a photographer for a short local assignment.</Text>
-
-        <View style={styles.form}>
-          {mode === 'signup' && (
-            <TextInput style={styles.input} placeholder="Full name" value={fullName} onChangeText={setFullName} />
+    <SafeAreaView style={s.safe}>
+      <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
+        <Text style={s.kicker}>PICKOLO · BHOPAL</Text>
+        <Text style={s.title}>{sent ? 'Check your phone.' : 'Great moments start here.'}</Text>
+        <Text style={s.subtitle}>
+          {sent
+            ? 'Enter the verification code sent to +91 ' + phone
+            : 'A photographer or videographer, just a few taps away.'}
+        </Text>
+        <View style={s.form}>
+          <Text>Your name</Text>
+          <TextInput
+            style={s.input}
+            accessibilityLabel="Your name"
+            placeholder="Full name"
+            value={name}
+            onChangeText={setName}
+            maxLength={80}
+          />
+          {sent ? (
+            <>
+              <Text>Verification code</Text>
+              <TextInput
+                style={s.input}
+                accessibilityLabel="Verification code"
+                value={otp}
+                onChangeText={setOtp}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoComplete="sms-otp"
+              />
+            </>
+          ) : (
+            <>
+              <Text>Mobile number · +91</Text>
+              <TextInput
+                style={s.input}
+                accessibilityLabel="Mobile number"
+                placeholder="10-digit mobile number"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                maxLength={10}
+              />
+            </>
           )}
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email"
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Password"
-            secureTextEntry
-          />
-          <Pressable style={styles.primary} onPress={login} disabled={busy}>
-            <Text style={styles.primaryText}>{busy ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create account'}</Text>
-          </Pressable>
-          <Pressable
-            style={styles.secondary}
-            onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}
-          >
-            <Text style={styles.secondaryText}>
-              {mode === 'login' ? 'Create a new account' : 'Already have an account? Login'}
+          <Pressable style={s.primary} onPress={submit} disabled={busy}>
+            <Text style={s.primaryText}>
+              {busy ? 'Please wait…' : sent ? 'Verify & continue →' : 'Send verification code →'}
             </Text>
           </Pressable>
+          {sent && (
+            <Pressable
+              onPress={() => {
+                setSent(false);
+                setOtp('');
+              }}
+            >
+              <Text>Change number or request another code</Text>
+            </Pressable>
+          )}
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' },
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
-  kicker: { fontSize: 12, letterSpacing: 3, color: '#2563eb', fontWeight: '800' },
-  title: { marginTop: 8, fontSize: 36, fontWeight: '800', color: '#13213a' },
-  subtitle: { marginTop: 10, fontSize: 16, lineHeight: 24, color: '#64748b' },
-  form: { marginTop: 28, gap: 14 },
-  input: { borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 15, paddingVertical: 14, fontSize: 16 },
-  primary: { backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
-  primaryText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  secondary: { paddingVertical: 14, alignItems: 'center' },
-  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#f6f5f0' },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 28 },
+  kicker: { fontSize: 12, letterSpacing: 3, color: '#496340' },
+  title: { fontSize: 40, color: '#202e29', marginTop: 20 },
+  subtitle: { fontSize: 15, color: '#747d70', lineHeight: 24, marginTop: 16 },
+  form: { gap: 14, marginTop: 30 },
+  input: {
+    backgroundColor: '#fffefb',
+    borderWidth: 1,
+    borderColor: '#dfe3d7',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 17,
+  },
+  primary: { backgroundColor: '#294f3b', padding: 18, borderRadius: 12, alignItems: 'center' },
+  primaryText: { color: '#fff', fontWeight: '700' },
 });

@@ -1,9 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../shared/supabase';
 
 type Booking = {
+  booking_otp?: string;
+  assigned_partner?: { name: string; bio?: string };
+  shoot_started_at?: string;
+  shoot_completed_at?: string;
   booking_code: string;
   status: string;
   scheduled_start: string;
@@ -19,6 +32,11 @@ type Booking = {
 export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [booking, setBooking] = useState<Booking | null>(null);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [disputeReason, setDisputeReason] = useState('');
@@ -47,7 +65,10 @@ export default function BookingDetailScreen() {
     }
 
     Alert.alert('Delivery confirmed', 'Your booking is now ready for Pickolo payout processing.', [
-      { text: 'Done', onPress: () => router.replace({ pathname: '/booking-detail', params: { id } }) },
+      {
+        text: 'Done',
+        onPress: () => router.replace({ pathname: '/booking-detail', params: { id } }),
+      },
     ]);
   }
 
@@ -74,49 +95,118 @@ export default function BookingDetailScreen() {
     }
 
     Alert.alert('Booking cancelled', 'Your booking has been cancelled.', [
-      { text: 'Done', onPress: () => router.replace({ pathname: '/booking-detail', params: { id } }) },
+      {
+        text: 'Done',
+        onPress: () => router.replace({ pathname: '/booking-detail', params: { id } }),
+      },
     ]);
   }
 
   useEffect(() => {
+    let active = true;
     async function load() {
-      if (!supabase || !id) return;
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) {
-        router.replace('/auth');
-        return;
+      try {
+        if (!supabase || !id) return;
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) {
+          router.replace('/auth');
+          return;
+        }
+
+        const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+        const response = await fetch(baseUrl + '/api/bookings/' + id, {
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          Alert.alert('Booking unavailable', result.error || 'Unable to load booking.');
+          router.back();
+          return;
+        }
+
+        if (active) setBooking(result.booking);
+      } catch {
+        if (active)
+          Alert.alert('Connection issue', 'Unable to refresh booking. Check your connection.');
       }
-
-      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-      const response = await fetch(baseUrl + '/api/bookings/' + id, {
-        headers: { Authorization: 'Bearer ' + token },
-      });
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        Alert.alert('Booking unavailable', result.error || 'Unable to load booking.');
-        router.back();
-        return;
-      }
-
-      setBooking(result.booking);
     }
 
     load();
+    const t = setInterval(load, 15000);
+    return () => {
+      active = false;
+      clearInterval(t);
+    };
   }, [id]);
 
   if (!booking) {
-    return <SafeAreaView style={styles.safe}><View style={styles.container}><Text style={styles.muted}>Loading booking...</Text></View></SafeAreaView>;
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.container}>
+          <Text style={styles.muted}>Loading booking...</Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Pressable onPress={() => router.back()}><Text style={styles.back}>‹ Back</Text></Pressable>
+        <Pressable onPress={() => router.back()}>
+          <Text style={styles.back}>‹ Back</Text>
+        </Pressable>
         <Text style={styles.title}>{booking.booking_code}</Text>
         <Text style={styles.badge}>{booking.status}</Text>
 
+        {booking.assigned_partner ? (
+          <View style={styles.card}>
+            <Text style={styles.reviewTitle}>Your professional</Text>
+            <Text style={styles.value}>{booking.assigned_partner.name}</Text>
+            <Text style={styles.value}>{booking.assigned_partner.bio}</Text>
+          </View>
+        ) : ['PAYMENT_CONFIRMED', 'SEARCHING_PARTNER', 'PARTNER_ASSIGNED'].includes(
+            booking.status,
+          ) ? (
+          <View style={styles.card}>
+            <Text style={styles.reviewTitle}>Finding your professional</Text>
+            <Text style={styles.value}>
+              Your profile will appear once a local professional accepts. This screen updates
+              automatically.
+            </Text>
+          </View>
+        ) : null}
+        {booking.booking_otp ? (
+          <View style={styles.card}>
+            <Text style={styles.label}>Shoot start code</Text>
+            <Text style={styles.price}>{booking.booking_otp}</Text>
+            <Text style={styles.value}>
+              Share only when your professional arrives and you are ready to start.
+            </Text>
+          </View>
+        ) : null}
+        {booking.shoot_started_at ? (
+          <View style={styles.card}>
+            <Text style={styles.reviewTitle}>
+              {booking.shoot_completed_at ? 'Shoot completed' : 'Shoot in progress'}
+            </Text>
+            <Text style={styles.price}>
+              {new Date(
+                Math.max(
+                  0,
+                  (booking.shoot_completed_at ? Date.parse(booking.shoot_completed_at) : now) -
+                    Date.parse(booking.shoot_started_at),
+                ),
+              )
+                .toISOString()
+                .slice(11, 19)}
+            </Text>
+            <Text style={styles.value}>
+              {booking.duration_minutes / 60} hours booked · elapsed shoot time
+            </Text>
+          </View>
+        ) : null}
         <View style={styles.card}>
           <Text style={styles.label}>Service</Text>
           <Text style={styles.value}>{booking.service?.name || 'Photography'}</Text>
@@ -136,10 +226,18 @@ export default function BookingDetailScreen() {
           <Text style={styles.label}>Booking total</Text>
           <Text style={styles.price}>₹{(booking.customer_price_paise / 100).toFixed(0)}</Text>
 
-          {booking.notes ? <><Text style={styles.label}>Requirement</Text><Text style={styles.value}>{booking.notes}</Text></> : null}
+          {booking.notes ? (
+            <>
+              <Text style={styles.label}>Requirement</Text>
+              <Text style={styles.value}>{booking.notes}</Text>
+            </>
+          ) : null}
 
           {booking.status === 'REQUESTED' && (
-            <Pressable style={styles.primary} onPress={() => router.replace({ pathname: '/payment', params: { id } })}>
+            <Pressable
+              style={styles.primary}
+              onPress={() => router.replace({ pathname: '/payment', params: { id } })}
+            >
               <Text style={styles.primaryText}>Pay booking</Text>
             </Pressable>
           )}
@@ -165,9 +263,17 @@ export default function BookingDetailScreen() {
                   return;
                 }
 
-                Alert.alert('Refund initiated', 'Your payment refund has been submitted to the payment provider.', [
-                  { text: 'Done', onPress: () => router.replace({ pathname: '/booking-detail', params: { id } }) },
-                ]);
+                Alert.alert(
+                  'Refund initiated',
+                  'Your payment refund has been submitted to the payment provider.',
+                  [
+                    {
+                      text: 'Done',
+                      onPress: () =>
+                        router.replace({ pathname: '/booking-detail', params: { id } }),
+                    },
+                  ],
+                );
               }}
             >
               <Text style={styles.primaryText}>Request full refund</Text>
@@ -176,7 +282,10 @@ export default function BookingDetailScreen() {
 
           {booking.status === 'DATA_SUBMITTED' && (
             <>
-              <Pressable style={styles.primary} onPress={() => router.push({ pathname: '/delivery', params: { id } })}>
+              <Pressable
+                style={styles.primary}
+                onPress={() => router.push({ pathname: '/delivery', params: { id } })}
+              >
                 <Text style={styles.primaryText}>View delivered photos</Text>
               </Pressable>
               <Pressable style={styles.secondary} onPress={confirmDelivery}>
@@ -186,7 +295,10 @@ export default function BookingDetailScreen() {
           )}
 
           {booking.status === 'COMPLETED' && (
-            <Pressable style={styles.primary} onPress={() => router.push({ pathname: '/delivery', params: { id } })}>
+            <Pressable
+              style={styles.primary}
+              onPress={() => router.push({ pathname: '/delivery', params: { id } })}
+            >
               <Text style={styles.primaryText}>View delivered photos</Text>
             </Pressable>
           )}
@@ -195,8 +307,12 @@ export default function BookingDetailScreen() {
             <View style={styles.reviewCard}>
               <Text style={styles.reviewTitle}>Rate your photographer</Text>
               <View style={styles.ratingRow}>
-                {[1,2,3,4,5].map((value) => (
-                  <Pressable key={value} onPress={() => setRating(value)} style={[styles.rating, rating === value && styles.ratingActive]}>
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <Pressable
+                    key={value}
+                    onPress={() => setRating(value)}
+                    style={[styles.rating, rating === value && styles.ratingActive]}
+                  >
                     <Text style={styles.ratingText}>{value}</Text>
                   </Pressable>
                 ))}
@@ -219,7 +335,10 @@ export default function BookingDetailScreen() {
                   const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
                   const response = await fetch(baseUrl + '/api/bookings/' + id + '/review', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: 'Bearer ' + token,
+                    },
                     body: JSON.stringify({ rating, comment }),
                   });
                   const result = await response.json().catch(() => ({}));
@@ -235,7 +354,9 @@ export default function BookingDetailScreen() {
             </View>
           )}
 
-          {['DATA_SUBMITTED', 'CUSTOMER_CONFIRMED', 'PAYOUT_RELEASED', 'COMPLETED'].includes(booking.status) && (
+          {['DATA_SUBMITTED', 'CUSTOMER_CONFIRMED', 'PAYOUT_RELEASED', 'COMPLETED'].includes(
+            booking.status,
+          ) && (
             <View style={styles.disputeCard}>
               <Text style={styles.reviewTitle}>Need help with this booking?</Text>
               <TextInput
@@ -264,7 +385,10 @@ export default function BookingDetailScreen() {
                   const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
                   const response = await fetch(baseUrl + '/api/disputes', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: 'Bearer ' + token,
+                    },
                     body: JSON.stringify({
                       booking_id: id,
                       reason_code: disputeReason.trim(),
@@ -284,12 +408,16 @@ export default function BookingDetailScreen() {
                   Alert.alert('Case opened', 'Pickolo has recorded your issue for review.');
                 }}
               >
-                <Text style={styles.dangerText}>{disputeBusy ? 'Opening case...' : 'Open support case'}</Text>
+                <Text style={styles.dangerText}>
+                  {disputeBusy ? 'Opening case...' : 'Open support case'}
+                </Text>
               </Pressable>
             </View>
           )}
 
-          {['REQUESTED', 'PAYMENT_CONFIRMED', 'SEARCHING_PARTNER', 'PARTNER_ASSIGNED'].includes(booking.status) && (
+          {['REQUESTED', 'PAYMENT_CONFIRMED', 'SEARCHING_PARTNER', 'PARTNER_ASSIGNED'].includes(
+            booking.status,
+          ) && (
             <Pressable style={styles.danger} onPress={cancelBooking}>
               <Text style={styles.dangerText}>Cancel booking</Text>
             </Pressable>
@@ -301,29 +429,103 @@ export default function BookingDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' },
+  safe: { flex: 1, backgroundColor: '#f6f5f0' },
   container: { padding: 20, paddingBottom: 40 },
-  back: { color: '#1e3a8a', fontWeight: '800', fontSize: 16 },
-  title: { marginTop: 18, fontSize: 31, fontWeight: '800', color: '#13213a' },
-  badge: { alignSelf: 'flex-start', marginTop: 11, color: '#1d4ed8', backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, fontSize: 11, fontWeight: '800' },
-  card: { marginTop: 18, padding: 20, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0' },
-  label: { marginTop: 16, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, color: '#64748b' },
-  value: { marginTop: 5, fontSize: 16, lineHeight: 23, color: '#13213a', fontWeight: '600' },
-  price: { marginTop: 5, fontSize: 25, color: '#13213a', fontWeight: '800' },
-  primary: { marginTop: 18, backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  back: { color: '#34563d', fontWeight: '800', fontSize: 16 },
+  title: { marginTop: 18, fontSize: 31, fontWeight: '800', color: '#202e29' },
+  badge: {
+    alignSelf: 'flex-start',
+    marginTop: 11,
+    color: '#34563d',
+    backgroundColor: '#edf2e7',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  card: {
+    marginTop: 18,
+    padding: 20,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#dfe3d7',
+  },
+  label: {
+    marginTop: 16,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: '#747d70',
+  },
+  value: { marginTop: 5, fontSize: 16, lineHeight: 23, color: '#202e29', fontWeight: '600' },
+  price: { marginTop: 5, fontSize: 25, color: '#202e29', fontWeight: '800' },
+  primary: {
+    marginTop: 18,
+    backgroundColor: '#294f3b',
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+  },
   primaryText: { color: '#fff', fontWeight: '800' },
-  secondary: { marginTop: 10, backgroundColor: '#eef2ff', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
-  danger: { marginTop: 10, backgroundColor: '#fff1f2', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  secondary: {
+    marginTop: 10,
+    backgroundColor: '#edf2e7',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  secondaryText: { color: '#34563d', fontWeight: '800' },
+  danger: {
+    marginTop: 10,
+    backgroundColor: '#fff1f2',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
   dangerText: { color: '#be123c', fontWeight: '800' },
-  reviewCard: { marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
-  reviewTitle: { fontSize: 17, fontWeight: '800', color: '#13213a' },
+  reviewCard: {
+    marginTop: 14,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#f6f5f0',
+    borderWidth: 1,
+    borderColor: '#dfe3d7',
+  },
+  reviewTitle: { fontSize: 17, fontWeight: '800', color: '#202e29' },
   ratingRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
-  rating: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
-  ratingActive: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
-  ratingText: { color: '#13213a', fontWeight: '800' },
+  rating: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#dfe3d7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ratingActive: { borderColor: '#294f3b', backgroundColor: '#edf2e7' },
+  ratingText: { color: '#202e29', fontWeight: '800' },
   reviewHint: { marginTop: 6, color: '#94a3b8', fontSize: 12 },
-  reviewInput: { marginTop: 12, minHeight: 90, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 13, backgroundColor: '#fff', padding: 12, textAlignVertical: 'top' },
-  disputeCard: { marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa' },
-  muted: { color: '#64748b' },
+  reviewInput: {
+    marginTop: 12,
+    minHeight: 90,
+    borderWidth: 1,
+    borderColor: '#dfe3d7',
+    borderRadius: 13,
+    backgroundColor: '#fff',
+    padding: 12,
+    textAlignVertical: 'top',
+  },
+  disputeCard: {
+    marginTop: 14,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  muted: { color: '#747d70' },
 });
