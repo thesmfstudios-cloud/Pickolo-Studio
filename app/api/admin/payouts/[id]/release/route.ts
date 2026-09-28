@@ -32,8 +32,40 @@ export async function POST(
       .single();
 
     if (bookingError || !booking) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
-    if (booking.status !== 'CUSTOMER_CONFIRMED' || !booking.assigned_partner_id) {
+    if (!['DATA_SUBMITTED', 'CUSTOMER_CONFIRMED'].includes(booking.status) || !booking.assigned_partner_id) {
       return NextResponse.json({ error: 'Booking is not payout-ready.' }, { status: 409 });
+    }
+
+    if (booking.status === 'DATA_SUBMITTED') {
+      const [{ data: delivery }, { count: assetCount }] = await Promise.all([
+        serviceClient
+          .from('delivery_records')
+          .select('id,submitted_at')
+          .eq('booking_id', id)
+          .maybeSingle(),
+        serviceClient
+          .from('delivery_assets')
+          .select('id', { count: 'exact', head: true })
+          .eq('booking_id', id),
+      ]);
+
+      if (!delivery?.submitted_at || !assetCount) {
+        return NextResponse.json({ error: 'Partner payout is blocked until the Studio backup is received.' }, { status: 409 });
+      }
+
+      const { data: handoffHistory } = await serviceClient
+        .from('booking_status_history')
+        .select('metadata')
+        .eq('booking_id', id)
+        .eq('to_status', 'DATA_SUBMITTED')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const metadata = handoffHistory?.metadata as { customer_handoff?: string } | null;
+      if (metadata?.customer_handoff !== 'on_site') {
+        return NextResponse.json({ error: 'Partner payout is blocked until on-site customer handoff is recorded.' }, { status: 409 });
+      }
     }
 
     const { data: activeDispute } = await serviceClient
@@ -63,11 +95,12 @@ export async function POST(
       if (payoutError) return NextResponse.json({ error: payoutError.message }, { status: 400 });
     }
 
+    const fromStatus = booking.status;
     const { data: updated, error: updateError } = await serviceClient
       .from('bookings')
       .update({ status: 'PAYOUT_RELEASED' })
       .eq('id', id)
-      .eq('status', 'CUSTOMER_CONFIRMED')
+      .eq('status', fromStatus)
       .select('id,booking_code,status')
       .single();
 
@@ -80,14 +113,17 @@ export async function POST(
 
     await serviceClient.from('booking_status_history').insert({
       booking_id: id,
-      from_status: 'CUSTOMER_CONFIRMED',
+      from_status: fromStatus,
       to_status: 'PAYOUT_RELEASED',
       changed_by: user.id,
-      metadata: { actor_role: 'admin' },
+      metadata: {
+        actor_role: 'admin',
+        payout_trigger: fromStatus === 'DATA_SUBMITTED' ? 'studio_backup_received' : 'customer_confirmation',
+      },
     });
 
-    await writeAdminAudit({ actorId: user.id, action: 'RELEASE_PAYOUT', entityType: 'booking', entityId: id, metadata: { partner_id: booking.assigned_partner_id, amount_paise: booking.partner_payout_paise } });
-    await serviceClient.from('notifications').insert({ user_id: booking.assigned_partner_id, booking_id: id, channel: 'in_app', title: 'Payout released', body: 'Payout for booking ' + updated.booking_code + ' has been released.' });
+    await writeAdminAudit({ actorId: user.id, action: 'RELEASE_PAYOUT', entityType: 'booking', entityId: id, metadata: { partner_id: booking.assigned_partner_id, amount_paise: booking.partner_payout_paise, trigger: fromStatus === 'DATA_SUBMITTED' ? 'studio_backup_received' : 'customer_confirmation' } });
+    await serviceClient.from('notifications').insert({ user_id: booking.assigned_partner_id, booking_id: id, channel: 'in_app', title: 'Payout released', body: 'Payout for booking ' + updated.booking_code + ' has been released after the Studio backup was received.' });
     return NextResponse.json({ booking: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';

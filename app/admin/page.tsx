@@ -401,8 +401,8 @@ export default function AdminPage() {
                       {booking.assigned_partner_id && ['PARTNER_ASSIGNED','ON_THE_WAY'].includes(booking.status) && (
                         <button className="button secondary" onClick={() => postAdmin('/api/admin/no-show/' + booking.id, { reason: 'Partner no-show recorded by admin.' })}>No-show</button>
                       )}
-                      {booking.status === 'CUSTOMER_CONFIRMED' && (
-                        <button className="button" onClick={() => postAdmin('/api/admin/payouts/' + booking.id + '/release')}>Release payout</button>
+                      {['DATA_SUBMITTED', 'CUSTOMER_CONFIRMED'].includes(booking.status) && (
+                        <button className="button" onClick={() => postAdmin('/api/admin/payouts/' + booking.id + '/release')}>Release partner payout</button>
                       )}
                       {booking.status === 'PAYOUT_RELEASED' && (
                         <button className="button" onClick={() => postAdmin('/api/bookings/' + booking.id + '/transition', { to_status: 'COMPLETED' })}>Complete booking</button>
