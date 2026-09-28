@@ -9,6 +9,7 @@ export default function PartnerApply() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
+  const [upiId, setUpiId] = useState('');
   const [skills, setSkills] = useState('');
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -112,8 +113,8 @@ export default function PartnerApply() {
 
   async function submit() {
     if (!supabase) return;
-    if (!name.trim() || !phone.trim()) {
-      Alert.alert('Missing details', 'Name and phone are required.');
+    if (!name.trim() || !phone.trim() || !upiId.trim()) {
+      Alert.alert('Missing details', 'Name, phone and payout UPI ID are required.');
       return;
     }
 
@@ -136,6 +137,7 @@ export default function PartnerApply() {
         display_name: name.trim(),
         phone: phone.trim(),
         bio: bio.trim() || null,
+        payout_upi_id: upiId.trim(),
         skills: skills.split(',').map((item) => item.trim()).filter(Boolean),
         base_lat: coords?.latitude ?? null,
         base_long: coords?.longitude ?? null,
@@ -167,6 +169,7 @@ export default function PartnerApply() {
         <TextInput style={styles.input} placeholder="Full name" value={name} onChangeText={setName} />
         <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
         <TextInput style={[styles.input, styles.area]} placeholder="Short bio" value={bio} onChangeText={setBio} multiline />
+        <TextInput style={styles.input} placeholder="Payout UPI ID · name@upi" value={upiId} onChangeText={setUpiId} autoCapitalize="none" />
         <TextInput style={styles.input} placeholder="Skills, comma separated" value={skills} onChangeText={setSkills} />
 
         <Pressable style={styles.secondary} onPress={locate} disabled={locating}>
