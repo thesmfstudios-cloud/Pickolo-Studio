@@ -24,8 +24,8 @@ select l.id,v.minutes,v.amount,2000 from public.service_levels l join (values ('
 ('Professional',300,550000)) v(name,minutes,amount) on l.name=v.name
 on conflict(service_level_id,duration_minutes) do update set amount_paise=excluded.amount_paise;
 create table public.service_area_settings(id integer primary key check(id=1),latitude numeric not null check(latitude between -90 and 90),longitude numeric not null check(longitude between -180 and 180),radius_km numeric not null default 15 check(radius_km>0),enabled boolean not null default false);
--- Approximate Rohit Nagar centre only; launch operator must confirm studio coordinates and enable.
-insert into public.service_area_settings values(1,23.184,77.439,15,false);
+-- Verified Pickolo Studio launch pin in Rohit Nagar, Bhopal.
+insert into public.service_area_settings values(1,23.184690686312052,77.43527393974985,15,true);
 alter table public.service_area_settings enable row level security;
 create policy area_read on public.service_area_settings for select to anon,authenticated using(true);
 create policy area_admin on public.service_area_settings for all to authenticated using(public.is_admin()) with check(public.is_admin());

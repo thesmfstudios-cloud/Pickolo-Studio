@@ -9,11 +9,7 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "LSApplicationQueriesSchemes": [
-          "tez",
-          "phonepe",
-          "paytmmp"
-        ]
+        "LSApplicationQueriesSchemes": ["tez", "phonepe", "paytmmp"]
       }
     },
     "android": {
@@ -21,9 +17,7 @@
       "predictiveBackGestureEnabled": true
     },
     "plugins": [
-      [
-        "expo-router"
-      ],
+      ["expo-router"],
       [
         "expo-location",
         {
@@ -35,7 +29,8 @@
         {
           "defaultChannel": "default"
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }

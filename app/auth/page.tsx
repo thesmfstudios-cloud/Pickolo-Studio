@@ -1,129 +1,116 @@
-'use client';
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabaseBrowser } from '@/lib/supabase-browser';
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase-browser";
+
+function requestedDestination() {
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next?.startsWith("/") && !next.startsWith("//") ? next : "/customer";
+}
+
 export default function AuthPage() {
   const router = useRouter();
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [name, setName] = useState('');
-  const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+  const [checking, setChecking] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!supabaseBrowser) {
+      setChecking(false);
+      return;
+    }
+
+    let active = true;
+    supabaseBrowser.auth.getSession().then(({ data, error: sessionError }) => {
+      if (!active) return;
+      if (sessionError) setError(sessionError.message);
+      if (data.session) router.replace(requestedDestination());
+      else setChecking(false);
+    });
+
+    const { data: listener } = supabaseBrowser.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session) router.replace(requestedDestination());
+      },
+    );
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [router]);
+
+  async function signInWithGoogle() {
     setBusy(true);
-    setError('');
+    setError("");
+
     try {
-      if (!supabaseBrowser)
-        throw new Error('Sign-in is not available yet. Please contact Pickolo Studio.');
-      if (!/^[6-9]\d{9}$/.test(phone))
-        throw new Error('Enter a valid 10-digit Indian mobile number.');
-      if (!sent) {
-        const r = await supabaseBrowser.auth.signInWithOtp({
-          phone: '+91' + phone,
-          options: { data: { full_name: name.trim() } },
-        });
-        if (r.error) throw r.error;
-        setSent(true);
-      } else {
-        const r = await supabaseBrowser.auth.verifyOtp({
-          phone: '+91' + phone,
-          token: otp,
-          type: 'sms',
-        });
-        if (r.error) throw r.error;
-        const saved = await supabaseBrowser
-          .from('profiles')
-          .update({ full_name: name.trim() })
-          .eq('id', r.data.user!.id);
-        if (saved.error) throw saved.error;
-        router.replace('/customer');
+      if (!supabaseBrowser) {
+        throw new Error(
+          "Google sign-in is not configured yet. Please contact Pickolo Studio.",
+        );
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unable to sign in.');
-    } finally {
+
+      const { error: signInError } = await supabaseBrowser.auth.signInWithOAuth(
+        {
+          provider: "google",
+          options: {
+            redirectTo:
+              window.location.origin +
+              "/auth?next=" +
+              encodeURIComponent(requestedDestination()),
+          },
+        },
+      );
+
+      if (signInError) throw signInError;
+    } catch (signInError) {
+      setError(
+        signInError instanceof Error
+          ? signInError.message
+          : "Unable to sign in with Google.",
+      );
       setBusy(false);
     }
   }
+
   return (
     <main className="customer-main">
       <div className="auth-card booking-card">
         <span className="eyebrow">WELCOME TO PICKOLO</span>
-        <h1>{sent ? 'Check your phone.' : 'Great moments start here.'}</h1>
+        <h1>Great moments start here.</h1>
         <p className="muted">
-          {sent
-            ? 'Enter the code sent to +91 ' + phone
-            : 'A photographer or videographer, just a few taps away.'}
+          Sign in securely and book a local photographer or videographer.
         </p>
-        <form className="form" onSubmit={submit}>
-          <label>
-            Your name
-            <input
-              className="input"
-              autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              maxLength={80}
-            />
-          </label>
-          {!sent ? (
-            <label>
-              Mobile number
-              <div className="phone-field">
-                <span>+91</span>
-                <input
-                  className="input"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel-national"
-                  placeholder="Your 10-digit number"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  required
-                  pattern="[6-9][0-9]{9}"
-                />
-              </div>
-            </label>
-          ) : (
-            <label>
-              Verification code
-              <input
-                className="input otp-input"
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                required
-              />
-            </label>
-          )}
-          {error && (
-            <p role="alert" className="error-message">
-              {error}
-            </p>
-          )}
-          <button className="customer-primary" disabled={busy}>
-            {busy ? 'Please wait…' : sent ? 'Verify & continue →' : 'Send verification code →'}
-          </button>
-          {sent && (
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => {
-                setSent(false);
-                setOtp('');
-              }}
-            >
-              Change number or request another code
-            </button>
-          )}
-        </form>
+
+        {error && (
+          <p role="alert" className="error-message">
+            {error}
+          </p>
+        )}
+
+        <button
+          className="google-auth-button"
+          type="button"
+          onClick={signInWithGoogle}
+          disabled={busy || checking}
+        >
+          <span className="google-auth-mark" aria-hidden="true">
+            G
+          </span>
+          {checking
+            ? "Checking your account…"
+            : busy
+              ? "Opening Google…"
+              : "Continue with Google"}
+        </button>
+
+        <p className="helper center">
+          Your Google password is never shared with Pickolo.
+        </p>
         <p className="helper">
-          By continuing, you agree to our <a href="/terms">Terms</a> and{' '}
+          By continuing, you agree to our <a href="/terms">Terms</a> and{" "}
           <a href="/privacy">Privacy Policy</a>.
         </p>
       </div>

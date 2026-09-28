@@ -4,7 +4,7 @@
 
 The existing Next.js web app and Expo customer app now support the Bhopal customer journey. Existing admin, partner onboarding, delivery and payment services are retained.
 
-Flow: mobile number → SMS OTP → name → Photographer / Videographer / Both → Now / Schedule (IST) → 1–5 hours → Basic / Standard / Professional (Standard default) → venue address and location pin → raw-file policy acknowledgement → review → upfront Razorpay payment → confirmation/search → accepted professional profile → private booking OTP → shoot timer → completion → original files and receipt confirmation.
+Flow: Google sign-in → Photographer / Videographer / Both → Now / Schedule (IST) → 1–5 hours → Basic / Standard / Professional (Standard default) → venue address and location pin → raw-file policy acknowledgement → review → upfront Razorpay payment → confirmation/search → accepted professional profile → private booking OTP → shoot timer → completion → original files and receipt confirmation.
 
 The web home, auth and booking pages use a warm neutral/forest palette, responsive cards, labelled controls and keyboard-operable quality slider. The Expo customer screens use the same palette. Only the partner OTP input and service-capability matching were added to partner operations.
 
@@ -18,8 +18,8 @@ The web home, auth and booking pages use a warm neutral/forest palette, responsi
    - `SUPABASE_SERVICE_ROLE_KEY` (server only)
    - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` (server only)
    - Existing `CRON_SECRET` for assignment/notification jobs; `EXPO_ACCESS_TOKEN` if required by your push setup.
-4. In Supabase Auth, enable phone sign-in and configure the SMS provider, delivery configuration and rate limits for Indian numbers. No test OTP bypass is included. Existing email-auth accounts should have their phone attached to the same user before switching to phone login, to retain booking history.
-5. In `public.service_area_settings`, replace the **approximate, disabled seed pin** with the studio's verified latitude/longitude, keep `radius_km=15`, and set `enabled=true`. Bookings intentionally fail closed until this is done. The pin represents straight-line radius, not driving distance. Venue address and coordinates must describe the same place. Customers can use GPS at the venue or copy another venue's coordinates from a map; address autocomplete is not included.
+4. In Supabase Auth, enable the Google provider and enter the Google OAuth client ID and secret. Add the deployed `/auth` URL, local `/auth` URL for development, and `pickolo-customer://auth` to the Supabase redirect allow list. In Google Cloud, authorize the Supabase callback URL shown on the provider settings page. Mobile Google login requires a native development/release build because Expo Go does not own the custom scheme. Existing phone/email users will remain separate accounts unless they are linked or migrated before launch.
+5. The launch pin is configured as `23.184690686312052, 77.43527393974985`, with a 15 km straight-line radius and service enabled. Venue address and coordinates must describe the same place. Customers can use GPS at the venue or copy another venue's coordinates from a map; address autocomplete is not included.
 6. Configure Razorpay capture/webhook handling as in `docs/PAYMENTS.md`. Use test credentials for staging. Payment status is confirmed by the server, never by a UI-only success flag. Legacy COD is disabled in production; development-only testing requires `PICKOLO_ENABLE_TEST_COD=true`.
 7. For Expo, configure `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_API_BASE_URL` in `mobile/customer/.env`. Use a reachable HTTPS API on physical devices. Razorpay needs a native development/release build; an exported JS bundle is not an APK or a device payment test.
 8. Add approved video/combined-capable professionals to `public.partner_services` using their `partner_id` and the corresponding `service_id`. Photography retains the existing approved-partner behavior. Video/Both never silently assign photo-only partners. The existing booking model assigns one professional/crew lead; separate simultaneous assignments for two crew members are not implemented.
@@ -30,12 +30,12 @@ The web home, auth and booking pages use a warm neutral/forest palette, responsi
 Amounts below are INR; the database stores paise. Existing admin pricing controls edit the `service_level_prices` rows, including the new 3–5 hour rows.
 
 | Hours | Basic | Standard | Professional |
-|---|---:|---:|---:|
-| 1 | 600 | 1,000 | 1,500 |
-| 2 | 1,000 | 1,500 | 2,500 |
-| 3 | 1,400 | 2,000 | 3,500 |
-| 4 | 1,800 | 2,500 | 4,500 |
-| 5 | 2,200 | 3,000 | 5,500 |
+| ----- | ----: | -------: | -----------: |
+| 1     |   600 |    1,000 |        1,500 |
+| 2     | 1,000 |    1,500 |        2,500 |
+| 3     | 1,400 |    2,000 |        3,500 |
+| 4     | 1,800 |    2,500 |        4,500 |
+| 5     | 2,200 |    3,000 |        5,500 |
 
 3–5 hour rates are the sensible extension requested. Provisional video rate is 1.5× photography and Both is 2.5×; edit `services.price_multiplier` before launch if required. Preview estimates in `lib/customer.ts` are labelled illustrative when Supabase is absent. Live quotes and payable amounts come from database pricing. A price changed after a quote is reflected in the saved booking review before payment.
 
