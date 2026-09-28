@@ -65,6 +65,8 @@ export default function PartnerPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
+  const [fileByJob, setFileByJob] = useState<Record<string, File | null>>({});
 
   const load = useCallback(async (token: string) => {
     const h = { Authorization: 'Bearer ' + token };
@@ -260,6 +262,106 @@ export default function PartnerPage() {
       await load(session.access_token);
     } catch (error) {
       setMsg(error instanceof Error ? error.message : 'Assignment update failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function transition(job: Job, toStatus: string, bookingOtp?: string) {
+    if (!session) return;
+
+    setBusy(true);
+    setMsg('');
+
+    try {
+      const body: Record<string, string> = { to_status: toStatus };
+      if (bookingOtp) body.booking_otp = bookingOtp;
+      const response = await fetch('/api/bookings/' + encodeURIComponent(job.id) + '/transition', {
+        method: 'POST',
+        headers: authHeaders(session.access_token),
+        body: JSON.stringify(body),
+      });
+      const data = await readJson(response);
+      if (!response.ok) throw new Error(data.error || 'Booking status update failed.');
+
+      setMsg(
+        toStatus === 'ON_THE_WAY'
+          ? 'Customer notified: you are on the way.'
+          : toStatus === 'SHOOT_STARTED'
+            ? 'Shoot timer started.'
+            : toStatus === 'SHOOT_COMPLETED'
+              ? 'Shoot marked complete.'
+              : 'Delivery step opened.',
+      );
+      await load(session.access_token);
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : 'Booking status update failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadDelivery(job: Job) {
+    if (!session) return;
+    const file = fileByJob[job.id];
+    if (!file) {
+      setMsg('Choose an image before submitting delivery.');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      setMsg('Only image files are supported for this MVP.');
+      return;
+    }
+
+    setBusy(true);
+    setMsg('Uploading delivery…');
+
+    try {
+      const signResponse = await fetch(
+        '/api/partner/jobs/' + encodeURIComponent(job.id) + '/delivery/upload-url',
+        {
+          method: 'POST',
+          headers: authHeaders(session.access_token),
+          body: JSON.stringify({
+            file_name: file.name,
+            mime_type: file.type,
+            size_bytes: file.size,
+          }),
+        },
+      );
+      const signed = await readJson(signResponse);
+      if (!signResponse.ok) throw new Error(signed.error || 'Unable to prepare upload.');
+
+      const upload = await supabaseBrowser?.storage
+        .from('booking-deliveries')
+        .uploadToSignedUrl(signed.path, signed.token, file);
+      if (upload?.error) throw new Error(upload.error.message);
+
+      const finalizeResponse = await fetch(
+        '/api/partner/jobs/' + encodeURIComponent(job.id) + '/delivery/finalize',
+        {
+          method: 'POST',
+          headers: authHeaders(session.access_token),
+          body: JSON.stringify({
+            assets: [
+              {
+                path: signed.path,
+                fileName: signed.fileName,
+                mimeType: file.type,
+                sizeBytes: file.size,
+              },
+            ],
+          }),
+        },
+      );
+      const finalized = await readJson(finalizeResponse);
+      if (!finalizeResponse.ok) throw new Error(finalized.error || 'Unable to finalize delivery.');
+
+      setFileByJob((current) => ({ ...current, [job.id]: null }));
+      setMsg('Files delivered. Customer can download them now.');
+      await load(session.access_token);
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : 'Delivery upload failed.');
     } finally {
       setBusy(false);
     }
@@ -487,6 +589,57 @@ export default function PartnerPage() {
                     </button>
                     <button className="button secondary" disabled={busy} onClick={() => respond(job, 'decline')}>
                       Decline
+                    </button>
+                  </div>
+                )}
+                {job.status === 'PARTNER_ASSIGNED' && job.partner_acceptance_status === 'accepted' && (
+                  <button className="button" disabled={busy} onClick={() => transition(job, 'ON_THE_WAY')}>
+                    Mark on the way
+                  </button>
+                )}
+                {job.status === 'ON_THE_WAY' && (
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
+                    <input
+                      className="input"
+                      style={{ maxWidth: 180 }}
+                      inputMode="numeric"
+                      placeholder="Customer OTP"
+                      value={otpByJob[job.id] || ''}
+                      onChange={(event) =>
+                        setOtpByJob((current) => ({ ...current, [job.id]: event.target.value }))
+                      }
+                    />
+                    <button
+                      className="button"
+                      disabled={busy || !(otpByJob[job.id] || '').trim()}
+                      onClick={() => transition(job, 'SHOOT_STARTED', otpByJob[job.id])}
+                    >
+                      Verify OTP & start
+                    </button>
+                  </div>
+                )}
+                {job.status === 'SHOOT_STARTED' && (
+                  <button className="button" disabled={busy} onClick={() => transition(job, 'SHOOT_COMPLETED')}>
+                    Mark shoot complete
+                  </button>
+                )}
+                {job.status === 'SHOOT_COMPLETED' && (
+                  <button className="button" disabled={busy} onClick={() => transition(job, 'DATA_PENDING')}>
+                    Prepare customer delivery
+                  </button>
+                )}
+                {job.status === 'DATA_PENDING' && (
+                  <div style={{ marginTop: 12 }}>
+                    <input
+                      className="input"
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) =>
+                        setFileByJob((current) => ({ ...current, [job.id]: event.target.files?.[0] || null }))
+                      }
+                    />
+                    <button className="button" disabled={busy} onClick={() => uploadDelivery(job)}>
+                      Upload files for customer
                     </button>
                   </div>
                 )}
