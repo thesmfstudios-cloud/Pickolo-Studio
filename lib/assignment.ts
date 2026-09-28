@@ -47,10 +47,24 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
   }
 
   const { data: service } = await supabase.from('services').select('name').eq('id', booking.service_id).single();
-  const { data: servicePartners } = service?.name === 'Photography'
-    ? { data: null }
-    : await supabase.from('partner_services').select('partner_id').eq('service_id', booking.service_id);
-  const capableIds = servicePartners ? new Set(servicePartners.map((row) => row.partner_id)) : null;
+  const requiredServiceNames = service?.name === 'Both'
+    ? ['Photography', 'Videography']
+    : [service?.name || 'Photography'];
+  const { data: requiredServices } = await supabase
+    .from('services')
+    .select('id,name')
+    .in('name', requiredServiceNames);
+  const requiredServiceIds = new Set((requiredServices ?? []).map((item) => item.id));
+  const { data: capabilityRows } = await supabase
+    .from('partner_services')
+    .select('partner_id,service_id')
+    .in('service_id', [...requiredServiceIds]);
+  const capabilityCount = new Map<string, Set<string>>();
+  for (const row of capabilityRows ?? []) {
+    const set = capabilityCount.get(row.partner_id) ?? new Set<string>();
+    set.add(row.service_id);
+    capabilityCount.set(row.partner_id, set);
+  }
 
   const { data: partners } = await supabase
     .from('partners')
@@ -64,7 +78,11 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
   const candidates: Candidate[] = [];
 
   for (const partner of partners ?? []) {
-    if (capableIds && !capableIds.has(partner.id)) continue;
+    const partnerCapabilities = capabilityCount.get(partner.id);
+    const hasRequiredCapabilities =
+      partnerCapabilities &&
+      [...requiredServiceIds].every((serviceId) => partnerCapabilities.has(serviceId));
+    if (!hasRequiredCapabilities) continue;
     if (partner.base_lat === null || partner.base_long === null) continue;
 
     const distance = distanceKm(
