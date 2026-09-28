@@ -72,7 +72,7 @@ export default function PerformanceScreen() {
             <Text style={styles.xp}>{xp} XP</Text>
             {nextName ? <Text style={styles.next}>Next: {nextName}</Text> : <Text style={styles.next}>Top level unlocked</Text>}
           </View>
-          <View style={styles.track}><View style={[styles.fill, { width: String(Math.round(progress * 100)) + '%' }]} /></View>
+          <View style={styles.track}><View style={[styles.fill, { width: (Math.round(progress * 100) + '%') as `${number}%` }]} /></View>
           {progression ? (
             <Text style={styles.muted}>
               Level-up target: {progression.min_xp} XP · {progression.min_completed_jobs} completed jobs · {progression.min_average_rating.toFixed(1)}★ rating
