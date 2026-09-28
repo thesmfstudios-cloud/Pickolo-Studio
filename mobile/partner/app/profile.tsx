@@ -17,7 +17,8 @@ export default function PartnerProfileScreen() {
     if (!supabase) return;
     const { data: session } = await supabase.auth.getSession();
     const token = session.session?.access_token;
-    if (!token) return router.replace('/auth');
+    const userId = session.session?.user.id;
+    if (!token || !userId) return router.replace('/auth');
 
     const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
     const response = await fetch(baseUrl + '/api/partner/profile', {
@@ -34,6 +35,7 @@ export default function PartnerProfileScreen() {
     const { data } = await supabase
       .from('partner_portfolio_media')
       .select('id,image_url,caption')
+      .eq('partner_id', userId)
       .eq('active', true)
       .order('sort_order', { ascending: true })
       .limit(6);
