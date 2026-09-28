@@ -16,7 +16,9 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
 
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select('id,status,scheduled_start,duration_minutes,service_level_id,location_lat,location_long,assigned_partner_id')
+    .select(
+      'id,status,scheduled_start,duration_minutes,service_id,service_level_id,location_lat,location_long,assigned_partner_id',
+    )
     .eq('id', bookingId)
     .single();
 
@@ -49,7 +51,11 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
     booking.status = 'SEARCHING_PARTNER';
   }
   if (booking.assigned_partner_id) {
-    return { assigned: false, reason: 'Booking already has a partner.', partnerId: booking.assigned_partner_id };
+    return {
+      assigned: false,
+      reason: 'Booking already has a partner.',
+      partnerId: booking.assigned_partner_id,
+    };
   }
   if (booking.location_lat === null || booking.location_long === null) {
     return { assigned: false, reason: 'Customer location is required for pilot matching.' };
@@ -65,7 +71,9 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
 
   const { data: partners } = await supabase
     .from('partners')
-    .select('id,base_lat,base_long,is_accepting_jobs,service_level_id,service_level:service_levels(sort_order),partner_performance(completed_jobs,on_time_jobs,cancellations,no_shows,average_rating)')
+    .select(
+      'id,base_lat,base_long,is_accepting_jobs,service_level_id,service_level:service_levels(sort_order),partner_performance(completed_jobs,on_time_jobs,cancellations,no_shows,average_rating)',
+    )
     .eq('verification_status', 'approved')
     .eq('is_accepting_jobs', true);
 
@@ -82,18 +90,34 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
       .map((event) => event.partner_id),
   );
 
+  const { data: service } = await supabase
+    .from('services')
+    .select('name')
+    .eq('id', booking.service_id)
+    .single();
+  const { data: capable } = await supabase
+    .from('partner_services')
+    .select('partner_id')
+    .eq('service_id', booking.service_id);
+  const capableIds = new Set((capable ?? []).map((row) => row.partner_id));
   const candidates: Candidate[] = [];
 
   for (const partner of partners ?? []) {
     if (excludedPartners.has(partner.id)) continue;
+    if (service?.name !== 'Photography' && !capableIds.has(partner.id)) continue;
     if (partner.base_lat === null || partner.base_long === null) continue;
-    const level = Array.isArray(partner.service_level) ? partner.service_level[0] : partner.service_level;
+    const level = Array.isArray(partner.service_level)
+      ? partner.service_level[0]
+      : partner.service_level;
     if (!level || level.sort_order < requestedLevel.sort_order) continue;
 
-    const distance = distanceKm(Number(booking.location_lat), Number(booking.location_long), Number(partner.base_lat), Number(partner.base_long));
-    // Temporary pilot-test mode: do not reject candidates by geographic radius.
-    // Keep distance calculation for scoring/observability; restore the 15 KM gate after testing.
-
+    const distance = distanceKm(
+      Number(booking.location_lat),
+      Number(booking.location_long),
+      Number(partner.base_lat),
+      Number(partner.base_long),
+    );
+    if (distance > PICKOLO_PILOT_RADIUS_KM) continue;
 
     const { data: conflicts } = await supabase
       .from('bookings')
@@ -109,24 +133,41 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
     });
     if (conflict) continue;
 
-    const perf = Array.isArray(partner.partner_performance) ? partner.partner_performance[0] : partner.partner_performance;
+    const perf = Array.isArray(partner.partner_performance)
+      ? partner.partner_performance[0]
+      : partner.partner_performance;
     const completed = Number(perf?.completed_jobs || 0);
     const onTime = Number(perf?.on_time_jobs || 0);
     const cancellations = Number(perf?.cancellations || 0);
     const noShows = Number(perf?.no_shows || 0);
     const onTimeRate = completed ? onTime / completed : 0.8;
-    const cancellationRate = completed + cancellations ? cancellations / (completed + cancellations) : 0;
+    const cancellationRate =
+      completed + cancellations ? cancellations / (completed + cancellations) : 0;
     const noShowRate = completed + noShows ? noShows / (completed + noShows) : 0;
     const rating = Number(perf?.average_rating || 4);
     const distanceScore = Math.max(0, 1 - distance / PICKOLO_PILOT_RADIUS_KM);
-    const score = distanceScore * 50 + (Math.min(5, rating) / 5) * 20 + onTimeRate * 20 - cancellationRate * 10 - noShowRate * 20;
+    const score =
+      distanceScore * 50 +
+      (Math.min(5, rating) / 5) * 20 +
+      onTimeRate * 20 -
+      cancellationRate * 10 -
+      noShowRate * 20;
 
-    candidates.push({ id: partner.id, distance, rating, onTimeRate, cancellationRate, noShowRate, score });
+    candidates.push({
+      id: partner.id,
+      distance,
+      rating,
+      onTimeRate,
+      cancellationRate,
+      noShowRate,
+      score,
+    });
   }
 
   candidates.sort((a, b) => b.score - a.score);
   const selected = candidates[0];
-  if (!selected) return { assigned: false, reason: 'No eligible partner found.', candidateCount: 0 };
+  if (!selected)
+    return { assigned: false, reason: 'No eligible partner found.', candidateCount: 0 };
 
   const { data: updated, error: updateError } = await supabase
     .from('bookings')
@@ -174,5 +215,12 @@ export async function assignBestPartner(bookingId: string, actorId?: string) {
     },
   });
 
-  return { assigned: true, booking: updated, partnerId: selected.id, score: selected.score, distanceKm: selected.distance, candidateCount: candidates.length };
+  return {
+    assigned: true,
+    booking: updated,
+    partnerId: selected.id,
+    score: selected.score,
+    distanceKm: selected.distance,
+    candidateCount: candidates.length,
+  };
 }

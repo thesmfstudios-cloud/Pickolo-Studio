@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getApprovedPartner } from '@/lib/partner-auth';
@@ -33,10 +32,7 @@ const ADMIN_ALLOWED: Partial<Record<BookingState, BookingState[]>> = {
   PAYOUT_RELEASED: ['COMPLETED'],
 };
 
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const supabase = getClient(request);
     const serviceClient = getServiceClient();
@@ -44,7 +40,10 @@ export async function POST(
     const body = await request.json();
     const toStatus = body?.to_status as BookingState | undefined;
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
@@ -81,8 +80,15 @@ export async function POST(
       }
     }
 
-    if (role === 'partner' && toStatus === 'ON_THE_WAY' && booking.partner_acceptance_status !== 'accepted') {
-      return NextResponse.json({ error: 'Accept the assignment before starting travel.' }, { status: 409 });
+    if (
+      role === 'partner' &&
+      toStatus === 'ON_THE_WAY' &&
+      booking.partner_acceptance_status !== 'accepted'
+    ) {
+      return NextResponse.json(
+        { error: 'Accept the assignment before starting travel.' },
+        { status: 409 },
+      );
     }
 
     if (role === 'admin') {
@@ -92,38 +98,58 @@ export async function POST(
     } else if (role === 'customer' && booking.customer_id === user.id) {
       allowedTargets = CUSTOMER_ALLOWED[fromStatus] ?? [];
     } else {
-      return NextResponse.json({ error: 'You are not authorized for this booking.' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'You are not authorized for this booking.' },
+        { status: 403 },
+      );
     }
 
     if (!allowedTargets.includes(toStatus)) {
-      return NextResponse.json({ error: 'This role cannot perform the requested transition.' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'This role cannot perform the requested transition.' },
+        { status: 403 },
+      );
     }
 
     if (!BOOKING_TRANSITIONS[fromStatus].includes(toStatus)) {
       return NextResponse.json({ error: 'Invalid booking state transition.' }, { status: 409 });
     }
 
-    const { data: updated, error: updateError } = await serviceClient
-      .from('bookings')
-      .update({ status: toStatus })
-      .eq('id', id)
-      .eq('status', fromStatus)
-      .select('id,booking_code,status,updated_at')
-      .single();
-
-    if (updateError || !updated) {
-      return NextResponse.json({ error: 'Booking changed concurrently. Refresh and retry.' }, { status: 409 });
+    let updated;
+    if (toStatus === 'SHOOT_STARTED') {
+      const { data: started, error: startError } = await serviceClient.rpc(
+        'verify_and_start_shoot',
+        { p_booking_id: id, p_partner_id: user.id, p_code: String(body.booking_otp || '') },
+      );
+      if (startError || !started)
+        return NextResponse.json(
+          { error: startError?.message || 'Incorrect booking OTP.' },
+          { status: 409 },
+        );
+      updated = { id, status: toStatus };
+    } else {
+      const result = await serviceClient
+        .from('bookings')
+        .update({ status: toStatus })
+        .eq('id', id)
+        .eq('status', fromStatus)
+        .select('id,booking_code,status,updated_at')
+        .single();
+      if (result.error || !result.data)
+        return NextResponse.json(
+          { error: 'Booking changed concurrently. Refresh and retry.' },
+          { status: 409 },
+        );
+      updated = result.data;
     }
 
-    const { error: historyError } = await serviceClient
-      .from('booking_status_history')
-      .insert({
-        booking_id: id,
-        from_status: fromStatus,
-        to_status: toStatus,
-        changed_by: user.id,
-        metadata: { actor_role: role },
-      });
+    const { error: historyError } = await serviceClient.from('booking_status_history').insert({
+      booking_id: id,
+      from_status: fromStatus,
+      to_status: toStatus,
+      changed_by: user.id,
+      metadata: { actor_role: role },
+    });
 
     if (historyError) {
       return NextResponse.json(

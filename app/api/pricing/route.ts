@@ -13,8 +13,11 @@ export async function GET(request: NextRequest) {
     const level = request.nextUrl.searchParams.get('level');
     const duration = Number(request.nextUrl.searchParams.get('duration'));
 
-    if (!level || ![30, 60, 120].includes(duration)) {
-      return NextResponse.json({ error: 'Valid level and duration are required.' }, { status: 400 });
+    if (!level || ![30, 60, 120, 180, 240, 300].includes(duration)) {
+      return NextResponse.json(
+        { error: 'Valid level and duration are required.' },
+        { status: 400 },
+      );
     }
 
     const { data: serviceLevel, error: levelError } = await supabase
@@ -37,11 +40,26 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (priceError || !config) {
-      return NextResponse.json({ error: 'Pricing is not configured for this option.' }, { status: 409 });
+      return NextResponse.json(
+        { error: 'Pricing is not configured for this option.' },
+        { status: 409 },
+      );
     }
 
+    const serviceId = request.nextUrl.searchParams.get('service');
+    let multiplier = 1;
+    if (serviceId) {
+      const { data: service } = await supabase
+        .from('services')
+        .select('price_multiplier')
+        .eq('id', serviceId)
+        .eq('active', true)
+        .maybeSingle();
+      if (!service) return NextResponse.json({ error: 'Service unavailable.' }, { status: 409 });
+      multiplier = Number(service.price_multiplier);
+    }
     const pricing = calculateBookingPrice({
-      amountPaise: Number(config.amount_paise),
+      amountPaise: Math.round(Number(config.amount_paise) * multiplier),
       platformFeeBps: Number(config.platform_fee_bps),
     });
 

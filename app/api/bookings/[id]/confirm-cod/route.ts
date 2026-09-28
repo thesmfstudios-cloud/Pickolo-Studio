@@ -16,16 +16,18 @@ function getUserClient(request: NextRequest) {
   });
 }
 
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    if (process.env.PICKOLO_ENABLE_TEST_COD !== 'true' || process.env.NODE_ENV === 'production')
+      return NextResponse.json({ error: 'Online payment is required.' }, { status: 410 });
     const userClient = getUserClient(request);
     const serviceClient = getServiceClient();
     const { id } = await context.params;
 
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await userClient.auth.getUser();
     if (userError || !user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
@@ -42,14 +44,16 @@ export async function POST(
     }
 
     if (booking.status !== 'REQUESTED') {
-      return NextResponse.json({ error: 'This booking is no longer awaiting payment selection.' }, { status: 409 });
+      return NextResponse.json(
+        { error: 'This booking is no longer awaiting payment selection.' },
+        { status: 409 },
+      );
     }
 
     const now = new Date().toISOString();
 
-    const { error: paymentError } = await serviceClient
-      .from('payments')
-      .upsert({
+    const { error: paymentError } = await serviceClient.from('payments').upsert(
+      {
         booking_id: booking.id,
         provider: 'cod',
         provider_payment_id: null,
@@ -59,7 +63,9 @@ export async function POST(
         status: 'pending',
         raw_response: { mode: 'cod_test', note: 'Temporary COD flow for MVP testing.' },
         updated_at: now,
-      }, { onConflict: 'booking_id' });
+      },
+      { onConflict: 'booking_id' },
+    );
 
     if (paymentError) {
       return NextResponse.json({ error: paymentError.message }, { status: 400 });
@@ -74,7 +80,10 @@ export async function POST(
       .single();
 
     if (updateError || !updated) {
-      return NextResponse.json({ error: 'Booking changed concurrently. Please refresh.' }, { status: 409 });
+      return NextResponse.json(
+        { error: 'Booking changed concurrently. Please refresh.' },
+        { status: 409 },
+      );
     }
 
     await serviceClient.from('booking_status_history').insert({

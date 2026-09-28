@@ -1,102 +1,192 @@
-import { useState } from 'react';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
-import { supabase } from '../../shared/supabase';
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { makeRedirectUri } from "expo-auth-session";
+import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { supabase } from "../../shared/supabase";
+
+WebBrowser.maybeCompleteAuthSession();
+
+const redirectTo = makeRedirectUri({
+  scheme: "pickolo-customer",
+  path: "auth",
+});
+
+function oauthParams(callbackUrl: string) {
+  const parsed = new URL(callbackUrl);
+  const values = new URLSearchParams(parsed.search);
+  const fragment = new URLSearchParams(parsed.hash.replace(/^#/, ""));
+  fragment.forEach((value, key) => values.set(key, value));
+  return values;
+}
 
 export default function CustomerAuth() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [fullName, setFullName] = useState('');
+  const [checking, setChecking] = useState(true);
 
-  async function login() {
+  useEffect(() => {
     if (!supabase) {
-      Alert.alert('Pickolo', 'Supabase is not configured.');
+      setChecking(false);
       return;
     }
+
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      if (data.session) router.replace("/home");
+      else setChecking(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session) router.replace("/home");
+      },
+    );
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  async function signInWithGoogle() {
+    if (!supabase) {
+      Alert.alert("Pickolo", "Google sign-in is not configured yet.");
+      return;
+    }
+
     setBusy(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo, skipBrowserRedirect: true },
+      });
+      if (error) throw error;
+      if (!data.url) throw new Error("Google sign-in could not be opened.");
 
-    const result =
-      mode === 'login'
-        ? await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password,
-          })
-        : await supabase.auth.signUp({
-            email: email.trim(),
-            password,
-            options: { data: { full_name: fullName.trim() } },
-          });
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        redirectTo,
+      );
+      if (result.type === "cancel" || result.type === "dismiss") return;
+      if (result.type !== "success")
+        throw new Error("Google sign-in did not complete.");
 
-    setBusy(false);
+      const params = oauthParams(result.url);
+      const callbackError =
+        params.get("error_description") || params.get("error");
+      if (callbackError) throw new Error(callbackError);
 
-    const error = result.error;
-    if (error) {
-      Alert.alert('Login failed', error.message);
-      return;
+      const code = params.get("code");
+      if (code) {
+        const { error: exchangeError } =
+          await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) throw exchangeError;
+      } else {
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+        if (!accessToken || !refreshToken)
+          throw new Error("Google did not return a valid session.");
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (sessionError) throw sessionError;
+      }
+
+      router.replace("/home");
+    } catch (signInError) {
+      Alert.alert(
+        "Google sign-in",
+        signInError instanceof Error
+          ? signInError.message
+          : "Please try again.",
+      );
+    } finally {
+      setBusy(false);
     }
-    if (mode === 'signup' && !result.data.session) {
-      Alert.alert('Account created', 'Check your email if confirmation is enabled.');
-      return;
-    }
-
-    router.replace('/home');
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Text style={styles.kicker}>PICKOLO</Text>
-        <Text style={styles.title}>{mode === 'login' ? 'Customer Login' : 'Create your account'}</Text>
-        <Text style={styles.subtitle}>Book a photographer for a short local assignment.</Text>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.kicker}>PICKOLO · BHOPAL</Text>
+        <Text style={styles.title}>Great moments start here.</Text>
+        <Text style={styles.subtitle}>
+          Sign in securely and book a local photographer or videographer.
+        </Text>
 
-        <View style={styles.form}>
-          {mode === 'signup' && (
-            <TextInput style={styles.input} placeholder="Full name" value={fullName} onChangeText={setFullName} />
-          )}
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email"
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Password"
-            secureTextEntry
-          />
-          <Pressable style={styles.primary} onPress={login} disabled={busy}>
-            <Text style={styles.primaryText}>{busy ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create account'}</Text>
-          </Pressable>
+        <View style={styles.card}>
           <Pressable
-            style={styles.secondary}
-            onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}
+            accessibilityRole="button"
+            style={[styles.googleButton, (busy || checking) && styles.disabled]}
+            onPress={signInWithGoogle}
+            disabled={busy || checking}
           >
-            <Text style={styles.secondaryText}>
-              {mode === 'login' ? 'Create a new account' : 'Already have an account? Login'}
+            <Text style={styles.googleMark}>G</Text>
+            <Text style={styles.googleText}>
+              {checking
+                ? "Checking your account…"
+                : busy
+                  ? "Opening Google…"
+                  : "Continue with Google"}
             </Text>
           </Pressable>
+          <Text style={styles.privacy}>
+            Your Google password is never shared with Pickolo.
+          </Text>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' },
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
-  kicker: { fontSize: 12, letterSpacing: 3, color: '#2563eb', fontWeight: '800' },
-  title: { marginTop: 8, fontSize: 36, fontWeight: '800', color: '#13213a' },
-  subtitle: { marginTop: 10, fontSize: 16, lineHeight: 24, color: '#64748b' },
-  form: { marginTop: 28, gap: 14 },
-  input: { borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 15, paddingVertical: 14, fontSize: 16 },
-  primary: { backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
-  primaryText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  secondary: { paddingVertical: 14, alignItems: 'center' },
-  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
+  safe: { flex: 1, backgroundColor: "#f6f5f0" },
+  container: { flexGrow: 1, justifyContent: "center", padding: 28 },
+  kicker: {
+    fontSize: 12,
+    letterSpacing: 3,
+    color: "#496340",
+    fontWeight: "700",
+  },
+  title: { fontSize: 40, color: "#202e29", marginTop: 20 },
+  subtitle: { fontSize: 15, color: "#747d70", lineHeight: 24, marginTop: 16 },
+  card: {
+    backgroundColor: "#fffefb",
+    borderWidth: 1,
+    borderColor: "#dfe3d7",
+    borderRadius: 18,
+    padding: 20,
+    marginTop: 30,
+  },
+  googleButton: {
+    minHeight: 56,
+    borderWidth: 1,
+    borderColor: "#cfd4ca",
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    paddingHorizontal: 18,
+  },
+  googleMark: { fontSize: 20, color: "#4285f4", fontWeight: "800" },
+  googleText: { color: "#202e29", fontSize: 16, fontWeight: "700" },
+  privacy: {
+    marginTop: 14,
+    color: "#747d70",
+    fontSize: 12,
+    textAlign: "center",
+  },
+  disabled: { opacity: 0.55 },
 });

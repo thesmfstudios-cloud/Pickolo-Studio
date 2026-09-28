@@ -4,7 +4,7 @@
 On-demand photography marketplace for short-duration, location-based photography assignments.
 
 > **Project status:** MVP Foundation → Integration  
-> **Pilot model:** Controlled local-first launch within a 5 KM operating radius  
+> **Pilot model:** Controlled local-first launch within 15 km of Rohit Nagar, Bhopal  
 > **Initial supply target:** 20–25 verified photographers / studios  
 > **Primary validation milestone:** First 100 paid bookings
 
@@ -576,3 +576,7 @@ Live browser smoke tests passed for:
 The application is therefore **web-deployed and smoke-verified**, but this is not yet a production-ready release. The next gate is the correct Pickolo Supabase project, followed by migrations, Auth/RLS live testing, payment sandbox verification, and mobile build verification.
 
 The connected Supabase integration currently exposes only the unrelated `Aahana AI Influencer` project. No migration or database change should be applied until the intended Pickolo Supabase project is independently verified.
+
+## Customer booking update
+
+See [Customer experience and launch setup](docs/CUSTOMER_EXPERIENCE.md) for the web/native journey, new migrations, pricing, SMS/payment configuration and verification steps.

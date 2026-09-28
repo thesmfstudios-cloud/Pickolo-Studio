@@ -52,18 +52,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (
+      location_lat == null ||
+      location_long == null ||
+      location_lat === '' ||
+      location_long === ''
+    )
+      return NextResponse.json({ error: 'A shoot location pin is required.' }, { status: 400 });
+    if (body.raw_data_acknowledged !== true)
+      return NextResponse.json(
+        { error: 'Please acknowledge the raw-data policy.' },
+        { status: 400 },
+      );
     const latitude = Number(location_lat);
     const longitude = Number(location_long);
     if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
-      return NextResponse.json({ error: 'location_lat must be a valid latitude.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'location_lat must be a valid latitude.' },
+        { status: 400 },
+      );
     }
     if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
-      return NextResponse.json({ error: 'location_long must be a valid longitude.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'location_long must be a valid longitude.' },
+        { status: 400 },
+      );
     }
 
     const normalizedNotes = notes == null ? null : String(notes).trim();
     if (normalizedNotes && normalizedNotes.length > 2000) {
-      return NextResponse.json({ error: 'notes must be 2000 characters or fewer.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'notes must be 2000 characters or fewer.' },
+        { status: 400 },
+      );
     }
 
     const start = new Date(String(scheduled_start));
@@ -74,11 +95,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (![30, 60, 120].includes(Number(duration_minutes))) {
-      return NextResponse.json(
-        { error: 'duration_minutes must be 30, 60 or 120.' },
-        { status: 400 },
-      );
+    if (![30, 60, 120, 180, 240, 300].includes(Number(duration_minutes))) {
+      return NextResponse.json({ error: 'Choose a duration from 1 to 5 hours.' }, { status: 400 });
     }
 
     const { data, error } = await supabase.rpc('create_customer_booking', {
@@ -90,12 +108,15 @@ export async function POST(request: NextRequest) {
       p_location_lat: latitude,
       p_location_long: longitude,
       p_notes: normalizedNotes,
+      p_raw_data_acknowledged: true,
     });
 
     if (error) {
-      const status = /Authentication required/i.test(error.message) ? 401
-        : /Pricing is not configured|not active/i.test(error.message) ? 409
-        : 400;
+      const status = /Authentication required/i.test(error.message)
+        ? 401
+        : /Pricing is not configured|not active/i.test(error.message)
+          ? 409
+          : 400;
       return NextResponse.json({ error: error.message }, { status });
     }
 
