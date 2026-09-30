@@ -5,8 +5,8 @@ import { createRazorpayOrder, publicRazorpayKey } from '@/lib/razorpay';
 
 export const runtime = 'nodejs';
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const url = 'https://ywlayixocyjwodhfcyus.supabase.co';
+const anonKey = 'sb_publishable_ieCYy0Mc0Iy_xUYwtriwyw_HQ19FQbX';
 
 function getUserClient(request: NextRequest) {
   if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
