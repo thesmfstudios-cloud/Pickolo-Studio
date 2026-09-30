@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { calculateBookingPrice } from '@/lib/pricing';
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const url = 'https://ywlayixocyjwodhfcyus.supabase.co';
+const anonKey = 'sb_publishable_ieCYy0Mc0Iy_xUYwtriwyw_HQ19FQbX';
 
 export async function GET(request: NextRequest) {
   try {
-    if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
-
     const supabase = createClient(url, anonKey);
     const level = request.nextUrl.searchParams.get('level');
     const duration = Number(request.nextUrl.searchParams.get('duration'));
