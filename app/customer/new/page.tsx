@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useEffect, useState } from "react";
+import { CSSProperties, FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/customer-icon";
@@ -29,8 +29,16 @@ export default function PlanShoot() {
   const [locating, setLocating] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [error, setError] = useState("");
-  const [priceError, setPriceError] = useState("");
-  const [price, setPrice] = useState<number | null>(null);
+  const [quotes, setQuotes] = useState<{
+    key: string;
+    values: Record<string, number | null>;
+    errors: Record<string, string>;
+  }>({ key: "", values: {}, errors: {} });
+  const pricingKey = service + ":" + duration;
+  const price =
+    quotes.key === pricingKey ? (quotes.values[LEVELS[level]] ?? null) : null;
+  const priceError =
+    quotes.key === pricingKey ? quotes.errors[LEVELS[level]] || "" : "";
   const [ready, setReady] = useState(false);
   const [payment, setPayment] = useState("upfront");
   async function loadOptions() {
@@ -108,29 +116,44 @@ export default function PlanShoot() {
   ]);
   useEffect(() => {
     const controller = new AbortController();
-    setPrice(null);
-    setPriceError("");
     const s = services.find((s) => s.name === service);
     if (!s) return;
-    fetch(
-      "/api/pricing?level=" +
-        LEVELS[level] +
-        "&duration=" +
-        duration +
-        "&service=" +
-        s.id,
-      { signal: controller.signal },
-    )
-      .then(async (r) => {
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || "Price unavailable.");
-        setPrice(d.totalPaise);
-      })
-      .catch((e) => {
-        if (e.name !== "AbortError") setPriceError(e.message);
+    setQuotes({ key: pricingKey, values: {}, errors: {} });
+    Promise.all(
+      LEVELS.map(async (name) => {
+        try {
+          const r = await fetch(
+            "/api/pricing?" +
+              new URLSearchParams({
+                level: name,
+                duration: String(duration),
+                service: s.id,
+              }),
+            { signal: controller.signal },
+          );
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || "Price unavailable.");
+          if (!Number.isSafeInteger(d.totalPaise) || d.totalPaise <= 0)
+            throw new Error("Price unavailable.");
+          return { name, price: d.totalPaise as number, error: "" };
+        } catch (e) {
+          return {
+            name,
+            price: null,
+            error: e instanceof Error ? e.message : "Price unavailable.",
+          };
+        }
+      }),
+    ).then((results) => {
+      if (controller.signal.aborted) return;
+      setQuotes({
+        key: pricingKey,
+        values: Object.fromEntries(results.map((r) => [r.name, r.price])),
+        errors: Object.fromEntries(results.map((r) => [r.name, r.error])),
       });
+    });
     return () => controller.abort();
-  }, [services, service, level, duration]);
+  }, [services, service, duration, pricingKey]);
   async function locate() {
     setLocating(true);
     setError("");
@@ -354,34 +377,105 @@ export default function PlanShoot() {
             </fieldset>
             <fieldset className="plan-section">
               <legend>Choose your experience</legend>
-              <div className="experience-grid">
-                {LEVELS.map((l, i) => (
-                  <button
-                    type="button"
-                    key={l}
-                    className={level === i ? "selected" : ""}
-                    aria-pressed={level === i}
-                    onClick={() => setLevel(i)}
-                  >
-                    {i === 1 && (
-                      <span className="popular-tag">Most popular</span>
-                    )}
-                    <span className="experience-icon">
-                      <Icon name="camera" size={30} />
-                      {i === 2 && <b>★</b>}
+              <div className="experience-selector">
+                <div className="experience-heading">
+                  <div className="experience-choice">
+                    <span className="experience-symbol">
+                      <Icon
+                        name={
+                          service === "Videography"
+                            ? "video"
+                            : service === "Both"
+                              ? "both"
+                              : "camera"
+                        }
+                        size={28}
+                      />
                     </span>
-                    <strong>{l}</strong>
+                    <div>
+                      <strong className="experience-name">
+                        {LEVELS[level]}
+                      </strong>
+                      {level === 1 && (
+                        <span className="experience-popular">Most popular</span>
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    className="experience-total"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <strong>
+                      {price === null
+                        ? priceError
+                          ? "Unavailable"
+                          : "Checking…"
+                        : rupees(price)}
+                    </strong>
                     <small>
-                      {
-                        [
-                          "Simple everyday moments",
-                          "Experienced, reliable coverage",
-                          "Advanced creative coverage",
-                        ][i]
-                      }
+                      Total for {duration / 60}{" "}
+                      {duration === 60 ? "hour" : "hours"}
                     </small>
-                  </button>
-                ))}
+                  </div>
+                </div>
+                <div className="experience-track">
+                  <span className="experience-stop start" aria-hidden="true" />
+                  <span className="experience-stop end" aria-hidden="true" />
+                  <input
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="1"
+                    value={level}
+                    aria-label="Choose your experience"
+                    aria-valuetext={
+                      LEVELS[level] +
+                      (price === null
+                        ? ", price unavailable"
+                        : ", " +
+                          rupees(price) +
+                          " total for " +
+                          duration / 60 +
+                          " hours")
+                    }
+                    aria-describedby="experience-slider-help"
+                    style={
+                      { "--slider-fill": `${level * 50}%` } as CSSProperties
+                    }
+                    onChange={(e) => setLevel(Number(e.target.value))}
+                  />
+                </div>
+                <div className="experience-tier-prices">
+                  {LEVELS.map((l, i) => {
+                    const tierPrice =
+                      quotes.key === pricingKey ? quotes.values[l] : null;
+                    return (
+                      <button
+                        type="button"
+                        key={l}
+                        className={level === i ? "selected" : ""}
+                        aria-pressed={level === i}
+                        onClick={() => setLevel(i)}
+                      >
+                        <strong>{l}</strong>
+                        <span>
+                          {tierPrice != null
+                            ? rupees(tierPrice)
+                            : quotes.key === pricingKey && quotes.errors[l]
+                              ? "Unavailable"
+                              : "…"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p
+                  id="experience-slider-help"
+                  className="experience-slider-help"
+                >
+                  Slide to compare experience and price
+                </p>
               </div>
             </fieldset>
             <section className="plan-section">
@@ -549,17 +643,21 @@ export default function PlanShoot() {
             </section>
           </>
         )}
-        <div className="plan-total">
-          <span>
-            {service} · {LEVELS[level]} · {duration / 60} hours
-          </span>
-          <strong>{price === null ? "Checking price…" : rupees(price)}</strong>
-          <small>Original files included · No hidden booking fees</small>
-        </div>
+        {step === 2 && (
+          <div className="plan-total">
+            <span>
+              {service} · {LEVELS[level]} · {duration / 60} hours
+            </span>
+            <strong>
+              {price === null ? "Checking price…" : rupees(price)}
+            </strong>
+            <small>Original files included · No hidden booking fees</small>
+          </div>
+        )}
         {(error || priceError) && (
           <p className="error-message" role="alert">
             {error || priceError}{" "}
-            {!services.length && (
+            {(!services.length || priceError) && (
               <button
                 type="button"
                 className="text-button"

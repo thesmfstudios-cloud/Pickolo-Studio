@@ -15,6 +15,7 @@ import {
 } from "../components/ui";
 import ScheduleInput from "../components/schedule-input";
 import VenueMap from "../components/venue-map";
+import ExperienceSelector from "../components/experience-selector";
 type Item = { id: string; name: string };
 const LEVELS = ["Basic", "Standard", "Professional"];
 export default function Booking() {
@@ -31,7 +32,16 @@ export default function Booking() {
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [notes, setNotes] = useState("");
-  const [price, setPrice] = useState<number | null>(null);
+  const [quotes, setQuotes] = useState<{
+    key: string;
+    values: Record<string, number | null>;
+    errors: Record<string, string>;
+  }>({ key: "", values: {}, errors: {} });
+  const pricingKey = service + ":" + minutes;
+  const tierPrices = quotes.key === pricingKey ? quotes.values : {};
+  const tierErrors = quotes.key === pricingKey ? quotes.errors : {};
+  const price = tierPrices[level] ?? null;
+  const priceError = tierErrors[level] || "";
   const [step, setStep] = useState(1);
   const [timing, setTiming] = useState("upfront");
   const [ack, setAck] = useState(false);
@@ -61,33 +71,46 @@ export default function Booking() {
   }, []);
   useEffect(() => {
     let active = true;
-    setPrice(null);
     const selected = services.find((s) => s.name === service);
     if (!selected) return;
-    fetch(
-      API_BASE +
-        "/api/pricing?level=" +
-        level +
-        "&duration=" +
-        minutes +
-        "&service=" +
-        selected.id,
-    )
-      .then(async (r) => {
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || "Price unavailable.");
-        if (active) {
-          setPrice(d.totalPaise);
-          setError("");
+    setQuotes({ key: pricingKey, values: {}, errors: {} });
+    Promise.all(
+      LEVELS.map(async (name) => {
+        try {
+          const r = await fetch(
+            API_BASE +
+              "/api/pricing?level=" +
+              encodeURIComponent(name) +
+              "&duration=" +
+              minutes +
+              "&service=" +
+              encodeURIComponent(selected.id),
+          );
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || "Price unavailable.");
+          if (!Number.isSafeInteger(d.totalPaise) || d.totalPaise <= 0)
+            throw new Error("Price unavailable.");
+          return { name, price: d.totalPaise as number, error: "" };
+        } catch (e) {
+          return {
+            name,
+            price: null,
+            error: e instanceof Error ? e.message : "Price unavailable.",
+          };
         }
-      })
-      .catch((e) => {
-        if (active) setError(e.message);
-      });
+      }),
+    ).then((results) => {
+      if (active)
+        setQuotes({
+          key: pricingKey,
+          values: Object.fromEntries(results.map((r) => [r.name, r.price])),
+          errors: Object.fromEntries(results.map((r) => [r.name, r.error])),
+        });
+    });
     return () => {
       active = false;
     };
-  }, [service, level, minutes, services]);
+  }, [service, minutes, services, pricingKey]);
   async function locate() {
     setLocating(true);
     try {
@@ -294,87 +317,14 @@ export default function Booking() {
           </View>
           <View style={ui.section}>
             <Text style={ui.h2}>Choose your experience</Text>
-            <View style={ui.row}>
-              {LEVELS.map((n, i) => (
-                <Pressable
-                  key={n}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: level === n }}
-                  onPress={() => setLevel(n)}
-                  style={{
-                    flex: 1,
-                    position: "relative",
-                    minHeight: 162,
-                    borderRadius: 15,
-                    borderWidth: level === n ? 2 : 1,
-                    borderColor: level === n ? colors.forest : colors.line,
-                    backgroundColor: level === n ? "#eff3e9" : colors.card,
-                    padding: 8,
-                    paddingTop: 35,
-                    alignItems: "center",
-                    gap: 12,
-                  }}
-                >
-                  {n === "Standard" && (
-                    <Text
-                      style={{
-                        position: "absolute",
-                        top: 8,
-                        fontSize: 9,
-                        color: "#6c4e19",
-                        backgroundColor: "#edd7a3",
-                        paddingHorizontal: 6,
-                        paddingVertical: 2,
-                        borderRadius: 9,
-                      }}
-                    >
-                      Most popular
-                    </Text>
-                  )}
-                  <View
-                    style={{
-                      borderRadius: 26,
-                      width: 48,
-                      height: 48,
-                      backgroundColor: level === n ? colors.forest : "#f1ece2",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Glyph
-                      name={i === 2 ? "camera" : "camera-outline"}
-                      size={28}
-                      color={level === n ? "#fff" : colors.forest}
-                    />
-                  </View>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: colors.ink,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {n}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      textAlign: "center",
-                      lineHeight: 14,
-                      color: colors.muted,
-                    }}
-                  >
-                    {
-                      [
-                        "Everyday moments",
-                        "Experienced coverage",
-                        "Advanced creativity",
-                      ][i]
-                    }
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <ExperienceSelector
+              service={service}
+              level={level}
+              minutes={minutes}
+              prices={tierPrices}
+              errors={tierErrors}
+              onChange={setLevel}
+            />
           </View>
           <View style={ui.section}>
             <Text style={ui.h2}>Shoot location</Text>
@@ -508,34 +458,36 @@ export default function Booking() {
           </Card>
         </>
       )}
-      <View
-        style={{
-          padding: 20,
-          borderWidth: 1,
-          borderColor: "#e2c68b",
-          borderRadius: 16,
-          backgroundColor: "#fcf7eb",
-        }}
-      >
-        <Text style={ui.muted}>
-          {service} · {level} · {minutes / 60} hours
-        </Text>
-        <Text style={ui.price}>
-          {price === null
-            ? "Checking price…"
-            : "₹" + (price / 100).toLocaleString("en-IN")}
-        </Text>
-        <Text style={[ui.muted, { fontSize: 11 }]}>
-          Original files included · No hidden booking fees
-        </Text>
-      </View>
-      {error && (
+      {step === 2 && (
+        <View
+          style={{
+            padding: 20,
+            borderWidth: 1,
+            borderColor: "#e2c68b",
+            borderRadius: 16,
+            backgroundColor: "#fcf7eb",
+          }}
+        >
+          <Text style={ui.muted}>
+            {service} · {level} · {minutes / 60} hours
+          </Text>
+          <Text style={ui.price}>
+            {price === null
+              ? "Checking price…"
+              : "₹" + (price / 100).toLocaleString("en-IN")}
+          </Text>
+          <Text style={[ui.muted, { fontSize: 11 }]}>
+            Original files included · No hidden booking fees
+          </Text>
+        </View>
+      )}
+      {(error || priceError) && (
         <>
           <Text
             accessibilityRole="alert"
             style={{ color: "#9c4128", marginTop: 14 }}
           >
-            {error}
+            {error || priceError}
           </Text>
           <Button secondary label="Retry loading" onPress={options} />
         </>

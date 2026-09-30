@@ -27,6 +27,18 @@ The web home, auth and booking pages use a warm neutral/forest palette, responsi
 
 ## Pricing
 
+### Experience slider
+
+The booking planner uses the approved compact experience card: selected tier and
+total price together above a three-stop Basic / Standard / Professional slider.
+All three live tier prices remain visible below the slider and are tappable.
+Changing the tier updates the total immediately from the loaded quotes; changing
+coverage or duration loads fresh quotes from the pricing API. Loading and failed
+quotes never retain a payable amount from a previous coverage/duration selection.
+The booking review still shows the final selected price. The web slider supports
+keyboard input; the Android source supports dragging, tier taps and screen-reader
+increment/decrement actions. No fixed mockup prices are used for bookings.
+
 Amounts below are INR; the database stores paise. Existing admin pricing controls edit the `service_level_prices` rows, including the new 3–5 hour rows.
 
 | Hours | Basic | Standard | Professional |
