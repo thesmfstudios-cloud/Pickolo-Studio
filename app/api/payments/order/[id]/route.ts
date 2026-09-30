@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getServiceClient } from '@/lib/supabase-admin';
 import { createRazorpayOrder, publicRazorpayKey } from '@/lib/razorpay';
 
 export const runtime = 'nodejs';
@@ -22,7 +21,6 @@ export async function POST(
 ) {
   try {
     const userClient = getUserClient(request);
-    const serviceClient = getServiceClient();
     const { id } = await context.params;
 
     const { data: { user }, error: userError } = await userClient.auth.getUser();
@@ -65,15 +63,11 @@ export async function POST(
       notes: { booking_id: booking.id },
     });
 
-    const { error: paymentError } = await serviceClient
-      .from('payments')
-      .upsert({
-        booking_id: booking.id,
-        provider: 'razorpay',
-        provider_order_id: order.id,
-        amount_paise: booking.customer_price_paise,
-        status: 'created',
-      }, { onConflict: 'booking_id' });
+    const { error: paymentError } = await userClient.rpc('create_customer_payment_order', {
+      p_booking_id: booking.id,
+      p_provider_order_id: order.id,
+      p_amount_paise: booking.customer_price_paise,
+    });
 
     if (paymentError) {
       return NextResponse.json({ error: paymentError.message }, { status: 400 });
