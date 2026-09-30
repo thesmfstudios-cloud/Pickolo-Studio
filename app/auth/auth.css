@@ -1,0 +1,97 @@
+.pickolo-auth-screen {
+  background: #faf7f1 !important;
+  min-height: 100dvh !important;
+  padding: 36px 24px calc(24px + env(safe-area-inset-bottom)) !important;
+  color: #153f2e !important;
+  max-width: none !important;
+}
+.pickolo-auth-glow,
+.pickolo-auth-hero-blob,
+.pickolo-auth-landscape {
+  display: none !important;
+}
+.pickolo-auth-content {
+  width: min(100%, 460px) !important;
+  max-width: 460px !important;
+  margin: auto !important;
+  padding: 24px 0 !important;
+  position: relative;
+}
+.pickolo-auth-brand {
+  margin: 0 !important;
+}
+.pickolo-auth-wordmark {
+  font-family: Georgia, serif !important;
+  letter-spacing: 1px !important;
+  font-size: 44px !important;
+  font-weight: 700 !important;
+  color: #153f2e !important;
+  line-height: 1.2 !important;
+}
+.pickolo-auth-brand p {
+  color: #8a7d60 !important;
+  letter-spacing: 1.8px !important;
+  font-size: 9px !important;
+  white-space: normal !important;
+  margin-top: 14px !important;
+}
+.pickolo-auth-hero {
+  margin: 32px auto 20px !important;
+  width: 100% !important;
+  height: 250px !important;
+}
+.pickolo-auth-hero img {
+  object-fit: contain !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+.pickolo-auth-welcome h1 {
+  font-family: Georgia, serif !important;
+  font-size: 32px !important;
+  letter-spacing: -1px !important;
+  color: #153f2e !important;
+}
+.pickolo-auth-welcome p {
+  color: #7b7b72 !important;
+  font-size: 16px !important;
+  margin: 10px 0 26px !important;
+}
+.pickolo-auth-google {
+  min-height: 58px !important;
+  height: auto !important;
+  padding: 16px !important;
+  background: #fffcf7 !important;
+  border: 1px solid #e4d9c6 !important;
+  border-radius: 17px !important;
+  box-shadow: 0 8px 24px #7251240a !important;
+  font-size: 15px !important;
+  color: #18231f !important;
+  width: 100% !important;
+  gap: 16px !important;
+}
+.pickolo-auth-google-icon {
+  font-size: 25px !important;
+}
+.pickolo-auth-legal {
+  position: static !important;
+  margin: 28px auto 0 !important;
+  font-size: 12px !important;
+  line-height: 1.9 !important;
+  color: #7b7b72 !important;
+}
+.pickolo-auth-legal a {
+  color: #245940 !important;
+}
+.pickolo-auth-arrow {
+  width: 8px !important;
+  height: 8px !important;
+}
+.pickolo-auth-error {
+  color: #9c4128 !important;
+  background: #fff0e8 !important;
+  font-size: 13px !important;
+}
+.pickolo-auth-screen button:focus-visible {
+  outline: 3px solid #c79c3e;
+  outline-offset: 4px;
+}

@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { BottomNav, serif } from "../components/ui";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { router } from 'expo-router';
-import { supabase } from '../../shared/supabase';
+} from "react-native";
+import { router } from "expo-router";
+import { supabase } from "../../shared/supabase";
 
 type Notice = {
   id: string;
@@ -30,16 +31,21 @@ export default function CustomerNotifications() {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) {
-      router.replace('/auth');
+      router.replace("/auth");
       return;
     }
-    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-    const response = await fetch(baseUrl + '/api/notifications', {
-      headers: { Authorization: 'Bearer ' + token },
+    const baseUrl =
+      process.env.EXPO_PUBLIC_API_BASE_URL ||
+      "https://pickolo-studio.vercel.app";
+    const response = await fetch(baseUrl + "/api/notifications", {
+      headers: { Authorization: "Bearer " + token },
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-      Alert.alert('Unable to load notifications', result.error || 'Please try again.');
+      Alert.alert(
+        "Unable to load notifications",
+        result.error || "Please try again.",
+      );
       return;
     }
     setItems(result.notifications || []);
@@ -54,10 +60,15 @@ export default function CustomerNotifications() {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) return;
-    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-    await fetch(baseUrl + '/api/notifications/read', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    const baseUrl =
+      process.env.EXPO_PUBLIC_API_BASE_URL ||
+      "https://pickolo-studio.vercel.app";
+    await fetch(baseUrl + "/api/notifications/read", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
       body: JSON.stringify({ id }),
     });
     await load();
@@ -82,11 +93,15 @@ export default function CustomerNotifications() {
           <Text style={styles.back}>‹ Back</Text>
         </Pressable>
         <Text style={styles.title}>Notifications</Text>
-        <Text style={styles.subtitle}>Booking updates and important account events.</Text>
+        <Text style={styles.subtitle}>
+          Booking updates and important account events.
+        </Text>
         {items.length === 0 ? (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>You're up to date</Text>
-            <Text style={styles.muted}>New booking events will appear here.</Text>
+            <Text style={styles.muted}>
+              New booking events will appear here.
+            </Text>
           </View>
         ) : (
           items.map((item) => (
@@ -97,31 +112,40 @@ export default function CustomerNotifications() {
             >
               <Text style={styles.cardTitle}>{item.title}</Text>
               <Text style={styles.muted}>{item.body}</Text>
-              <Text style={styles.time}>{new Date(item.created_at).toLocaleString()}</Text>
+              <Text style={styles.time}>
+                {new Date(item.created_at).toLocaleString()}
+              </Text>
             </Pressable>
           ))
         )}
       </ScrollView>
+      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f6f5f0' },
+  safe: { flex: 1, backgroundColor: "#faf7f1" },
   container: { padding: 20, paddingBottom: 40 },
-  back: { color: '#34563d', fontWeight: '800', fontSize: 16 },
-  title: { marginTop: 18, fontSize: 32, fontWeight: '800', color: '#202e29' },
-  subtitle: { marginTop: 6, color: '#747d70', lineHeight: 22 },
+  back: { color: "#34563d", fontWeight: "800", fontSize: 16 },
+  title: {
+    fontFamily: serif,
+    marginTop: 18,
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#202e29",
+  },
+  subtitle: { marginTop: 6, color: "#747d70", lineHeight: 22 },
   card: {
     marginTop: 14,
     padding: 18,
     borderRadius: 18,
-    backgroundColor: '#fff',
+    backgroundColor: "#fffcf7",
     borderWidth: 1,
-    borderColor: '#dfe3d7',
+    borderColor: "#e7dfd1",
   },
-  unread: { borderColor: '#93c5fd' },
-  cardTitle: { fontSize: 18, fontWeight: '800', color: '#202e29' },
-  muted: { marginTop: 6, color: '#747d70', lineHeight: 21 },
-  time: { marginTop: 10, color: '#94a3b8', fontSize: 12 },
+  unread: { borderColor: "#93c5fd" },
+  cardTitle: { fontSize: 18, fontWeight: "800", color: "#202e29" },
+  muted: { marginTop: 6, color: "#747d70", lineHeight: 21 },
+  time: { marginTop: 10, color: "#94a3b8", fontSize: 12 },
 });

@@ -11,3 +11,7 @@ pnpm-debug.log*
 
 *.tsbuildinfo
 .expo/
+artifacts/
+mobile/customer/dist/
+mobile/customer/android/
+mobile/customer/ios/

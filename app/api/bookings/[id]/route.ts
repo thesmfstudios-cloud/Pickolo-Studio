@@ -1,9 +1,10 @@
+import { SUPABASE_URL, SUPABASE_PUBLIC_KEY } from '@/lib/supabase-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
 
-const url = 'https://ywlayixocyjwodhfcyus.supabase.co';
-const anonKey = 'sb_publishable_ieCYy0Mc0Iy_xUYwtriwyw_HQ19FQbX';
+const url = SUPABASE_URL;
+const anonKey = SUPABASE_PUBLIC_KEY;
 
 function getClient(request: NextRequest) {
   if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const { data, error } = await supabase
       .from('bookings')
       .select(
-        'id,booking_code,status,assigned_partner_id,scheduled_start,duration_minutes,location_text,location_lat,location_long,notes,customer_price_paise,platform_fee_paise,partner_payout_paise,partner_acceptance_status,partner_offer_expires_at,partner_arrived_at,shoot_started_at,shoot_completed_at,data_submitted_at,payout_released_at,completed_at,created_at,service:services(id,name),service_level:service_levels(id,name)',
+        'id,booking_code,status,payment_timing,assigned_partner_id,scheduled_start,duration_minutes,location_text,location_lat,location_long,notes,customer_price_paise,platform_fee_paise,partner_payout_paise,partner_acceptance_status,partner_offer_expires_at,partner_arrived_at,shoot_started_at,shoot_completed_at,data_submitted_at,payout_released_at,completed_at,created_at,service:services(id,name),service_level:service_levels(id,name)',
       )
       .eq('id', id)
       .eq('customer_id', user.id)
@@ -40,6 +41,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     }
 
     const serviceClient = getServiceClient();
+    const [{data:review},{data:dispute}] = await Promise.all([
+      supabase.from('reviews').select('rating,comment').eq('booking_id',id).eq('customer_id',user.id).maybeSingle(),
+      supabase.from('booking_disputes').select('id,status,resolution').eq('booking_id',id).eq('opened_by',user.id).maybeSingle(),
+    ]);
     const { data: payment } = await serviceClient
       .from('payments')
       .select('id,status,provider_payment_id,amount_paise,captured_at,failed_at')
@@ -112,6 +117,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         assigned_partner: assignedPartner,
         booking_otp: startCode?.code ?? null,
         payment: payment ?? null,
+        customer_review: review ?? null,
+        dispute: dispute ?? null,
       },
     });
   } catch (error) {

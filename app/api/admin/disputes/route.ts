@@ -1,10 +1,11 @@
+import { SUPABASE_URL, SUPABASE_PUBLIC_KEY } from '@/lib/supabase-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
 import { writeAdminAudit } from '@/lib/admin-audit';
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const url = SUPABASE_URL;
+const anonKey = SUPABASE_PUBLIC_KEY;
 
 function adminClient(request: NextRequest) {
   if (!url || !anonKey) throw new Error('Supabase environment is not configured.');

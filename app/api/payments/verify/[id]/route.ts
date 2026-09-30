@@ -1,3 +1,4 @@
+import { SUPABASE_URL, SUPABASE_PUBLIC_KEY } from '@/lib/supabase-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
@@ -6,8 +7,8 @@ import { assignBestPartner } from '@/lib/assignment';
 
 export const runtime = 'nodejs';
 
-const url = 'https://ywlayixocyjwodhfcyus.supabase.co';
-const anonKey = 'sb_publishable_ieCYy0Mc0Iy_xUYwtriwyw_HQ19FQbX';
+const url = SUPABASE_URL;
+const anonKey = SUPABASE_PUBLIC_KEY;
 
 function getUserClient(request: NextRequest) {
   if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
@@ -76,46 +77,15 @@ export async function POST(
       return NextResponse.json({ error: 'Payment is not captured yet.' }, { status: 409 });
     }
 
-    await serviceClient
-      .from('payments')
-      .update({
-        provider_payment_id: paymentId,
-        provider_signature: signature,
-        status: 'captured',
-        captured_at: new Date().toISOString(),
-      })
-      .eq('id', payment.id);
-
-    if (booking.status === 'PAYMENT_CONFIRMED') {
-      return NextResponse.json({ status: 'PAYMENT_CONFIRMED' });
-    }
-
-    if (booking.status !== 'REQUESTED') {
-      return NextResponse.json({ error: 'Booking is no longer awaiting payment.' }, { status: 409 });
-    }
-
-    const { data: updated, error: updateError } = await serviceClient
-      .from('bookings')
-      .update({ status: 'PAYMENT_CONFIRMED' })
-      .eq('id', id)
-      .eq('status', 'REQUESTED')
-      .select('id,booking_code,status')
-      .single();
-
-    if (updateError || !updated) {
-      return NextResponse.json({ error: 'Booking changed concurrently. Refresh and retry.' }, { status: 409 });
-    }
-
-    await serviceClient.from('booking_status_history').insert({
-      booking_id: id,
-      from_status: 'REQUESTED',
-      to_status: 'PAYMENT_CONFIRMED',
-      changed_by: user.id,
-      metadata: { actor_role: 'customer', provider: 'razorpay', provider_payment_id: paymentId },
+    const { data: status, error: recordError } = await serviceClient.rpc('record_verified_payment', {
+      p_booking_id: id, p_order_id: orderId, p_payment_id: paymentId,
+      p_amount: providerPayment.amount, p_signature: signature,
     });
-
-    const assignment = await assignBestPartner(updated.id);
-    return NextResponse.json({ booking: updated, assignment });
+    if (recordError) return NextResponse.json({ error: recordError.message }, { status: 409 });
+    // A fulfilment error must not turn a captured payment into a failed checkout.
+    const assignment = ['PAYMENT_CONFIRMED','SEARCHING_PARTNER'].includes(status)
+      ? await assignBestPartner(id).catch(() => ({ pending: true })) : null;
+    return NextResponse.json({ booking: { id, status }, assignment, paymentStatus: 'captured' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
     return NextResponse.json({ error: message }, { status: 500 });

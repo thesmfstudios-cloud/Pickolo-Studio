@@ -1,8 +1,11 @@
+import { SUPABASE_URL, SUPABASE_PUBLIC_KEY } from '@/lib/supabase-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { assignBestPartner } from '@/lib/assignment';
+import { getServiceClient } from '@/lib/supabase-admin';
 
-const url = 'https://ywlayixocyjwodhfcyus.supabase.co';
-const anonKey = 'sb_publishable_ieCYy0Mc0Iy_xUYwtriwyw_HQ19FQbX';
+const url = SUPABASE_URL;
+const anonKey = SUPABASE_PUBLIC_KEY;
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -11,9 +14,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       global: authorization ? { headers: { Authorization: authorization } } : undefined,
     });
     const { id } = await context.params;
+    // Validate privileged service configuration before changing fulfilment state.
+    getServiceClient();
     const { error } = await supabase.rpc('request_pay_after_shoot', { p_booking_id: id });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ ok: true });
+    const assignment = await assignBestPartner(id);
+    return NextResponse.json({ ok: true, assignment });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unable to update payment timing.' }, { status: 500 });
   }

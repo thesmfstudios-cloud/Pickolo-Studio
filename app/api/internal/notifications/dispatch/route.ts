@@ -1,8 +1,9 @@
+import { SUPABASE_URL, SUPABASE_PUBLIC_KEY } from '@/lib/supabase-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const url = SUPABASE_URL;
+const anonKey = SUPABASE_PUBLIC_KEY;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const cronSecret = process.env.CRON_SECRET;
 const expoAccessToken = process.env.EXPO_ACCESS_TOKEN;

@@ -1,9 +1,10 @@
+import { SUPABASE_URL, SUPABASE_PUBLIC_KEY } from '@/lib/supabase-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { calculateBookingPrice } from '@/lib/pricing';
 
-const url = 'https://ywlayixocyjwodhfcyus.supabase.co';
-const anonKey = 'sb_publishable_ieCYy0Mc0Iy_xUYwtriwyw_HQ19FQbX';
+const url = SUPABASE_URL;
+const anonKey = SUPABASE_PUBLIC_KEY;
 
 export async function GET(request: NextRequest) {
   try {
