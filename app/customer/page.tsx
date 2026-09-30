@@ -35,6 +35,7 @@ export default function CustomerPage() {
   const [price, setPrice] = useState<number | null>(null);
   const [priceError, setPriceError] = useState('');
   const [ready, setReady] = useState(false);
+  const [home, setHome] = useState(true);
   useEffect(() => {
     if (!supabaseBrowser) return;
     supabaseBrowser.auth.getSession().then(({ data }) => {
@@ -149,10 +150,29 @@ export default function CustomerPage() {
     }
   }
   const estimate = PHOTO_PRICES[level][duration / 60 - 1] * 100 * [1, 1.5, 2.5][service];
+  if (home) {
+    return (
+      <main className="pickolo-home">
+        <div className="pickolo-home-wrap">
+          <header className="pickolo-home-top"><div><b>PICKOLO</b><span>● Bhopal · Rohit Nagar⌄</span></div><div className="pickolo-avatar">P</div></header>
+          <section className="pickolo-hero"><div><h1>Hi, let’s capture<br />something beautiful.</h1><p>Real moments. Beautiful stories.<br />Captured by trusted creators near you.</p></div><div className="pickolo-camera">◉<small>✦</small></div></section>
+          <section className="pickolo-quick">
+            <h2>What do you need?</h2>
+            <div className="pickolo-service-tiles">{labels.map((label, i) => <button key={label} type="button" className={service === i ? 'chosen' : ''} onClick={() => setService(i)}><i>{['◉','▣','◉▣'][i]}</i><strong>{label}</strong></button>)}</div>
+            <button type="button" className="pickolo-book" onClick={() => setHome(false)}>Book a shoot <span>→</span></button>
+          </section>
+          <section className="pickolo-trust"><span>♢ <b>Verified</b><small>creators</small></span><span>▣ <b>Easy</b><small>booking</small></span><span>▭ <b>Pay after</b><small>shoot available</small></span></section>
+          <section className="pickolo-how"><h2>How it works</h2><div><span><b>1</b>◉<strong>Choose</strong></span><span><b>2</b>▣<strong>Book</strong></span><span><b>3</b>◉<strong>Capture</strong></span></div></section>
+          <nav className="pickolo-nav"><span className="active">⌂<b>Home</b></span><Link href="/customer/bookings">▣<b>Bookings</b></Link><span>♙<b>Profile</b></span></nav>
+        </div>
+      </main>
+    );
+  }
   return (
     <main className="customer-main">
       <div className="customer-wrap">
         <div className="customer-top">
+          <button type="button" className="text-button" onClick={() => setHome(true)}>← Home</button>
           <span className="area-tag">● &nbsp; BHOPAL · ROHIT NAGAR</span>
           <Link href="/customer/bookings">My bookings ↗</Link>
         </div>
@@ -477,3 +497,4 @@ export default function CustomerPage() {
     </main>
   );
 }
+
