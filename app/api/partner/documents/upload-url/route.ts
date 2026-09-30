@@ -1,3 +1,4 @@
+import { SUPABASE_URL, SUPABASE_PUBLIC_KEY } from '@/lib/supabase-config';
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -6,8 +7,8 @@ import { getApprovedPartner } from '@/lib/partner-auth';
 
 export const runtime = 'nodejs';
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const url = SUPABASE_URL;
+const anonKey = SUPABASE_PUBLIC_KEY;
 const MAX_SIZE = 20 * 1024 * 1024;
 
 function getClient(request: NextRequest) {

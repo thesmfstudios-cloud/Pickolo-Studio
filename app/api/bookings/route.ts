@@ -1,8 +1,9 @@
+import { SUPABASE_URL, SUPABASE_PUBLIC_KEY } from '@/lib/supabase-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://ywlayixocyjwodhfcyus.supabase.co';
-const supabaseAnonKey = 'sb_publishable_ieCYy0Mc0Iy_xUYwtriwyw_HQ19FQbX';
+const supabaseUrl = SUPABASE_URL;
+const supabaseAnonKey = SUPABASE_PUBLIC_KEY;
 
 function getSupabase(request: NextRequest) {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (![30, 60, 120, 180, 240, 300].includes(Number(duration_minutes))) {
+    if (![60, 120, 180, 240, 300].includes(Number(duration_minutes))) {
       return NextResponse.json({ error: 'Choose a duration from 1 to 5 hours.' }, { status: 400 });
     }
 
@@ -143,12 +144,15 @@ export async function GET(request: NextRequest) {
     if (!authorization) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return NextResponse.json({ error: 'Please sign in again.' }, { status: 401 });
 
     const { data, error } = await supabase
       .from('bookings')
       .select(
-        'id, booking_code, status, scheduled_start, duration_minutes, location_text, created_at',
+        'id,booking_code,status,payment_timing,scheduled_start,duration_minutes,location_text,customer_price_paise,created_at,service:services(name),service_level:service_levels(name)',
       )
+      .eq('customer_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {

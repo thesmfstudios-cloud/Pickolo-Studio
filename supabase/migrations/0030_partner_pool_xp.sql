@@ -331,7 +331,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $
+as $$
 begin
   if new.status = 'COMPLETED'
      and old.status is distinct from new.status
@@ -348,7 +348,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists bookings_log_completed_job_xp on public.bookings;
 create trigger bookings_log_completed_job_xp

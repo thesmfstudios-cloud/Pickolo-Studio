@@ -1,11 +1,12 @@
+import { SUPABASE_URL, SUPABASE_PUBLIC_KEY } from '@/lib/supabase-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
 
 export const runtime = 'nodejs';
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const url = SUPABASE_URL;
+const anonKey = SUPABASE_PUBLIC_KEY;
 
 function getClient(request: NextRequest) {
   if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
@@ -35,6 +36,9 @@ export async function GET(
       .single();
 
     if (bookingError || !booking) return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
+    if (booking.customer_id !== user.id) return NextResponse.json({ error: 'Customer access required.' }, { status: 403 });
+    const { data: payment } = await serviceClient.from('payments').select('status').eq('booking_id',id).maybeSingle();
+    if (payment?.status !== 'captured') return NextResponse.json({ error: 'Complete your payment to download your original files.' }, { status: 409 });
 
     const { data: assets, error } = await serviceClient
       .from('delivery_assets')

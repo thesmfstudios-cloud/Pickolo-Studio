@@ -1,35 +1,29 @@
-import './globals.css';
-import Link from 'next/link';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+import "./globals.css";
+import type { Metadata, Viewport } from "next";
+import SiteShell from "@/components/site-shell";
+export const metadata: Metadata = {
+  title: "Pickolo · Your moments, beautifully captured",
+  description:
+    "Book photography and videography in Bhopal. Plan your shoot, meet your creator and receive your original files.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Pickolo" },
+  icons: { icon: "/icon.svg" },
+};
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#faf7f1",
+};
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body>
-        <div className="shell">
-          <header className="topbar">
-            <div className="container topbar-inner">
-              <Link href="/" className="brand">
-                PICKOLO
-              </Link>
-              <nav className="nav">
-                <Link href="/customer">Customer</Link>
-                <Link href="/partner">Partner</Link>
-                <Link href="/admin">Admin</Link>
-              </nav>
-            </div>
-          </header>
-          {children}
-          <footer className="footer">
-            <div className="container">
-              <div>Pickolo by SMF Studios · Bhopal</div>
-              <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12 }}>
-                <Link href="/privacy">Privacy</Link>
-                <Link href="/terms">Terms</Link>
-                <Link href="/refund-policy">Refunds</Link>
-              </div>
-            </div>
-          </footer>
-        </div>
+        <SiteShell>{children}</SiteShell>
       </body>
     </html>
   );

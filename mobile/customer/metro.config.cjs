@@ -1,8 +1,8 @@
-const path = require('path');
-const { getDefaultConfig } = require('expo/metro-config');
+const path = require("path");
+const { getDefaultConfig } = require("expo/metro-config");
 
 const projectRoot = __dirname;
-const sharedRoot = path.resolve(projectRoot, '..', 'shared');
+const sharedRoot = path.resolve(projectRoot, "..", "shared");
 
 const config = getDefaultConfig(projectRoot);
 

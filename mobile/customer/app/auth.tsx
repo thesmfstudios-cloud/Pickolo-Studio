@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Image,
+  Linking,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +13,8 @@ import { makeRedirectUri } from "expo-auth-session";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { supabase } from "../../shared/supabase";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { serif } from "../components/ui";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -118,6 +121,23 @@ export default function CustomerAuth() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
+        <Text
+          style={{
+            fontFamily: serif,
+            fontSize: 40,
+            letterSpacing: 1,
+            fontWeight: "700",
+            color: "#153f2e",
+            textAlign: "center",
+          }}
+        >
+          PICKOLO
+        </Text>
+        <Image
+          source={require("../assets/pickolo-hero.png")}
+          style={{ width: "100%", height: 240, marginVertical: 22 }}
+          resizeMode="contain"
+        />
         <Text style={styles.kicker}>PICKOLO · BHOPAL</Text>
         <Text style={styles.title}>Great moments start here.</Text>
         <Text style={styles.subtitle}>
@@ -144,13 +164,42 @@ export default function CustomerAuth() {
             Your Google password is never shared with Pickolo.
           </Text>
         </View>
+        <Text
+          style={{
+            fontSize: 12,
+            color: "#77786e",
+            textAlign: "center",
+            lineHeight: 22,
+            marginTop: 24,
+          }}
+        >
+          By continuing, you agree to our{" "}
+          <Text
+            onPress={() =>
+              Linking.openURL("https://pickolo-studio.vercel.app/terms")
+            }
+            style={{ color: "#153f2e" }}
+          >
+            Terms
+          </Text>{" "}
+          and{" "}
+          <Text
+            onPress={() =>
+              Linking.openURL("https://pickolo-studio.vercel.app/privacy")
+            }
+            style={{ color: "#153f2e" }}
+          >
+            Privacy Policy
+          </Text>
+          .
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#f6f5f0" },
+  safe: { flex: 1, backgroundColor: "#faf7f1" },
   container: { flexGrow: 1, justifyContent: "center", padding: 28 },
   kicker: {
     fontSize: 12,
@@ -158,7 +207,13 @@ const styles = StyleSheet.create({
     color: "#496340",
     fontWeight: "700",
   },
-  title: { fontSize: 40, color: "#202e29", marginTop: 20 },
+  title: {
+    fontFamily: serif,
+    fontSize: 32,
+    color: "#153f2e",
+    textAlign: "center",
+    marginTop: 10,
+  },
   subtitle: { fontSize: 15, color: "#747d70", lineHeight: 24, marginTop: 16 },
   card: {
     backgroundColor: "#fffefb",

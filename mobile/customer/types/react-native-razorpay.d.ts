@@ -1,4 +1,4 @@
-declare module 'react-native-razorpay' {
+declare module "react-native-razorpay" {
   type CheckoutOptions = Record<string, unknown>;
 
   const RazorpayCheckout: {

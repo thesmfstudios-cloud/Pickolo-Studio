@@ -1,17 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
+import { BottomNav, serif } from "../components/ui";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { supabase } from '../../shared/supabase';
+} from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { supabase } from "../../shared/supabase";
 
 type Asset = {
   id: string;
@@ -36,18 +37,26 @@ export default function DeliveryViewer() {
     const token = data.session?.access_token;
     if (!token) {
       setBusy(false);
-      router.replace('/auth');
+      router.replace("/auth");
       return;
     }
 
-    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-    const response = await fetch(baseUrl + '/api/bookings/' + id + '/delivery', {
-      headers: { Authorization: 'Bearer ' + token },
-    });
+    const baseUrl =
+      process.env.EXPO_PUBLIC_API_BASE_URL ||
+      "https://pickolo-studio.vercel.app";
+    const response = await fetch(
+      baseUrl + "/api/bookings/" + id + "/delivery",
+      {
+        headers: { Authorization: "Bearer " + token },
+      },
+    );
     const result = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      Alert.alert('Delivery unavailable', result.error || 'Unable to load delivery.');
+      Alert.alert(
+        "Delivery unavailable",
+        result.error || "Unable to load delivery.",
+      );
       setBusy(false);
       return;
     }
@@ -79,53 +88,83 @@ export default function DeliveryViewer() {
         </Pressable>
         <Text style={styles.title}>Your photos</Text>
         <Text style={styles.subtitle}>
-          {assets.length} delivered photo{assets.length === 1 ? '' : 's'}.
+          {assets.length} delivered photo{assets.length === 1 ? "" : "s"}.
         </Text>
 
         {assets.length === 0 ? (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Delivery is being prepared</Text>
-            <Text style={styles.muted}>No accessible files are available yet.</Text>
+            <Text style={styles.muted}>
+              No accessible files are available yet.
+            </Text>
           </View>
         ) : (
           assets.map((asset) => (
             <View key={asset.id} style={styles.card}>
-              <Image source={{ uri: asset.signed_url }} style={styles.image} resizeMode="cover" />
+              <Image
+                source={{ uri: asset.signed_url }}
+                style={styles.image}
+                resizeMode="cover"
+              />
               <Text style={styles.fileName}>{asset.file_name}</Text>
-              <Text style={styles.muted}>Private access link expires after a limited time.</Text>
+              <Text style={styles.muted}>
+                Private access link expires after a limited time.
+              </Text>
             </View>
           ))
         )}
 
         {assets.length > 0 && (
           <Text style={styles.footerNote}>
-            For security, Pickolo uses time-limited private links instead of permanent public file
-            URLs.
+            For security, Pickolo uses time-limited private links instead of
+            permanent public file URLs.
           </Text>
         )}
       </ScrollView>
+      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f6f5f0' },
+  safe: { flex: 1, backgroundColor: "#faf7f1" },
   container: { padding: 20, paddingBottom: 40 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  back: { color: '#34563d', fontWeight: '800', fontSize: 16 },
-  title: { marginTop: 18, fontSize: 32, fontWeight: '800', color: '#202e29' },
-  subtitle: { marginTop: 6, color: '#747d70', lineHeight: 22 },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  back: { color: "#34563d", fontWeight: "800", fontSize: 16 },
+  title: {
+    fontFamily: serif,
+    marginTop: 18,
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#202e29",
+  },
+  subtitle: { marginTop: 6, color: "#747d70", lineHeight: 22 },
   card: {
     marginTop: 16,
     padding: 14,
     borderRadius: 18,
-    backgroundColor: '#fff',
+    backgroundColor: "#fffcf7",
     borderWidth: 1,
-    borderColor: '#dfe3d7',
+    borderColor: "#e7dfd1",
   },
-  cardTitle: { fontSize: 18, fontWeight: '800', color: '#202e29' },
-  image: { width: '100%', height: 280, borderRadius: 12, backgroundColor: '#f1f5f9' },
-  fileName: { marginTop: 12, fontSize: 15, fontWeight: '800', color: '#202e29' },
-  muted: { marginTop: 6, color: '#747d70', lineHeight: 21 },
-  footerNote: { marginTop: 18, color: '#94a3b8', fontSize: 12, lineHeight: 18 },
+  cardTitle: { fontSize: 18, fontWeight: "800", color: "#202e29" },
+  image: {
+    width: "100%",
+    height: 280,
+    borderRadius: 12,
+    backgroundColor: "#f1f5f9",
+  },
+  fileName: {
+    marginTop: 12,
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#202e29",
+  },
+  muted: { marginTop: 6, color: "#747d70", lineHeight: 21 },
+  footerNote: { marginTop: 18, color: "#94a3b8", fontSize: 12, lineHeight: 18 },
 });

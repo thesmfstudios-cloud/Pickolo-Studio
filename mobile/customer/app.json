@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Pickolo Customer",
+    "name": "Pickolo",
     "slug": "pickolo-customer",
     "scheme": "pickolo-customer",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
@@ -14,7 +14,11 @@
     },
     "android": {
       "package": "com.smfstudios.pickolocustomer",
-      "predictiveBackGestureEnabled": true
+      "predictiveBackGestureEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#153f2e"
+      }
     },
     "plugins": [
       ["expo-router"],
@@ -30,7 +34,16 @@
           "defaultChannel": "default"
         }
       ],
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#faf7ef",
+          "imageWidth": 120,
+          "image": "./assets/icon.png"
+        }
+      ]
+    ],
+    "icon": "./assets/icon.png"
   }
 }

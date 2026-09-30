@@ -5,7 +5,8 @@ const db = new PGlite();
 await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
 create schema auth; create table auth.users(id uuid primary key,phone text,raw_user_meta_data jsonb default '{}');
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
-create schema storage;create table storage.buckets(id text primary key,name text,public boolean);create table storage.objects(id uuid,name text,bucket_id text,owner_id text);
+create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid,name text,bucket_id text,owner_id text);
+create function storage.foldername(text) returns text[] language sql immutable as $$ select string_to_array($1,'/') $$;
 grant usage on schema public,auth to authenticated,anon,service_role;`);
 for (const file of fs
   .readdirSync("supabase/migrations")
@@ -220,7 +221,34 @@ await assert.rejects(
     ]),
   /not ready/,
 );
+await db.exec(`set role authenticated;select set_config('request.jwt.claim.sub','${customer}',false);`);
+const deferred = await create({ minutes:120 });
+await db.query('select public.request_pay_after_shoot($1)',[deferred.id]);
+await db.query('select public.request_pay_after_shoot($1)',[deferred.id]);
+assert.equal((await db.query('select status from public.bookings where id=$1',[deferred.id])).rows[0].status,'SEARCHING_PARTNER');
+assert.equal((await db.query('select count(*)::int as n from public.payments where booking_id=$1',[deferred.id])).rows[0].n,0);
+await assert.rejects(()=>db.query('select public.create_customer_payment_order($1,$2,$3)',[deferred.id,'order_fake',1]),/permission denied/);
+await assert.rejects(()=>db.query('select public.store_server_payment_order($1,$2)',[deferred.id,'order_fake']),/permission denied/);
+await assert.rejects(()=>db.query('select public.record_verified_payment($1,$2,$3,$4,$5)',[deferred.id,'order_fake','pay_fake',1,null]),/permission denied/);
+await db.exec(`select set_config('request.jwt.claim.sub','${partner}',false);`);
+await assert.rejects(()=>db.query('select public.request_pay_after_shoot($1)',[deferred.id]),/not found/);
+await db.exec('reset role');
+await db.query("update public.bookings set status='SHOOT_COMPLETED' where id=$1",[deferred.id]);
+await assert.rejects(()=>db.query("update public.bookings set status='CUSTOMER_CONFIRMED' where id=$1",[deferred.id]),/Payment must/);
+await assert.rejects(()=>db.query("update public.bookings set status='PAYOUT_RELEASED' where id=$1",[deferred.id]),/Payment must/);
+await db.exec('set role service_role');
+await db.query('select public.store_server_payment_order($1,$2)',[deferred.id,'order_test123']);
+const reused = (await db.query('select (public.store_server_payment_order($1,$2)).provider_order_id as id',[deferred.id,'order_test456'])).rows[0];
+assert.equal(reused.id,'order_test123');
+await assert.rejects(()=>db.query('select public.record_verified_payment($1,$2,$3,$4,$5)',[deferred.id,'order_test123','pay_test123',1,null]),/does not match/);
+await db.query('select public.record_verified_payment($1,$2,$3,$4,$5)',[deferred.id,'order_test123','pay_test123',150000,null]);
+await db.query('select public.record_verified_payment($1,$2,$3,$4,$5)',[deferred.id,'order_test123','pay_test123',150000,null]);
+await assert.rejects(()=>db.query('select public.record_verified_payment($1,$2,$3,$4,$5)',[deferred.id,'order_test123','pay_other',150000,null]),/different payment/);
+await db.exec('reset role');
+assert.equal((await db.query('select status from public.bookings where id=$1',[deferred.id])).rows[0].status,'SHOOT_COMPLETED');
+assert.equal((await db.query('select status from public.payments where booking_id=$1',[deferred.id])).rows[0].status,'captured');
+await db.query("update public.bookings set status='CUSTOMER_CONFIRMED' where id=$1",[deferred.id]);
 await db.close();
 console.log(
-  "PASS: all migrations, 15 photo prices, video/both multipliers, area/time/duration/policy validation, OTP privacy, wrong partner, lockout, start and replay.",
+  "PASS: all migrations, pricing, geo/time/policy, OTP privacy/lockout/replay, deferred fulfilment, owner isolation, server-only payment writes, order reuse, amount tampering, capture retries, no status rewind and unpaid payout/delivery gates.",
 );

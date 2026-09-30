@@ -1,11 +1,12 @@
+import { SUPABASE_URL, SUPABASE_PUBLIC_KEY } from '@/lib/supabase-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServiceClient } from '@/lib/supabase-admin';
 import { writeAdminAudit } from '@/lib/admin-audit';
 import { createRazorpayXUpiPayout, razorpayXPayoutsEnabled } from '@/lib/razorpayx';
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const url = SUPABASE_URL;
+const anonKey = SUPABASE_PUBLIC_KEY;
 
 export async function POST(
   request: NextRequest,
@@ -36,6 +37,8 @@ export async function POST(
     if (!['DATA_SUBMITTED', 'CUSTOMER_CONFIRMED'].includes(booking.status) || !booking.assigned_partner_id) {
       return NextResponse.json({ error: 'Booking is not payout-ready.' }, { status: 409 });
     }
+    const { data: paid } = await serviceClient.from('payments').select('status').eq('booking_id', id).eq('status','captured').maybeSingle();
+    if (!paid) return NextResponse.json({ error: 'Customer payment must be received before releasing payout.' }, { status: 409 });
 
     const { data: payoutPartner } = await serviceClient
       .from('partners')

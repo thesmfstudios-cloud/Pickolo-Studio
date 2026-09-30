@@ -1,5 +1,26 @@
 # Pickolo Studio
 
+## Customer premium release
+
+The customer experience now includes the Play Store style home, Google sign-in,
+two-step booking, live pricing, venue map selection, pay now or pay after shoot,
+booking tracking, delivery confirmation, reviews, notifications, help and profile.
+The responsive web app and Expo Android app share the same production Supabase
+project and booking APIs.
+
+Before production deployment:
+
+1. Apply `supabase/migrations/0034_customer_payment_integrity.sql` to the active
+   Supabase project.
+2. Configure the matching `SUPABASE_SERVICE_ROLE_KEY` plus Razorpay and cron
+   secrets in the Vercel project.
+3. Build the signed Android App Bundle with the owner EAS account and upload it
+   through the Play Console release workflow.
+
+The generated customer hero artwork is stored at
+`public/assets/pickolo-hero.png`; it was created for this project from the two
+customer UI references supplied on 30 September 2026.
+
 **Pickolo App by SMF Studios**  
 On-demand photography marketplace for short-duration, location-based photography assignments.
 

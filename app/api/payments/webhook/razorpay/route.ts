@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
           status: 'failed',
           failed_at: new Date().toISOString(),
         })
-        .eq('id', payment.id);
+        .eq('id', payment.id)
+        .neq('status', 'captured')
+        .neq('status', 'refunded');
 
       return NextResponse.json({ received: true });
     }
@@ -62,39 +64,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Webhook payment verification mismatch.' }, { status: 400 });
       }
 
-      await serviceClient
-        .from('payments')
-        .update({
-          provider_payment_id: paymentId,
-          status: 'captured',
-          captured_at: new Date().toISOString(),
-        })
-        .eq('id', payment.id);
-
-      const { data: booking } = await serviceClient
-        .from('bookings')
-        .select('id,status')
-        .eq('id', payment.booking_id)
-        .single();
-
-      if (booking?.status === 'REQUESTED') {
-        const { data: updated } = await serviceClient
-          .from('bookings')
-          .update({ status: 'PAYMENT_CONFIRMED' })
-          .eq('id', booking.id)
-          .eq('status', 'REQUESTED')
-          .select('id,status')
-          .single();
-
-        if (updated) {
-          await serviceClient.from('booking_status_history').insert({
-            booking_id: booking.id,
-            from_status: 'REQUESTED',
-            to_status: 'PAYMENT_CONFIRMED',
-            metadata: { actor_role: 'system', provider: 'razorpay', provider_payment_id: paymentId, webhook_event: payload.event },
-          });
-        }
-      }
+      const { error } = await serviceClient.rpc('record_verified_payment', {
+        p_booking_id: payment.booking_id, p_order_id: orderId,
+        p_payment_id: paymentId, p_amount: providerPayment.amount,
+      });
+      if (error) return NextResponse.json({ error: error.message }, { status: 409 });
     }
 
     if (payload.event === 'payment.captured' || payload.event === 'order.paid') {
