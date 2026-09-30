@@ -137,6 +137,20 @@ export default function BookingPage() {
       setBusy(false);
     }
   }
+  async function payAfterShoot() {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await customerApi('/api/bookings/' + id + '/pay-after-shoot', {});
+      setNotice('Pay-after-shoot selected. We are finding your professional.');
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to select pay after shoot.');
+    } finally {
+      setBusy(false);
+    }
+  }
   async function action(path: string, body: unknown = {}) {
     setBusy(true);
     setError('');
@@ -218,6 +232,10 @@ export default function BookingPage() {
                     <button className="customer-primary" disabled={busy} onClick={pay}>
                       {busy ? 'Processing…' : 'Pay ' + rupees(booking.customer_price_paise) + ' →'}
                     </button>
+                    <button className="text-button" disabled={busy} onClick={payAfterShoot}>
+                      Pay after shoot →
+                    </button>
+                    <p className="helper">Choose this to pay after your shoot is complete.</p>
                     <p className="helper">
                       See our <Link href="/refund-policy">cancellation and refund policy</Link>.
                     </p>
