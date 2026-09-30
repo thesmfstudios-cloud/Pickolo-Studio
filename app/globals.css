@@ -712,6 +712,81 @@ button:disabled {
   }
 }
 
+/* Pickolo customer auth screen. The Supabase OAuth flow remains unchanged;
+   this layout gives the web sign-in route the same mobile-first visual as the
+   Pickolo customer app while redirecting successful sessions to /customer. */
+.pickolo-auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  background: #f8fbff;
+  color: #07112d;
+  font-family: Nunito, Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.pickolo-auth-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.94), transparent 48%), linear-gradient(180deg, #f8fbff 0%, #f4f8ff 75%, #e5f0ff 100%);
+}
+.pickolo-auth-status,
+.pickolo-auth-content,
+.pickolo-auth-landscape,
+.pickolo-auth-home-indicator { position: absolute; z-index: 2; }
+.pickolo-auth-status {
+  top: 4.5%; left: 5.6%; right: 5.6%; display: flex; justify-content: space-between; align-items: center;
+  color: #3b4555; font-size: clamp(18px, 2.4vw, 27px); font-weight: 700;
+}
+.pickolo-auth-status-icons { display: flex; align-items: center; gap: 12px; }
+.pickolo-auth-wifi { width: 24px; height: 17px; border: 8px solid transparent; border-top-color: #3b4555; border-radius: 50%; transform: rotate(180deg); }
+.pickolo-auth-signal { width: 23px; height: 21px; background: #3b4555; clip-path: polygon(0 100%, 100% 0, 100% 100%); }
+.pickolo-auth-battery { width: 15px; height: 23px; border-radius: 3px; background: #3b4555; position: relative; }
+.pickolo-auth-battery::before { content: ''; position: absolute; top: -3px; left: 4px; width: 7px; height: 3px; border-radius: 2px 2px 0 0; background: #3b4555; }
+.pickolo-auth-content { inset: 0; display: flex; flex-direction: column; align-items: center; padding: 16vh 7vw 12vh; text-align: center; }
+.pickolo-auth-brand { position: relative; }
+.pickolo-auth-wordmark { font-size: clamp(58px, 8vw, 112px); line-height: .9; font-weight: 900; letter-spacing: -.08em; }
+.pickolo-auth-brand-o { position: relative; display: inline-block; }
+.pickolo-auth-lens { position: absolute; width: .28em; height: .28em; border-radius: 50%; background: #6aa4ff; left: .34em; top: .27em; box-shadow: inset 0 0 0 .07em #fff, 0 0 0 .035em #0d1e40; }
+.pickolo-auth-rays { position: absolute; right: -22px; top: -13px; display: flex; gap: 11px; transform: rotate(15deg); }
+.pickolo-auth-rays i { width: 8px; height: 30px; border-radius: 99px; background: #6aa4ff; display: block; transform: rotate(-17deg); }
+.pickolo-auth-rays i:nth-child(2) { transform: rotate(35deg); height: 33px; }
+.pickolo-auth-rays i:nth-child(3) { transform: rotate(58deg); height: 25px; }
+.pickolo-auth-brand p { display: flex; justify-content: center; gap: 22px; margin: 18px 0 0; color: #62728d; letter-spacing: .28em; font-size: clamp(11px, 1.5vw, 17px); font-weight: 600; }
+.pickolo-auth-brand p b { color: #65758d; letter-spacing: 0; }
+.pickolo-auth-hero { position: relative; width: min(620px, 76vw); margin: 6vh 0 2vh; }
+.pickolo-auth-hero-blob { position: absolute; inset: 8% 3% 1%; border-radius: 48% 52% 45% 55%; background: rgba(220,235,255,.68); transform: rotate(-6deg); }
+.pickolo-auth-hero img { position: relative; display: block; width: 100%; height: auto; filter: drop-shadow(0 20px 22px rgba(75, 130, 205, .2)); }
+.pickolo-auth-welcome h1 { margin: 1vh 0 5px; font-size: clamp(31px, 4.6vw, 56px); line-height: 1.1; letter-spacing: -.04em; }
+.pickolo-auth-welcome p { margin: 0; color: #75839b; font-size: clamp(18px, 2.5vw, 30px); }
+.pickolo-auth-google { width: min(700px, 82vw); min-height: 76px; margin-top: 5.5vh; padding: 0 28px; display: flex; align-items: center; gap: 20px; border: 1px solid #e0e8f3; border-radius: 42px; background: rgba(255,255,255,.92); color: #0b1531; box-shadow: 0 7px 18px rgba(78, 122, 182, .08); font: inherit; font-size: clamp(17px, 2vw, 26px); font-weight: 800; cursor: pointer; }
+.pickolo-auth-google:disabled { opacity: .6; cursor: wait; }
+.pickolo-auth-google-icon { display: grid; place-items: center; width: 48px; height: 48px; font-size: 32px; font-family: Arial, sans-serif; font-weight: 700; background: conic-gradient(from -45deg, #4285f4 0 25%, #34a853 0 50%, #fbbc05 0 75%, #ea4335 0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pickolo-auth-arrow { margin-left: auto; width: 15px; height: 15px; border-top: 4px solid #a7b2c2; border-right: 4px solid #a7b2c2; transform: rotate(45deg); }
+.pickolo-auth-legal { margin-top: 4.5vh; color: #7d8ba1; font-size: clamp(12px, 1.6vw, 18px); line-height: 1.8; }
+.pickolo-auth-legal a { color: #2d75ed; text-decoration: none; }
+.pickolo-auth-legal span { padding: 0 8px; }
+.pickolo-auth-error { max-width: 700px; margin: 16px 0 -28px; color: #a03124; background: #fff0e9; border-radius: 12px; padding: 10px 16px; font-size: 13px; }
+.pickolo-auth-landscape { inset: auto 0 0; height: 17vh; min-height: 100px; z-index: 1; }
+.pickolo-auth-landscape svg { display: block; width: 100%; height: 100%; }
+.pickolo-auth-hill-back { fill: #dcecff; }
+.pickolo-auth-hill-mid { fill: #c8e0ff; }
+.pickolo-auth-hill-front { fill: #b4d5fc; }
+.pickolo-auth-trees-left, .pickolo-auth-trees-right { fill: #a6caf5; }
+.pickolo-auth-home-indicator { bottom: 18px; left: 50%; width: 108px; height: 5px; border-radius: 99px; background: #6d7e93; opacity: .88; transform: translateX(-50%); }
+@media (max-width: 700px) {
+  .pickolo-auth-content { padding-top: 13vh; padding-bottom: 11vh; }
+  .pickolo-auth-hero { width: min(520px, 86vw); margin-top: 5vh; }
+  .pickolo-auth-google { min-height: 64px; }
+  .pickolo-auth-google-icon { width: 38px; height: 38px; font-size: 26px; }
+  .pickolo-auth-landscape { height: 14vh; }
+}
+@media (max-height: 760px) {
+  .pickolo-auth-content { padding-top: 12vh; padding-bottom: 8vh; }
+  .pickolo-auth-hero { margin-top: 2.5vh; width: min(410px, 58vw); }
+  .pickolo-auth-google { margin-top: 3vh; min-height: 58px; }
+  .pickolo-auth-legal { margin-top: 2.5vh; }
+}
+
 .service-option {
   min-width: 0;
   overflow-wrap: anywhere;

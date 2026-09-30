@@ -553,3 +553,20 @@ Security advisor flagged exposed SECURITY DEFINER functions and two trigger func
 
 ### Next
 Authenticated customer/partner/admin session testing and Vercel environment-value confirmation.
+
+## 2026-09-30 — Pickolo Customer Google Auth Screen
+**Status:** IMPLEMENTED / LIVE VERIFICATION PENDING
+
+### Changed
+- Replaced the web `/auth` route presentation with the Pickolo customer mobile-style sign-in screen.
+- Preserved the existing Supabase Google OAuth flow and safe `next` destination handling.
+- Successful Google sessions continue to redirect to `/customer`, the existing customer booking home.
+- Added the Pickolo camera artwork under `public/assets/pickolo-camera.png`.
+
+### Security
+- Google credentials remain with Google; the app receives only the Supabase session.
+- No secrets or OAuth credentials were added to the repository.
+
+### Remaining verification
+- The Supabase Google provider and redirect URLs must be enabled for each deployed environment.
+- A real Google sign-in and customer booking smoke test remains pending in the target deployment.
