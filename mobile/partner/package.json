@@ -9,6 +9,9 @@
     "ios": "expo start --ios",
     "typecheck": "tsc --noEmit",
     "test": "node tests/screens.mjs",
+    "validate:release": "node scripts/validate-release.cjs",
+    "test:release": "node tests/release.cjs",
+    "test:native-config": "node scripts/test-native-config.cjs",
     "prebuild": "expo prebuild",
     "android:device": "expo run:android --device",
     "ios:device": "expo run:ios --device"

@@ -1,8 +1,13 @@
 {
   "name": "pickolo-mobile",
   "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
-    "test:dependencies": "node scripts/test-dependencies.cjs"
+    "postinstall": "patch-package --error-on-fail",
+    "test:dependencies": "node scripts/test-dependencies.cjs",
+    "test:notifications": "node scripts/test-notifications.cjs"
   },
   "workspaces": [
     "customer",
@@ -19,6 +24,9 @@
     "react-native-safe-area-context": "~5.7.0",
     "xcode": {
       "uuid": "11.1.1"
+    },
+    "query-string": {
+      "decode-uri-component": "0.5.0"
     }
   },
   "dependencies": {
@@ -32,6 +40,7 @@
     "react-native-safe-area-context": "~5.7.0"
   },
   "devDependencies": {
+    "patch-package": "8.0.1",
     "@types/react": "~19.2.4"
   }
 }

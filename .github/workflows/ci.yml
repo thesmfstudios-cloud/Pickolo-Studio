@@ -2,7 +2,7 @@ name: Pickolo CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/partner-ui-redesign]
   pull_request:
     branches: [main]
 
@@ -55,3 +55,6 @@ jobs:
       - run: npm run typecheck --workspace @pickolo/partner
       - run: npm test --workspace @pickolo/partner
       - run: npm run test:dependencies
+      - run: npm run test:notifications
+      - run: npm run test:release --workspace @pickolo/partner
+      - run: npm run test:native-config --workspace @pickolo/partner

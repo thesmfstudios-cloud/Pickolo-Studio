@@ -16,6 +16,7 @@ Notifications.setNotificationHandler({
 
 let responseSubscription: Notifications.Subscription | null = null;
 let responseRole: 'customer' | 'partner' | null = null;
+let handledResponseId: string | null = null;
 
 function ensureNotificationNavigation(appRole: 'customer' | 'partner') {
   if (responseSubscription && responseRole === appRole) return;
@@ -23,9 +24,19 @@ function ensureNotificationNavigation(appRole: 'customer' | 'partner') {
   responseSubscription?.remove();
   responseRole = appRole;
 
-  responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-    const data = response.notification.request.content.data as { bookingId?: string } | undefined;
-    if (!data?.bookingId) return;
+  const openResponse = (response: Notifications.NotificationResponse) => {
+    const data = response.notification.request.content.data as
+      { bookingId?: string } | undefined;
+    if (
+      typeof data?.bookingId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        data.bookingId,
+      )
+    )
+      return;
+    const identifier = response.notification.request.identifier;
+    if (identifier === handledResponseId) return;
+    handledResponseId = identifier;
 
     if (appRole === 'customer') {
       router.push({
@@ -33,9 +44,13 @@ function ensureNotificationNavigation(appRole: 'customer' | 'partner') {
         params: { id: data.bookingId },
       });
     } else {
-      router.push('/jobs');
+      router.push({ pathname: '/job', params: { id: data.bookingId } });
     }
-  });
+  };
+  responseSubscription =
+    Notifications.addNotificationResponseReceivedListener(openResponse);
+  const initialResponse = Notifications.getLastNotificationResponse();
+  if (initialResponse) openResponse(initialResponse);
 }
 
 export async function registerPushToken(appRole: 'customer' | 'partner') {
@@ -44,6 +59,24 @@ export async function registerPushToken(appRole: 'customer' | 'partner') {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) return null;
+  ensureNotificationNavigation(appRole);
+
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    Constants.easConfig?.projectId;
+  const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim().replace(
+    /\/$/,
+    '',
+  );
+  if (!projectId || !baseUrl) return null;
+
+  // Android 13 needs a channel before the permission prompt/token request.
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Pickolo',
+      importance: Notifications.AndroidImportance.DEFAULT,
+    });
+  }
 
   const permission = await Notifications.getPermissionsAsync();
   let finalStatus = permission.status;
@@ -55,22 +88,7 @@ export async function registerPushToken(appRole: 'customer' | 'partner') {
 
   if (finalStatus !== 'granted') return null;
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'Pickolo',
-      importance: Notifications.AndroidImportance.DEFAULT,
-    });
-  }
-
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ??
-    Constants.easConfig?.projectId ??
-    undefined;
-
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-  ensureNotificationNavigation(appRole);
-
-  const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
   const response = await fetch(baseUrl + '/api/notifications/register-token', {
     method: 'POST',
     headers: {

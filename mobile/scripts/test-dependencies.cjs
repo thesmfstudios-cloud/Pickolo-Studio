@@ -1,5 +1,8 @@
 const assert = require('node:assert/strict');
 const { createRequire } = require('node:module');
+const fs = require('node:fs');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const xcode = require('xcode');
 const xcodeRequire = createRequire(require.resolve('xcode'));
 const uuid = xcodeRequire('uuid');
@@ -15,6 +18,18 @@ for (let index = 0; index < 100; index++)
   assert.match(project.generateUuid(), /^[0-9A-F]{24}$/);
 const queryString = require('query-string');
 assert.equal(
+  JSON.parse(
+    fs.readFileSync(
+      path.join(
+        path.dirname(require.resolve('decode-uri-component')),
+        'package.json',
+      ),
+      'utf8',
+    ),
+  ).version,
+  '0.5.0',
+);
+assert.equal(
   queryString.parse('city=Bhopal&name=%E0%A4%A8%E0%A4%BE%E0%A4%AE').city,
   'Bhopal',
 );
@@ -23,6 +38,20 @@ assert.equal(
     .mode,
   'shoot',
 );
+assert.equal(queryString.parse('name=%E0%A4%A8%E0%A4%BE%E0%A4%AE').name, 'नाम');
+assert.equal(queryString.parse('name=a+b').name, 'a b');
+assert.deepEqual([...queryString.parse('id=one&id=two').id], ['one', 'two']);
+assert.equal(queryString.parse('path=a%2Fb').path, 'a/b');
+// Run malformed-input regressions in a bounded child so a vulnerable decoder
+// cannot hang the whole test job. The official scanner must return promptly.
+execFileSync(
+  process.execPath,
+  [
+    '-e',
+    `const assert = require('node:assert/strict'); const q = require('query-string'); for (const bytes of ['%C0','%EA','%FF','%E0%A4']) { const input = bytes.repeat(10000); const output = q.parse('value=' + input).value; assert.equal(typeof output, 'string'); assert(output.length <= input.length); }`,
+  ],
+  { cwd: path.resolve(__dirname, '..'), timeout: 7000, stdio: 'pipe' },
+);
 console.log(
-  'PASS: patched UUID bounds, CommonJS compatibility, Xcode project identifiers and current router query-string contract.',
+  'PASS: patched UUID bounds, Xcode identifiers, decoder 0.5.0 interop, Unicode/URL query contracts and bounded malformed-input regressions.',
 );

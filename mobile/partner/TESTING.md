@@ -2,7 +2,8 @@
 
 Date: 1 October 2026 (IST)
 Branch: codex/partner-ui-redesign
-Continuation baseline: ab4dee1
+UI redesign baseline: ab4dee1
+Latest hardening baseline: d02f9b5
 
 ## Outcome
 
@@ -10,26 +11,32 @@ Added working private portfolio management, creator-bio editing, a dedicated ass
 
 These changes are tested locally, not certified for a Play Store release. No live database, production deployment or main-branch merge was performed.
 
+The latest continuation closes the remaining decoder dependency advisory with a reproducible compatibility patch, fixes Android notification-channel ordering and exact-job/cold-start tap navigation, removes unused camera/microphone permissions, and adds explicit APK/AAB profiles plus release-configuration checks. The existing 17-screen green/white design and photography workflow are preserved.
+
 ## Checks executed
 
-| Check | Result | Evidence boundary |
-| --- | --- | --- |
-| Partner UI interactions | PASS — 63 scenarios | Actual React components/event handlers; native modules, HTTP and Supabase mocked. All 17 screens plus root layout render. |
-| Partner backend/delivery integration | PASS — 24 scenarios | Actual Next handlers and migration SQL execute against local PGlite. Supabase authentication/transport and Storage signing are mocked. |
-| Dependency compatibility | PASS | uuid bounds regression, CommonJS imports, 100 Xcode identifiers, current router query parsing/serialization. |
-| Partner and customer TypeScript | PASS | Both mobile apps compile. |
-| Expo health | PASS — 21/21 | Project/native dependency/config checks. |
-| Clean mobile install | PASS | npm ci installs the committed lockfile successfully. |
-| Android production JavaScript export | PASS | Metro/Hermes bundle and assets generated. This is not an APK/AAB or native Gradle build. |
-| Backend TypeScript/build | PASS | Next.js 16.3.8 production build completes. |
-| Repository validation | PASS | Sequential migrations, auth/onboarding gates, secret separation and project checks. |
-| Existing customer/database regressions | PASS | All migrations including 0030; pricing, Bhopal radius, policy/time/duration, OTP privacy/lockout/start/replay. |
-| Backend security audit | PASS — 0 findings | Online npm audit at verification time. |
-| Mobile security audit | OPEN — 3 moderate, 0 high/critical | Reduced from 13 findings by the scoped UUID patch. |
-| Whitespace checks | PASS | git diff --check. |
-| Native/live Android QA | NOT EXECUTED | No adb, Java/Android SDK, device/emulator or configured live test accounts available. |
+| Check                                  | Result                      | Evidence boundary                                                                                                                                                                             |
+| -------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Partner UI interactions                | PASS — 63 scenarios         | Actual React components/event handlers; native modules, HTTP and Supabase mocked. All 17 screens plus root layout render.                                                                     |
+| Partner backend/delivery integration   | PASS — 24 scenarios         | Actual Next handlers and migration SQL execute against local PGlite. Supabase authentication/transport and Storage signing are mocked.                                                        |
+| Shared push contracts                  | PASS — 8 scenarios          | Actual shared module; native notifications, auth and HTTP mocked. Channel ordering, missing config, permission denial, exact-job/cold-start taps, customer routing and failure paths.         |
+| Dependency compatibility               | PASS                        | Node 22.13.0 and local-runtime imports, UUID bounds, 100 Xcode identifiers, official decoder 0.5.0, Hindi/Unicode/query contracts and bounded malformed-input regressions.                    |
+| Partner and customer TypeScript        | PASS                        | Both mobile apps compile.                                                                                                                                                                     |
+| Expo health                            | PASS — 21/21                | Project/native dependency/config checks.                                                                                                                                                      |
+| Clean mobile install                   | PASS                        | npm ci installs the committed lockfile and applies the exact query-string patch successfully.                                                                                                 |
+| Android production JavaScript exports  | PASS — partner and customer | Metro/Hermes bundles and assets generated for both apps. These are not APK/AABs or native Gradle builds.                                                                                      |
+| Android native-config introspection    | PASS                        | Actual Expo config-plugin output checks application ID, light theme, required network/location permissions and explicit camera/microphone removal. Not a merged APK manifest or device check. |
+| Release/configuration guard fixtures   | PASS                        | Missing/invalid endpoints, public-vs-secret key formats, project identity, support number and APK/AAB profiles checked with fake inputs. No live credentials used.                            |
+| Actual release preflight               | BLOCKED                     | Missing real API URL, Supabase URL/public key and existing EAS project UUID; support phone also absent. No fake values inserted.                                                              |
+| Backend TypeScript/build               | PASS                        | Next.js 16.3.8 production build completes.                                                                                                                                                    |
+| Repository validation                  | PASS                        | Sequential migrations, auth/onboarding gates, secret separation and project checks.                                                                                                           |
+| Existing customer/database regressions | PASS                        | All migrations including 0030; pricing, Bhopal radius, policy/time/duration, OTP privacy/lockout/start/replay.                                                                                |
+| Backend security audit                 | PASS — 0 findings           | Online npm audit at verification time.                                                                                                                                                        |
+| Mobile security audit                  | PASS — 0 findings           | Online npm audit after the scoped UUID/decoder fixes, including development dependencies. Not a security certification.                                                                       |
+| Whitespace checks                      | PASS                        | git diff --check.                                                                                                                                                                             |
+| Native/live Android QA                 | NOT EXECUTED                | No adb, Java/Android SDK, device/emulator or configured live test accounts available.                                                                                                         |
 
-The 87 UI/backend scenarios are not 87 live-device tests. The simultaneous-submission check uses two actual handlers and a serialized local database; it does not replace multi-connection PostgreSQL load testing.
+The 95 UI/backend/push scenarios (63 + 24 + 8) are not 95 live-device tests. Release/dependency/config checks are additional checks, not inflated scenario counts. The simultaneous-submission check uses two actual handlers and a serialized local database; it does not replace multi-connection PostgreSQL load testing.
 
 ## Screens and behavior completed in this continuation
 
@@ -55,11 +62,19 @@ The RPC is executable only by the server role. It locks the booking, rechecks as
 
 Tests cover authentication, unapproved/wrong partners, handoff, malformed JSON, missing files, invalid paths/MIME/size/count/duplicates, success, retries, two submission attempts, SQL permissions, changed bookings and rollback after a later-file/history failure. Customer-confirmation/completion/100-XP behavior is preserved in a database regression. Existing Storage policies are also tested for portfolio-owner read/delete isolation.
 
-## Dependency patch and remaining advisory
+## Dependency patches and resolved advisories
 
 The xcode dependency now uses scoped uuid@11.1.1, retaining CommonJS support and clearing the UUID-related dependency chain. The patch corresponds to the maintainer's [11.1.1 security backport](https://github.com/uuidjs/uuid/releases/tag/v11.1.1).
 
-The remaining three findings are decode-uri-component → query-string → expo-router. The [maintainer's decoder advisory](https://github.com/advisories/GHSA-vcc3-ghjq-m6fr) identifies 0.5.0 as patched, but that version is ESM while the installed query-string expects a CommonJS function. A blind override or the audit-suggested major Expo/router downgrade was not applied. A compatible router/query-string upgrade or a reviewed compatibility patch is still needed.
+The remaining decoder chain is now resolved. The [maintainer's advisory](https://github.com/advisories/GHSA-vcc3-ghjq-m6fr) identifies 0.5.0 as patched. A scoped override installs that official version; the committed one-line query-string import patch reads its ESM default export. No custom decoder implementation or unrelated Expo downgrade is used. Clean installs apply the patch and fail if it cannot be applied. Node 22.13.0 interop and both apps' Android exports pass; actual native-runtime verification is still pending. Patch rationale and removal conditions are documented in mobile/patches/README.md.
+
+## Android build and push configuration
+
+Dynamic app configuration accepts the UUID of an existing EAS project instead of inventing one. Preview remains an internal standalone APK; production explicitly builds an AAB with remote version management/automatic build-number increments. Node 22.13.0 is pinned for these profiles. The development-client profile separately requires expo-dev-client and is not the validated preview path.
+
+The release guard reports missing/invalid configuration without printing values or accepting a service-role/secret key. It cannot prove live endpoint/key validity. Light theme is pinned to the actual supported palette; camera/microphone permissions are removed because this workflow picks existing media rather than recording it.
+
+Shared push registration creates the Android channel before requesting permission/token, requires project/API configuration, retains authorization/role registration, and opens a validated assignment UUID from both warm and cold notification responses. Duplicate handling is covered locally; actual FCM delivery and account-change behavior remain device checks.
 
 ## Remaining release gaps
 
@@ -68,16 +83,20 @@ The remaining three findings are decode-uri-component → query-string → expo-
 3. Portfolio's six-photo limit is enforced in the app, not a database quota. Concurrent clients can exceed it. Private previews are owner-only; admin/customer portfolio sharing is not implemented.
 4. Large-video memory/network testing and resumable/background transfers. Delivery reads files into memory; cached retry metadata survives only while the screen stays mounted. Unselected/abandoned uploaded objects need a retention/cleanup policy. Server metadata validation is not a content scan or a substitute for Storage-side byte/MIME limits.
 5. KYC metadata is still created before binary upload by the existing backend; reviewers must verify the private object exists. Existing payout/assignment logic was not rewritten.
-6. Three moderate mobile advisories, support number, complete reviewed legal/privacy documents, payout policy, EAS project/push credentials and real app environment configuration.
-7. CI now uses npm ci and runs customer/database, partner backend, UI and dependency regressions. No completed remote GitHub Actions run is claimed; reported evidence is local.
+6. Support number, complete reviewed legal/privacy documents, payout policy, EAS project/push credentials and real app environment configuration. Final launcher/adaptive icon, native launch assets and Play Console Data Safety also need sign-off; the React splash is not a substitute for native launch branding.
+7. CI uses npm ci and runs customer/database, partner backend, UI, dependency, shared push, release-fixture and Android config-introspection regressions. It now also runs on pushes to this dedicated redesign branch, retaining main pushes/main-targeted PRs. No completed remote GitHub Actions run is claimed here; reported results above are local.
+8. Existing logout clears authentication but does not explicitly deactivate the device's server-side push token or remove the navigation listener. Account-switch/logout push privacy and token revocation need to be addressed before public release; the new eight contract tests do not cover that lifecycle.
 
 ## Re-run
 
 Repository root: npm run validate:repo; npm run lint; npm run test:customer; npm run test:partner; npm run build; npm audit.
 
-mobile: npm ci; npm run test:dependencies; npm run typecheck --workspace @pickolo/customer.
+mobile: npm ci; npm run test:dependencies; npm run test:notifications; npm run typecheck --workspace @pickolo/customer; npm audit.
 
-mobile/partner: npm test; npm run typecheck; npx expo-doctor; npx expo export --platform android --output-dir .expo/android-test.
+mobile/partner: npm test; npm run typecheck; npm run test:release; npm run test:native-config; npm run validate:release; npx expo-doctor; npx expo export --platform android --output-dir .expo/android-test.
+
+mobile/customer: npx expo export --platform android --output-dir .expo/android-test.
+
+validate:release is expected to remain blocked until actual configuration is supplied. The standalone internal APK build/device checklist is provided separately; no EAS cloud build or store submission was started.
 
 Changes remain on codex/partner-ui-redesign; main has not been merged or deployed.
-
