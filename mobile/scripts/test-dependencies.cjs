@@ -3,6 +3,24 @@ const { createRequire } = require('node:module');
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const mobile = require('../package.json');
+for (const app of ['partner', 'customer']) {
+  const manifest = require('../' + app + '/package.json');
+  assert.equal(
+    manifest.dependencies['react-native'],
+    mobile.dependencies['react-native'],
+    app +
+      ' must declare the shared native runtime rather than relying on npm-version-specific workspace overrides.',
+  );
+}
+assert.equal(
+  require('react-native/package.json').version,
+  mobile.dependencies['react-native'],
+);
+assert.equal(
+  require('@react-native/metro-config/package.json').version,
+  mobile.dependencies['react-native'],
+);
 const xcode = require('xcode');
 const xcodeRequire = createRequire(require.resolve('xcode'));
 const uuid = xcodeRequire('uuid');
