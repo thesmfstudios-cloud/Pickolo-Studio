@@ -1,30 +1,46 @@
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
+import { isRunningInExpoGo } from 'expo';
+import type { NotificationResponse, Subscription } from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from './supabase';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+type NotificationsModule = typeof import('expo-notifications');
+let notificationModule: NotificationsModule | null = null;
 
-let responseSubscription: Notifications.Subscription | null = null;
+function loadNotifications(): NotificationsModule {
+  if (!notificationModule) {
+    // SDK 57 throws during this module's initialization in Android Expo Go.
+    // Keep the import lazy; a guard after a static import would be too late.
+    const notifications = require('expo-notifications') as NotificationsModule;
+    notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+    notificationModule = notifications;
+  }
+  return notificationModule;
+}
+
+let responseSubscription: Subscription | null = null;
 let responseRole: 'customer' | 'partner' | null = null;
 let handledResponseId: string | null = null;
 
-function ensureNotificationNavigation(appRole: 'customer' | 'partner') {
+function ensureNotificationNavigation(
+  appRole: 'customer' | 'partner',
+  Notifications: NotificationsModule,
+) {
   if (responseSubscription && responseRole === appRole) return;
 
   responseSubscription?.remove();
   responseRole = appRole;
 
-  const openResponse = (response: Notifications.NotificationResponse) => {
+  const openResponse = (response: NotificationResponse) => {
     const data = response.notification.request.content.data as
       { bookingId?: string } | undefined;
     if (
@@ -54,12 +70,16 @@ function ensureNotificationNavigation(appRole: 'customer' | 'partner') {
 }
 
 export async function registerPushToken(appRole: 'customer' | 'partner') {
+  // Detect Expo Go itself, not StoreClient: development builds also use
+  // StoreClient and must retain working native push registration.
+  if (Platform.OS === 'android' && isRunningInExpoGo()) return null;
   if (!supabase || !Device.isDevice) return null;
 
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) return null;
-  ensureNotificationNavigation(appRole);
+  const Notifications = loadNotifications();
+  ensureNotificationNavigation(appRole, Notifications);
 
   const projectId =
     Constants.expoConfig?.extra?.eas?.projectId ??

@@ -33,13 +33,18 @@ function fixture(overrides = {}) {
     routes: [],
     platform: 'android',
     registrations: [],
+    expoGo: false,
+    notificationLoads: 0,
+    handlerInstalls: 0,
     ...overrides,
   };
   const mocks = {
+    expo: { isRunningInExpoGo: () => state.expoGo },
     'expo-device': { isDevice: state.device },
     'expo-constants': {
       __esModule: true,
       default: {
+        executionEnvironment: state.executionEnvironment || 'standalone',
         expoConfig: { extra: { eas: { projectId: state.projectId } } },
       },
     },
@@ -53,7 +58,7 @@ function fixture(overrides = {}) {
       },
     },
     'expo-notifications': {
-      setNotificationHandler: () => {},
+      setNotificationHandler: () => state.handlerInstalls++,
       AndroidImportance: { DEFAULT: 3 },
       addNotificationResponseReceivedListener: (listener) => {
         state.listener = listener;
@@ -83,6 +88,11 @@ function fixture(overrides = {}) {
   const module = { exports: {} };
   new Function('require', 'module', 'exports', source)(
     (name) => {
+      if (name === 'expo-notifications') {
+        state.notificationLoads++;
+        if (state.notificationsImportError)
+          throw new Error('Android Expo Go cannot initialize remote push.');
+      }
       assert(mocks[name], 'Unexpected import ' + name);
       return mocks[name];
     },
@@ -105,6 +115,36 @@ async function test(name, run) {
   const previousBase = process.env.EXPO_PUBLIC_API_BASE_URL;
   process.env.EXPO_PUBLIC_API_BASE_URL = 'https://test.invalid/';
   try {
+    await test('Android Expo Go can import the shared module and skip both roles without loading unsupported native notifications', async () => {
+      const { state, register } = fixture({
+        expoGo: true,
+        notificationsImportError: true,
+      });
+      assert.equal(state.notificationLoads, 0);
+      assert.equal(await register('partner'), null);
+      assert.equal(await register('customer'), null);
+      assert.equal(state.notificationLoads, 0);
+      assert.equal(state.handlerInstalls, 0);
+      assert.deepEqual(state.calls, []);
+      assert.deepEqual(state.registrations, []);
+      assert.equal(state.listener, undefined);
+    });
+    await test('native notification module is lazy and initialized once across repeated registration', async () => {
+      const { state, register } = fixture();
+      assert.equal(state.notificationLoads, 0);
+      assert.equal(await register('partner'), 'ExponentPushToken[test]');
+      assert.equal(await register('partner'), 'ExponentPushToken[test]');
+      assert.equal(state.notificationLoads, 1);
+      assert.equal(state.handlerInstalls, 1);
+    });
+    await test('StoreClient development builds are not mistaken for Expo Go and retain push', async () => {
+      const { state, register } = fixture({
+        executionEnvironment: 'storeClient',
+      });
+      assert.equal(await register('partner'), 'ExponentPushToken[test]');
+      assert.equal(state.notificationLoads, 1);
+      assert.deepEqual(state.calls, ['channel', 'permissions', 'token']);
+    });
     await test('Android channel precedes permissions and token; auth/project/role request retained', async () => {
       const { state, register } = fixture();
       assert.equal(await register('partner'), 'ExponentPushToken[test]');
