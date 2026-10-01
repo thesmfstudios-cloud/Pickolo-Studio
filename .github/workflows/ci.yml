@@ -52,3 +52,4 @@ jobs:
           node-version: 22.13.0
       - run: npm install --legacy-peer-deps
       - run: npm run typecheck --workspace @pickolo/partner
+      - run: npm test --workspace @pickolo/partner

@@ -1,138 +1,139 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
-import { supabase } from '../../shared/supabase';
-
-type Slot = { id: string; starts_at: string; ends_at: string; available: boolean };
-
+import { useState } from 'react';
+import { Alert, Text, TextInput } from 'react-native';
+import {
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Header,
+  Page,
+  RemoteState,
+  SectionTitle,
+  ui,
+} from '../ui/components';
+import { errorMessage, request } from '../ui/api';
+import { useRemote } from '../ui/useRemote';
+type Slot = {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  available: boolean;
+};
+async function loadAvailability() {
+  return request<{ availability: Slot[] }>('/api/partner/availability');
+}
 export default function AvailabilityScreen() {
-  const [slots, setSlots] = useState<Slot[]>([]);
+  const remote = useRemote(loadAvailability);
   const [date, setDate] = useState('');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    if (!supabase) return;
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) {
-      router.replace('/auth');
-      return;
-    }
-
-    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-    const response = await fetch(baseUrl + '/api/partner/availability', {
-      headers: { Authorization: 'Bearer ' + token },
-    });
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      Alert.alert('Unable to load availability', result.error || 'Please try again.');
-      return;
-    }
-
-    setSlots(result.availability || []);
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
   async function addSlot() {
-    if (!supabase) return;
-    if (!date || !start || !end) {
-      Alert.alert('Missing details', 'Enter date, start time and end time.');
-      return;
-    }
-
-    const begins = new Date(date + 'T' + start);
-    const finishes = new Date(date + 'T' + end);
-
-    if (Number.isNaN(begins.getTime()) || Number.isNaN(finishes.getTime()) || finishes <= begins || begins <= new Date()) {
-      Alert.alert('Invalid availability', 'Use a future time range with the end after the start.');
-      return;
-    }
-
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) {
-      router.replace('/auth');
-      return;
-    }
-
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(start) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(end)
+    )
+      return Alert.alert(
+        'Invalid availability',
+        'Use YYYY-MM-DD and 24-hour HH:MM times.',
+      );
+    const begins = new Date(date + 'T' + start + ':00+05:30');
+    const finishes = new Date(date + 'T' + end + ':00+05:30');
+    if (
+      Number.isNaN(begins.getTime()) ||
+      finishes <= begins ||
+      begins <= new Date() ||
+      begins.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) !== date
+    )
+      return Alert.alert(
+        'Invalid availability',
+        'Use a valid future date with the end after the start.',
+      );
     setBusy(true);
-    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-    const response = await fetch(baseUrl + '/api/partner/availability', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token,
-      },
-      body: JSON.stringify({
-        starts_at: begins.toISOString(),
-        ends_at: finishes.toISOString(),
-      }),
-    });
-    const result = await response.json().catch(() => ({}));
-    setBusy(false);
-
-    if (!response.ok) {
-      Alert.alert('Unable to save', result.error || 'Please try again.');
-      return;
+    try {
+      await request('/api/partner/availability', {
+        method: 'POST',
+        body: JSON.stringify({
+          starts_at: begins.toISOString(),
+          ends_at: finishes.toISOString(),
+        }),
+      });
+      setDate('');
+      setStart('');
+      setEnd('');
+      await remote.reload();
+    } catch (err) {
+      Alert.alert('Unable to save', errorMessage(err));
+    } finally {
+      setBusy(false);
     }
-
-    setDate('');
-    setStart('');
-    setEnd('');
-    await load();
   }
-
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Pressable onPress={() => router.back()}><Text style={styles.back}>‹ Back</Text></Pressable>
-        <Text style={styles.title}>Availability</Text>
-        <Text style={styles.subtitle}>Tell Pickolo when you can accept nearby assignments.</Text>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Add availability</Text>
-          <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={date} onChangeText={setDate} />
-          <TextInput style={styles.input} placeholder="Start HH:MM" value={start} onChangeText={setStart} />
-          <TextInput style={styles.input} placeholder="End HH:MM" value={end} onChangeText={setEnd} />
-          <Pressable style={styles.primary} onPress={addSlot} disabled={busy}>
-            <Text style={styles.primaryText}>{busy ? 'Saving...' : 'Add time window'}</Text>
-          </Pressable>
-        </View>
-
-        <Text style={styles.sectionTitle}>Your windows</Text>
-        {slots.length === 0 ? (
-          <View style={styles.card}><Text style={styles.muted}>No availability windows added yet.</Text></View>
-        ) : slots.map((slot) => (
-          <View style={styles.card} key={slot.id}>
-            <Text style={styles.rowTitle}>{new Date(slot.starts_at).toLocaleString()}</Text>
-            <Text style={styles.muted}>until {new Date(slot.ends_at).toLocaleString()}</Text>
-            <Text style={styles.badge}>{slot.available ? 'AVAILABLE' : 'UNAVAILABLE'}</Text>
-          </View>
+    <Page>
+      <Header
+        title="Availability"
+        subtitle="Plan your Bhopal shoots · times in IST"
+        back
+      />
+      <Card>
+        <Text style={ui.heading}>Add a time window</Text>
+        <TextInput
+          style={[ui.input, { marginTop: 12 }]}
+          placeholder="YYYY-MM-DD"
+          value={date}
+          onChangeText={setDate}
+        />
+        <TextInput
+          style={[ui.input, { marginTop: 10 }]}
+          placeholder="Start HH:MM"
+          value={start}
+          onChangeText={setStart}
+        />
+        <TextInput
+          style={[ui.input, { marginTop: 10 }]}
+          placeholder="End HH:MM"
+          value={end}
+          onChangeText={setEnd}
+        />
+        <Button
+          label={busy ? 'Saving…' : 'Add time window'}
+          onPress={addSlot}
+          disabled={busy}
+        />
+      </Card>
+      <SectionTitle>Your windows</SectionTitle>
+      <RemoteState
+        loading={remote.loading}
+        error={remote.error}
+        retry={remote.reload}
+      />
+      {!remote.loading &&
+        !remote.error &&
+        (remote.data?.availability.length ? (
+          remote.data.availability.map((slot) => (
+            <Card key={slot.id} style={{ marginBottom: 12 }}>
+              <Text style={ui.label}>
+                {new Date(slot.starts_at).toLocaleString('en-IN', {
+                  timeZone: 'Asia/Kolkata',
+                })}
+              </Text>
+              <Text style={ui.body}>
+                until{' '}
+                {new Date(slot.ends_at).toLocaleString('en-IN', {
+                  timeZone: 'Asia/Kolkata',
+                })}{' '}
+                IST
+              </Text>
+              <Chip label={slot.available ? 'AVAILABLE' : 'UNAVAILABLE'} />
+            </Card>
+          ))
+        ) : (
+          <EmptyState
+            title="No availability yet"
+            body="Add the hours you are ready to accept assignments."
+          />
         ))}
-      </ScrollView>
-    </SafeAreaView>
+    </Page>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F9F8' },
-  container: { padding: 20, paddingBottom: 40 },
-  back: { color: '#087443', fontWeight: '800', fontSize: 16 },
-  title: { marginTop: 18, fontSize: 32, fontWeight: '800', color: '#13213a' },
-  subtitle: { marginTop: 6, color: '#64748b', lineHeight: 22 },
-  card: { marginTop: 14, padding: 18, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0' },
-  cardTitle: { fontSize: 19, fontWeight: '800', color: '#13213a', marginBottom: 12 },
-  input: { marginTop: 10, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16 },
-  primary: { marginTop: 14, backgroundColor: '#087443', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
-  primaryText: { color: '#fff', fontWeight: '800' },
-  sectionTitle: { marginTop: 24, fontSize: 19, fontWeight: '800', color: '#13213a' },
-  rowTitle: { fontSize: 16, fontWeight: '800', color: '#13213a' },
-  muted: { marginTop: 6, color: '#64748b', lineHeight: 21 },
-  badge: { alignSelf: 'flex-start', marginTop: 11, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999, backgroundColor: '#E9F8F0', color: '#045B35', fontSize: 10, fontWeight: '800' },
-});

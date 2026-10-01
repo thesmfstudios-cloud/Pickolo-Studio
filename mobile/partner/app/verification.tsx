@@ -1,7 +1,76 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Card, Header, Page, ui } from '../ui/components';
-import { colors } from '../ui/theme';
-export default function Verification() { return <Page><Header title="Verification" subtitle="Your application is under review" /><Card style={styles.center}><View style={styles.icon}><Text style={styles.iconText}>✓</Text></View><Text style={styles.title}>Application received</Text><Text style={[ui.body, styles.body]}>Our team is reviewing your identity, skills and portfolio. Most Bhopal partner applications are reviewed within 1–2 working days.</Text></Card><Card style={styles.steps}><Step done label="Account created" /><Step done label="Application submitted" /><Step label="Document review" /><Step label="Partner account activated" /></Card><Button label="Back to home" onPress={() => router.replace('/home')} /><Button label="Update documents" variant="secondary" onPress={() => router.push('/apply')} /></Page>; }
-function Step({ label, done = false }: { label: string; done?: boolean }) { return <View style={styles.step}><View style={[styles.dot, done && styles.dotDone]}><Text style={styles.dotText}>{done ? '✓' : '•'}</Text></View><Text style={[ui.label, !done && { color: colors.muted }]}>{label}</Text></View>; }
-const styles = StyleSheet.create({ center: { alignItems: 'center', paddingVertical: 28 }, icon: { width: 70, height: 70, borderRadius: 35, backgroundColor: colors.greenSoft, alignItems: 'center', justifyContent: 'center' }, iconText: { color: colors.green, fontSize: 30, fontWeight: '900' }, title: { marginTop: 18, color: colors.ink, fontSize: 22, fontWeight: '900' }, body: { marginTop: 9, textAlign: 'center' }, steps: { marginTop: 14 }, step: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 }, dot: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#F1F3F2', alignItems: 'center', justifyContent: 'center' }, dotDone: { backgroundColor: colors.greenSoft }, dotText: { color: colors.green, fontWeight: '900' } });
+import { Application, request } from '../ui/api';
+import { useRemote } from '../ui/useRemote';
+import { Button, Card, Header, Page, RemoteState, ui } from '../ui/components';
+
+async function loadApplication() {
+  return request<{ application: Application | null }>(
+    '/api/partner/application',
+  );
+}
+export default function Verification() {
+  const remote = useRemote(loadApplication);
+  const application = remote.data?.application;
+  const status = application?.status;
+  const title =
+    status === 'approved'
+      ? 'Application approved'
+      : status === 'rejected'
+        ? 'Application needs attention'
+        : application
+          ? 'Application under review'
+          : 'Complete your application';
+  return (
+    <Page>
+      <Header title="Verification" subtitle="Your current application status" />
+      <RemoteState
+        loading={remote.loading}
+        error={remote.error}
+        retry={remote.reload}
+      />
+      {!remote.loading && !remote.error && (
+        <>
+          <Card>
+            <Text style={ui.heading}>{title}</Text>
+            <Text style={[ui.body, { marginTop: 12 }]}>
+              {status === 'rejected'
+                ? application?.rejection_reason ||
+                  'Contact Pickolo support for review details.'
+                : status === 'approved'
+                  ? 'Your application was approved. Account access is checked when you open your workspace.'
+                  : application
+                    ? 'Pickolo will notify you when your review is complete. You can check again below.'
+                    : 'Add your details and UPI account before submitting verification documents.'}
+            </Text>
+          </Card>
+          <Button
+            label="Check status again"
+            variant="secondary"
+            onPress={remote.reload}
+          />
+          {status === 'approved' ? (
+            <Button
+              label="Open workspace"
+              onPress={() => router.replace('/home')}
+            />
+          ) : status !== 'rejected' ? (
+            <Button
+              label={
+                application
+                  ? 'Update application & documents'
+                  : 'Start application'
+              }
+              onPress={() => router.push('/apply')}
+            />
+          ) : (
+            <Button
+              label="Help & support"
+              onPress={() => router.push('/support')}
+            />
+          )}
+        </>
+      )}
+    </Page>
+  );
+}

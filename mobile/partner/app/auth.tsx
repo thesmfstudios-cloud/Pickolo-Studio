@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
 import { Brand } from '../ui/components';
@@ -14,7 +25,7 @@ export default function PartnerAuth() {
 
   async function submitAuth() {
     if (!supabase) {
-      Alert.alert('Pickolo', 'Supabase is not configured.');
+      Alert.alert('Pickolo', 'Pickolo connection is unavailable. Please contact support.');
       return;
     }
 
@@ -22,102 +33,175 @@ export default function PartnerAuth() {
     const normalizedName = fullName.trim();
     const normalizedPhone = phone.trim();
 
-    if (!normalizedEmail || !password || (mode === 'signup' && (!normalizedName || !normalizedPhone))) {
+    if (
+      !normalizedEmail ||
+      !password ||
+      (mode === 'signup' && (!normalizedName || !normalizedPhone))
+    ) {
       Alert.alert('Missing details', 'Please complete all required fields.');
       return;
     }
 
     setBusy(true);
-
-    const result =
-      mode === 'login'
-        ? await supabase.auth.signInWithPassword({
-            email: normalizedEmail,
-            password,
-          })
-        : await supabase.auth.signUp({
-            email: normalizedEmail,
-            password,
-            options: {
-              data: {
-                full_name: normalizedName,
-                phone: normalizedPhone,
+    try {
+      const result =
+        mode === 'login'
+          ? await supabase.auth.signInWithPassword({
+              email: normalizedEmail,
+              password,
+            })
+          : await supabase.auth.signUp({
+              email: normalizedEmail,
+              password,
+              options: {
+                data: {
+                  full_name: normalizedName,
+                  phone: normalizedPhone,
+                },
               },
-            },
-          });
+            });
 
-    setBusy(false);
+      setBusy(false);
 
-    if (result.error) {
-      Alert.alert(mode === 'login' ? 'Login failed' : 'Account creation failed', result.error.message);
-      return;
+      if (result.error) {
+        Alert.alert(
+          mode === 'login' ? 'Login failed' : 'Account creation failed',
+          result.error.message,
+        );
+        return;
+      }
+
+      if (mode === 'signup' && !result.data.session) {
+        Alert.alert(
+          'Account created',
+          'Check your email if confirmation is enabled.',
+        );
+        return;
+      }
+
+      router.replace(mode === 'signup' ? '/apply' : '/home');
+    } catch {
+      Alert.alert(
+        'Connection interrupted',
+        'Check your internet and try again.',
+      );
+    } finally {
+      setBusy(false);
     }
-
-    if (mode === 'signup' && !result.data.session) {
-      Alert.alert('Account created', 'Check your email if confirmation is enabled.');
-      return;
-    }
-
-    router.replace(mode === 'signup' ? '/apply' : '/home');
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Brand />
-        <Text style={styles.title}>{mode === 'login' ? 'Partner Login' : 'Create partner account'}</Text>
-        <Text style={styles.subtitle}>Manage nearby assignments and your Pickolo work.</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Brand />
+          <Text style={styles.title}>
+            {mode === 'login' ? 'Partner Login' : 'Create partner account'}
+          </Text>
+          <Text style={styles.subtitle}>
+            Manage nearby assignments and your Pickolo work.
+          </Text>
 
-        <View style={styles.form}>
-          {mode === 'signup' && (
-            <>
-              <TextInput style={styles.input} placeholder="Full name" value={fullName} onChangeText={setFullName} />
-              <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-            </>
-          )}
+          <View style={styles.form}>
+            {mode === 'signup' && (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Full name"
+                  value={fullName}
+                  onChangeText={setFullName}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Phone"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                />
+              </>
+            )}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
 
-          <Pressable style={styles.primary} onPress={submitAuth} disabled={busy}>
-            <Text style={styles.primaryText}>
-              {busy ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create account'}
-            </Text>
-          </Pressable>
+            <Pressable
+              style={styles.primary}
+              onPress={submitAuth}
+              disabled={busy}
+            >
+              <Text style={styles.primaryText}>
+                {busy
+                  ? 'Please wait...'
+                  : mode === 'login'
+                    ? 'Login'
+                    : 'Create account'}
+              </Text>
+            </Pressable>
 
-          <Pressable style={styles.secondary} onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}>
-            <Text style={styles.secondaryText}>
-              {mode === 'login' ? 'Create partner account' : 'Already have an account? Login'}
-            </Text>
-          </Pressable>
-        </View>
-      </View>
+            <Pressable
+              disabled={busy}
+              style={styles.secondary}
+              onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}
+            >
+              <Text style={styles.secondaryText}>
+                {mode === 'login'
+                  ? 'Create partner account'
+                  : 'Already have an account? Login'}
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F7F9F8' },
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
-  kicker: { fontSize: 12, letterSpacing: 2.5, color: '#087443', fontWeight: '800' },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
+  kicker: {
+    fontSize: 12,
+    letterSpacing: 2.5,
+    color: '#087443',
+    fontWeight: '800',
+  },
   title: { marginTop: 8, fontSize: 34, fontWeight: '800', color: '#13213a' },
   subtitle: { marginTop: 9, color: '#64748b', fontSize: 16, lineHeight: 24 },
   form: { marginTop: 28, gap: 14 },
-  input: { borderWidth: 1, borderColor: '#E7ECE9', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 15, paddingVertical: 14, fontSize: 16 },
-  primary: { backgroundColor: '#087443', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E7ECE9',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+    fontSize: 16,
+  },
+  primary: {
+    backgroundColor: '#087443',
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+  },
   primaryText: { color: '#fff', fontWeight: '800', fontSize: 16 },
   secondary: { paddingVertical: 14, alignItems: 'center' },
   secondaryText: { color: '#045B35', fontWeight: '800' },

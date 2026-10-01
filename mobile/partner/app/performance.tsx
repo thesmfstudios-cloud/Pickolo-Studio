@@ -1,106 +1,82 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { supabase } from '../../shared/supabase';
-
-type Performance = {
-  completed_jobs: number;
-  on_time_jobs: number;
-  cancellations: number;
-  no_shows: number;
-  delivered_jobs: number;
-  average_rating: number | null;
-  xp: number;
-};
-type Payout = { id: string; amount_paise: number; status: string; created_at: string };
-
+import {
+  Button,
+  Card,
+  Header,
+  Page,
+  RemoteState,
+  SectionTitle,
+  ui,
+} from '../ui/components';
+import { Performance, request } from '../ui/api';
+import { useRemote } from '../ui/useRemote';
+import { colors } from '../ui/theme';
+async function loadPerformance() {
+  return request<{ performance: Performance }>('/api/partner/performance');
+}
 export default function PerformanceScreen() {
-  const [performance, setPerformance] = useState<Performance | null>(null);
-  const [payouts, setPayouts] = useState<Payout[]>([]);
-
-  const load = useCallback(async () => {
-    if (!supabase) return;
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) {
-      router.replace('/auth');
-      return;
-    }
-
-    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
-    const response = await fetch(baseUrl + '/api/partner/performance', {
-      headers: { Authorization: 'Bearer ' + token },
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      Alert.alert('Unable to load performance', result.error || 'Please try again.');
-      return;
-    }
-    setPerformance(result.performance);
-    setPayouts(result.payouts || []);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
+  const remote = useRemote(loadPerformance);
+  const performance = remote.data?.performance;
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Pressable onPress={() => router.back()}><Text style={styles.back}>‹ Back</Text></Pressable>
-        <Text style={styles.title}>Performance</Text>
-        <Text style={styles.subtitle}>Your Pickolo reliability and payout history.</Text>
-
-        <View style={styles.grid}>
-          <Stat label="Completed" value={String(performance?.completed_jobs ?? 0)} />
-          <Stat label="Delivered" value={String(performance?.delivered_jobs ?? 0)} />
-          <Stat label="Rating" value={performance?.average_rating ? performance.average_rating.toFixed(1) : '—'} />
-          <Stat label="XP" value={String(performance?.xp ?? 0)} />
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Reliability</Text>
-          <Text style={styles.muted}>On-time: {performance?.on_time_jobs ?? 0}</Text>
-          <Text style={styles.muted}>Cancellations: {performance?.cancellations ?? 0}</Text>
-          <Text style={styles.muted}>No-shows: {performance?.no_shows ?? 0}</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Payouts</Text>
-          {payouts.length === 0 ? (
-            <Text style={styles.muted}>No payout records yet.</Text>
-          ) : payouts.map((item) => (
-            <View style={styles.payout} key={item.id}>
-              <Text style={styles.payoutAmount}>₹{(item.amount_paise / 100).toFixed(0)}</Text>
-              <Text style={styles.muted}>{item.status} · {new Date(item.created_at).toLocaleDateString()}</Text>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <Page>
+      <Header
+        title="Performance"
+        subtitle="Your Pickolo quality and reliability"
+        back
+      />
+      <RemoteState
+        loading={remote.loading}
+        error={remote.error}
+        retry={remote.reload}
+      />
+      {performance && !remote.error && (
+        <>
+          <View style={styles.grid}>
+            <Stat
+              label="Completed"
+              value={String(performance.completed_jobs)}
+            />
+            <Stat
+              label="Delivered"
+              value={String(performance.delivered_jobs)}
+            />
+            <Stat
+              label="Rating"
+              value={performance.average_rating?.toFixed(1) || '—'}
+            />
+            <Stat label="XP earned" value={String(performance.xp)} />
+          </View>
+          <SectionTitle>Reliability</SectionTitle>
+          <Card>
+            <Text style={ui.body}>
+              On-time shoots: {performance.on_time_jobs}
+            </Text>
+            <Text style={ui.body}>
+              Cancellations: {performance.cancellations}
+            </Text>
+            <Text style={ui.body}>No-shows: {performance.no_shows}</Text>
+          </Card>
+          <Button
+            label="View earnings & payouts"
+            variant="secondary"
+            onPress={() => router.push('/earnings')}
+          />
+        </>
+      )}
+    </Page>
   );
 }
-
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    <Card style={styles.stat}>
+      <Text style={styles.value}>{value}</Text>
+      <Text style={ui.body}>{label}</Text>
+    </Card>
   );
 }
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F9F8' },
-  container: { padding: 20, paddingBottom: 40 },
-  back: { color: '#087443', fontWeight: '800', fontSize: 16 },
-  title: { marginTop: 18, fontSize: 32, fontWeight: '800', color: '#13213a' },
-  subtitle: { marginTop: 6, color: '#64748b', lineHeight: 22 },
-  grid: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  stat: { width: '47%', padding: 17, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0' },
-  statValue: { fontSize: 28, fontWeight: '900', color: '#13213a' },
-  statLabel: { marginTop: 4, color: '#64748b', fontWeight: '700' },
-  card: { marginTop: 14, padding: 18, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0' },
-  cardTitle: { fontSize: 19, fontWeight: '800', color: '#13213a' },
-  muted: { marginTop: 6, color: '#64748b', lineHeight: 21 },
-  payout: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
-  payoutAmount: { fontSize: 20, fontWeight: '800', color: '#13213a' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  stat: { width: '47%' },
+  value: { color: colors.ink, fontSize: 28, fontWeight: '900' },
 });
