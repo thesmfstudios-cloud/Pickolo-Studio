@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "tsc --noEmit",
     "validate:repo": "node scripts/validate-repo.mjs",
-    "test:customer": "node scripts/test-customer.mjs"
+    "test:customer": "node scripts/test-customer.mjs",
+    "test:partner": "node scripts/test-partner.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.116.0",

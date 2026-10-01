@@ -58,7 +58,7 @@ export type Partner = {
   id: string;
   partner_code: string;
   verification_status: string;
-  service_level_id: string;
+  service_level_id: string | null;
   bio: string | null;
   is_accepting_jobs: boolean;
   payout_upi_id: string | null;
@@ -83,6 +83,12 @@ export type Performance = {
   xp: number;
   average_rating: number | null;
 };
+export type ServiceLevel = {
+  id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+};
 export type Payout = {
   id: string;
   booking_id: string;
@@ -96,6 +102,7 @@ export const isPaidPayout = (payout: Payout) =>
 export type Job = {
   id: string;
   booking_code: string;
+  partner_payout_paise?: number | null;
   status: string;
   partner_acceptance_status?: string;
   partner_offer_expires_at?: string | null;

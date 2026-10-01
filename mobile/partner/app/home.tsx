@@ -262,7 +262,9 @@ export default function PartnerHome() {
             </View>
             <Button
               label="Open assignment  ↗"
-              onPress={() => router.push('/jobs')}
+              onPress={() =>
+                router.push({ pathname: '/job', params: { id: current.id } })
+              }
             />
           </Card>
         ) : (

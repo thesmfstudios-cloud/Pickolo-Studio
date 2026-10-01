@@ -43,6 +43,23 @@ export default function ProfileScreen() {
   const remote = useRemote(loadProfile);
   const [upi, setUpi] = useState('');
   const [busy, setBusy] = useState(false);
+  const [bio, setBio] = useState<string | null>(null);
+  async function saveBio() {
+    setBusy(true);
+    try {
+      await request('/api/partner/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ bio: bio ?? remote.data?.partner.bio ?? '' }),
+      });
+      setBio(null);
+      await remote.reload();
+      Alert.alert('Profile updated', 'Your creator bio has been saved.');
+    } catch (err) {
+      Alert.alert('Unable to save bio', errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
   async function logout() {
     try {
       if (!supabase) return router.replace('/auth');
@@ -101,6 +118,36 @@ export default function ProfileScreen() {
                 {remote.data.partner.bio}
               </Text>
             )}
+          </Card>
+          <SectionTitle>Creator bio</SectionTitle>
+          <Card>
+            <Text style={ui.body}>
+              Tell us about your photography style and experience.
+            </Text>
+            <TextInput
+              accessibilityLabel="Creator bio"
+              placeholder="Your photography experience"
+              value={bio ?? remote.data.partner.bio ?? ''}
+              onChangeText={setBio}
+              multiline
+              maxLength={500}
+              style={[ui.input, { marginTop: 12, minHeight: 100 }]}
+            />
+            <Text style={ui.body}>
+              {(bio ?? remote.data.partner.bio ?? '').length}/500
+            </Text>
+            <Button
+              label={busy ? 'Saving…' : 'Save bio'}
+              disabled={
+                busy || remote.data.partner.verification_status !== 'approved'
+              }
+              onPress={saveBio}
+            />
+            <Button
+              label="Manage portfolio"
+              variant="secondary"
+              onPress={() => router.push('/portfolio')}
+            />
           </Card>
           <SectionTitle>Payout account</SectionTitle>
           <Card>

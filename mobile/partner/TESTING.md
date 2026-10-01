@@ -1,79 +1,83 @@
-# Pickolo Partner app — test report
+# Pickolo Partner — implementation and test report
 
 Date: 1 October 2026 (IST)
 Branch: codex/partner-ui-redesign
-Baseline reviewed: d65acdf
+Continuation baseline: ab4dee1
 
-The available automated checks pass after corrective changes. This is not a Play Store release sign-off: native device testing, live authenticated integrations and some requested features remain incomplete. The earlier completion summary overstated readiness.
+## Outcome
 
-## Executed checks
+Added working private portfolio management, creator-bio editing, a dedicated assignment-detail screen, actual assignment payouts, and a database-backed partner-level view. Fixed the missing customer-handoff confirmation in the mobile delivery request. Delivery finalization now saves files, delivery metadata, status and history in one database transaction.
 
-| Check | Result | What it proves |
+These changes are tested locally, not certified for a Play Store release. No live database, production deployment or main-branch merge was performed.
+
+## Checks executed
+
+| Check | Result | Evidence boundary |
 | --- | --- | --- |
-| Partner interaction suite | PASS — 50 scenarios | Actual React screen components and event handlers execute against mocked native modules, navigation, Supabase and HTTP responses. All 15 screens and the root layout render. |
-| Partner TypeScript | PASS | Partner and shared source compile with strict checking. |
-| Customer TypeScript | PASS | Shared dependency changes preserve customer source compilation. |
-| Expo project health | PASS — 21/21 checks | Supported package versions, native-module deduplication and project configuration checks. |
-| Clean mobile dependency install | PASS | npm ci succeeds from mobile/package-lock.json. |
-| Android production bundle | PASS | Metro/Hermes exports the Android JavaScript bundle and assets. This is not an APK/AAB or Gradle native build. |
-| Repository validation | PASS | Architecture, migration ordering, secret-name separation, secure storage, auth/onboarding gates and retired delivery route checks. |
-| Backend TypeScript and Next.js production build | PASS | Backend/web source builds on Next.js 16.3.8. |
-| Database regression suite | PASS | All repository migrations execute in local PGlite; pricing, Bhopal area checks, time/duration/policy validation, OTP privacy, wrong-partner rejection, lockout, successful start and replay rejection pass. No live database was changed. |
-| Backend dependency audit | PASS — 0 reported vulnerabilities | The prior critical Next.js advisory is cleared by the compatible 16.3.8 patch. |
-| Mobile dependency audit | OPEN — 13 moderate findings, 0 high/critical | Remaining transitive advisories include uuid/xcode and decode-uri-component/query-string chains. npm suggests incompatible major downgrades for parts of Expo; these were not applied. |
-| Whitespace/diff checks | PASS | No whitespace errors. |
+| Partner UI interactions | PASS — 63 scenarios | Actual React components/event handlers; native modules, HTTP and Supabase mocked. All 17 screens plus root layout render. |
+| Partner backend/delivery integration | PASS — 24 scenarios | Actual Next handlers and migration SQL execute against local PGlite. Supabase authentication/transport and Storage signing are mocked. |
+| Dependency compatibility | PASS | uuid bounds regression, CommonJS imports, 100 Xcode identifiers, current router query parsing/serialization. |
+| Partner and customer TypeScript | PASS | Both mobile apps compile. |
+| Expo health | PASS — 21/21 | Project/native dependency/config checks. |
+| Clean mobile install | PASS | npm ci installs the committed lockfile successfully. |
+| Android production JavaScript export | PASS | Metro/Hermes bundle and assets generated. This is not an APK/AAB or native Gradle build. |
+| Backend TypeScript/build | PASS | Next.js 16.3.8 production build completes. |
+| Repository validation | PASS | Sequential migrations, auth/onboarding gates, secret separation and project checks. |
+| Existing customer/database regressions | PASS | All migrations including 0030; pricing, Bhopal radius, policy/time/duration, OTP privacy/lockout/start/replay. |
+| Backend security audit | PASS — 0 findings | Online npm audit at verification time. |
+| Mobile security audit | OPEN — 3 moderate, 0 high/critical | Reduced from 13 findings by the scoped UUID patch. |
+| Whitespace checks | PASS | git diff --check. |
+| Native/live Android QA | NOT EXECUTED | No adb, Java/Android SDK, device/emulator or configured live test accounts available. |
 
-## Interaction coverage
+The 87 UI/backend scenarios are not 87 live-device tests. The simultaneous-submission check uses two actual handlers and a serialized local database; it does not replace multi-connection PostgreSQL load testing.
 
-The 50 scenarios cover screen rendering; empty-field auth validation; login and signup request data; email-confirmation signup; login rejection and network failure; required UPI validation and application saving; existing application prefill; private KYC byte uploads and oversized documents; actual rejected verification reasons; dashboard data, online persistence and failed online writes; empty assignments; offer accept/pass and expiry; six-digit customer OTP; shoot completion and preparation for delivery; cancellation confirmation; Maps coordinates; video selection; oversized delivery files; signed upload, storage failure and finalization failure; IST availability and impossible dates; notification read success/failure; earnings period filters and provider-processed payouts; real profile verification badges and UPI updates; logout; Android permission-settings navigation; bottom tabs; remote-load errors and successful retries; missing configuration; expired sessions and server 401 responses; pending/new/suspended account routing; rejected lifecycle actions; submitted-job action gating; media permission denial; configured support calling; splash session restoration and secure-storage failure.
+## Screens and behavior completed in this continuation
 
-## Issues corrected
+- **Portfolio:** own-folder private Storage listing, time-limited image previews, single-photo native-byte uploads, six-photo UI limit, image type/20 MB checks, permission/error/loading/empty states, confirmed removal and refresh. Reuses the existing partner-portfolio bucket and owner-only policy; there is no fabricated public gallery.
+- **Profile:** editable bio with 500-character server validation; saved UPI workflow retained; working portfolio entry.
+- **Performance/levels:** actual assigned service level, active level catalogue/descriptions and actual XP/reliability. No invented promotion thresholds or changes to job eligibility. Existing database logic awards 100 XP when a booking reaches COMPLETED.
+- **Job detail:** selected assignment only, actual payout, schedule/location/service/notes, workflow explanation, Maps/accept/pass/OTP/shoot/delivery/cancellation actions reused from Jobs. Unavailable/missing assignments have honest empty states.
+- **Home, Jobs and notifications:** open the selected assignment-detail screen. Offers expire during an open screen rather than requiring a refresh to disable action buttons.
+- **Delivery:** explicit accessible customer-handoff checkbox sends the backend-required customer_handoff_confirmed flag. Native file size is checked when picker metadata is missing; actual byte length is sent. Successful uploaded objects are reused for retries while this screen remains mounted.
+- **Remote states:** older overlapping requests cannot overwrite a newer result; focus cleanup invalidates pending results.
 
-- Replaced fabricated dashboard metrics, current assignment, earnings, payout dates, verification badges and creator level with actual API data or honest empty states.
-- Online/offline changes now PATCH is_accepting_jobs and reload the server result; failed writes retain the prior state.
-- Added the backend-required payout_upi_id to application and profile forms. Existing applications are prefilled, and KYC uploads are enabled after saving the application.
-- Added the six-digit customer OTP field and validation to Start shoot.
-- Removed the direct client DATA_PENDING → DATA_SUBMITTED shortcut. The UI now opens delivery upload and submits through the existing signed-upload/finalization flow.
-- Added explicit offer filters/expiry handling, cancellation confirmation, notification error handling, request timeout/session handling, focus reload and retry states.
-- Delivery accepts photos and videos, validates file sizes, shows progress and never finalizes after a failed upload.
-- Native uploads now read ArrayBuffer bytes through Expo FileSystem instead of passing React Native Blob objects. This follows the [Supabase upload guidance](https://supabase.com/docs/reference/javascript/v1/storage-from-upload) and [Expo FileSystem API](https://docs.expo.dev/versions/latest/sdk/filesystem/). Actual device transfer still requires verification.
-- Availability inputs validate real calendar dates and save Bhopal times using the explicit IST offset.
-- Replaced non-persistent notification toggles with Android's actual permission-settings link. Support calling is shown only when EXPO_PUBLIC_SUPPORT_PHONE is configured.
-- Added safe-area support, keyboard handling and the real app version. Removed placeholder portfolio tiles and false portfolio navigation.
-- Aligned shared React and native dependency versions with Expo 57, removed the duplicate-React hook failure and duplicate native modules, and added the interaction suite to the partner CI job.
-- Updated Next.js 16.3.3 → 16.3.8 for the audit-reported security fix. No backend route or database migration was changed.
+Previous auth, application/KYC, verification, availability, earnings, support/settings/legal-information and bottom-navigation work is retained and covered by the regression suite.
+
+## Delivery integrity and deployment dependency
+
+New migration: **supabase/migrations/0030_partner_delivery_integrity.sql**.
+
+Apply this migration in a separately authorized staging/release workflow **before deploying the updated backend finalization handler**. The new handler requires finalize_partner_delivery; it intentionally does not fall back to the old non-atomic writes. Nothing was applied to a live database here.
+
+Before applying, inspect the target database's migration inventory. This checkout's main baseline ends at 0029; a different unmerged repository branch contains another proposed 0030 migration. Resolve numbering against the actual deployed migration history rather than applying both under the same number.
+
+The RPC is executable only by the server role. It locks the booking, rechecks assignment/approval/current state, validates metadata and actual Storage-object presence, rejects duplicate/cross-booking paths, and writes delivery assets/record/status/history atomically. A database guard and the generic transition endpoint block direct DATA_SUBMITTED shortcuts.
+
+Tests cover authentication, unapproved/wrong partners, handoff, malformed JSON, missing files, invalid paths/MIME/size/count/duplicates, success, retries, two submission attempts, SQL permissions, changed bookings and rollback after a later-file/history failure. Customer-confirmation/completion/100-XP behavior is preserved in a database regression. Existing Storage policies are also tested for portfolio-owner read/delete isolation.
+
+## Dependency patch and remaining advisory
+
+The xcode dependency now uses scoped uuid@11.1.1, retaining CommonJS support and clearing the UUID-related dependency chain. The patch corresponds to the maintainer's [11.1.1 security backport](https://github.com/uuidjs/uuid/releases/tag/v11.1.1).
+
+The remaining three findings are decode-uri-component → query-string → expo-router. The [maintainer's decoder advisory](https://github.com/advisories/GHSA-vcc3-ghjq-m6fr) identifies 0.5.0 as patched, but that version is ESM while the installed query-string expects a CommonJS function. A blind override or the audit-suggested major Expo/router downgrade was not applied. A compatible router/query-string upgrade or a reviewed compatibility patch is still needed.
 
 ## Remaining release gaps
 
-1. **Native and live tests:** no Android SDK/device/emulator or real partner app environment was available in this workspace. No APK/AAB build, visual screenshot QA, touch/keyboard/accessibility test, real sign-in, KYC/Storage transfer, Maps launch, push delivery, actual payout or live end-to-end booking was verified. A real configured device and approved/pending/rejected test accounts are required.
-2. **Requested features still missing:** there is no working portfolio upload/remove screen or portfolio API in this checked-out baseline. XP is displayed, but a real level-progression model/level screen is absent. Offers are assigned-job offers from the existing backend, not a broadcast/open-pool feature. Job detail/lifecycle is presented in the Jobs cards, not a separate detail route.
-3. **Backend delivery hardening:** source review shows the generic booking transition endpoint still permits DATA_PENDING → DATA_SUBMITTED without proving successful delivery finalization. The mobile shortcut was removed, but the backend contract remains unchanged and should be hardened separately before public launch.
-4. **Mobile advisories:** the 13 moderate transitive audit findings remain open. Review compatible upstream fixes rather than applying the suggested Expo downgrades blindly.
-5. **Operational setup:** publish a support number, reviewed legal/privacy documents and the actual payout policy. Link/configure the EAS project and push credentials, set the real EXPO_PUBLIC variables, and verify permissions/session persistence on-device. The About text is product information, not complete legal terms.
-6. **Large files and retries:** uploads up to the backend's 500 MB limit need low-memory device and interrupted-network testing. The existing upload protocol is not resumable; a failed batch can leave previously uploaded private files and may re-upload them on retry. KYC records are created by the backend before the binary transfer finishes; admin review should verify the actual file exists.
-7. **CI evidence:** the interaction command is added to CI, but a completed GitHub Actions run for these final changes was not observed. Local checks are the evidence reported here.
+1. Real-device APK/AAB build, screenshots/visual QA, permissions, keyboard/accessibility, session persistence, real auth/KYC/Storage, Maps, push, payout and full live booking tests.
+2. Explicit automatic level-promotion policy and backend implementation. The screen shows real assigned levels; it does not promote partners. Offers remain assigned offers, not a newly invented broadcast pool.
+3. Portfolio's six-photo limit is enforced in the app, not a database quota. Concurrent clients can exceed it. Private previews are owner-only; admin/customer portfolio sharing is not implemented.
+4. Large-video memory/network testing and resumable/background transfers. Delivery reads files into memory; cached retry metadata survives only while the screen stays mounted. Unselected/abandoned uploaded objects need a retention/cleanup policy. Server metadata validation is not a content scan or a substitute for Storage-side byte/MIME limits.
+5. KYC metadata is still created before binary upload by the existing backend; reviewers must verify the private object exists. Existing payout/assignment logic was not rewritten.
+6. Three moderate mobile advisories, support number, complete reviewed legal/privacy documents, payout policy, EAS project/push credentials and real app environment configuration.
+7. CI now uses npm ci and runs customer/database, partner backend, UI and dependency regressions. No completed remote GitHub Actions run is claimed; reported evidence is local.
 
-## Re-run commands
+## Re-run
 
-From mobile/partner:
+Repository root: npm run validate:repo; npm run lint; npm run test:customer; npm run test:partner; npm run build; npm audit.
 
-- npm test
-- npm run typecheck
-- npx expo-doctor
-- npx expo export --platform android --output-dir .expo/android-test
+mobile: npm ci; npm run test:dependencies; npm run typecheck --workspace @pickolo/customer.
 
-From mobile:
+mobile/partner: npm test; npm run typecheck; npx expo-doctor; npx expo export --platform android --output-dir .expo/android-test.
 
-- npm ci
-- npm run typecheck --workspace @pickolo/customer
-
-From repository root:
-
-- npm run validate:repo
-- npm run lint
-- npm run test:customer
-- npm run build
-- npm audit
-
-Main has not been merged or deployed. Test fixes stay on codex/partner-ui-redesign.
+Changes remain on codex/partner-ui-redesign; main has not been merged or deployed.
 

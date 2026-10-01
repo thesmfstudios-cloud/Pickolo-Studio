@@ -3,17 +3,22 @@ import { router } from 'expo-router';
 import {
   Button,
   Card,
+  Chip,
   Header,
   Page,
   RemoteState,
   SectionTitle,
   ui,
 } from '../ui/components';
-import { Performance, request } from '../ui/api';
+import { Performance, ServiceLevel, request } from '../ui/api';
 import { useRemote } from '../ui/useRemote';
 import { colors } from '../ui/theme';
 async function loadPerformance() {
-  return request<{ performance: Performance }>('/api/partner/performance');
+  return request<{
+    performance: Performance;
+    levels?: ServiceLevel[];
+    current_level?: ServiceLevel | null;
+  }>('/api/partner/performance');
 }
 export default function PerformanceScreen() {
   const remote = useRemote(loadPerformance);
@@ -32,6 +37,16 @@ export default function PerformanceScreen() {
       />
       {performance && !remote.error && (
         <>
+          <Card>
+            <Text style={ui.label}>Your assigned level</Text>
+            <Text style={styles.value}>
+              {remote.data?.current_level?.name || 'Not assigned yet'}
+            </Text>
+            <Text style={ui.body}>
+              {performance.xp} XP earned from completed Pickolo jobs. A
+              completed job earns 100 XP after the booking reaches Completed.
+            </Text>
+          </Card>
           <View style={styles.grid}>
             <Stat
               label="Completed"
@@ -47,6 +62,29 @@ export default function PerformanceScreen() {
             />
             <Stat label="XP earned" value={String(performance.xp)} />
           </View>
+          {!!remote.data?.levels?.length && (
+            <>
+              <SectionTitle>Pickolo partner levels</SectionTitle>
+              {remote.data.levels.map((level) => (
+                <Card key={level.id}>
+                  <View style={styles.levelRow}>
+                    <Text style={ui.label}>{level.name}</Text>
+                    {level.id === remote.data?.current_level?.id && (
+                      <Chip label="CURRENT" />
+                    )}
+                  </View>
+                  {!!level.description && (
+                    <Text style={ui.body}>{level.description}</Text>
+                  )}
+                </Card>
+              ))}
+              <Text style={ui.body}>
+                Your assigned level comes from your Pickolo partner profile.
+                Automatic promotion thresholds are not configured in this app;
+                contact support for a level review.
+              </Text>
+            </>
+          )}
           <SectionTitle>Reliability</SectionTitle>
           <Card>
             <Text style={ui.body}>
@@ -79,4 +117,9 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   stat: { width: '47%' },
   value: { color: colors.ink, fontSize: 28, fontWeight: '900' },
+  levelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
 });

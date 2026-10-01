@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { errorMessage, isActiveJob, Job, request } from '../ui/api';
+import { errorMessage, isActiveJob, Job, money, request } from '../ui/api';
 import { useRemote } from '../ui/useRemote';
 import {
   Button,
@@ -32,17 +32,33 @@ async function loadJobs() {
   return request<{ jobs: Job[] }>('/api/partner/jobs');
 }
 export default function PartnerJobsScreen() {
+  return <JobsWorkspace />;
+}
+export function JobsWorkspace({ detailId }: { detailId?: string }) {
   const remote = useRemote(loadJobs);
   const [bookingOtp, setBookingOtp] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'offers' | 'history'>('active');
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (
+      !remote.data?.jobs.some(
+        (job) => job.partner_acceptance_status === 'pending',
+      )
+    )
+      return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [remote.data]);
   const jobs = (remote.data?.jobs || []).filter((j) =>
-    tab === 'offers'
-      ? j.status === 'PARTNER_ASSIGNED' &&
-        j.partner_acceptance_status === 'pending'
-      : tab === 'active'
-        ? isActiveJob(j) && j.partner_acceptance_status !== 'pending'
-        : !isActiveJob(j),
+    detailId
+      ? j.id === detailId
+      : tab === 'offers'
+        ? j.status === 'PARTNER_ASSIGNED' &&
+          j.partner_acceptance_status === 'pending'
+        : tab === 'active'
+          ? isActiveJob(j) && j.partner_acceptance_status !== 'pending'
+          : !isActiveJob(j),
   );
 
   async function run(job: Job, path: string, body: unknown) {
@@ -95,26 +111,29 @@ export default function PartnerJobsScreen() {
     );
   }
   return (
-    <Page bottomNav>
+    <Page bottomNav={!detailId}>
       <Header
-        title="Jobs"
+        title={detailId ? 'Assignment details' : 'Jobs'}
         subtitle="Your photography & videography assignments"
+        back={!!detailId}
       />
-      <View style={styles.tabs}>
-        {(['active', 'offers', 'history'] as const).map((key) => (
-          <Pressable
-            key={key}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: tab === key }}
-            onPress={() => setTab(key)}
-          >
-            <Chip
-              label={key === 'offers' ? 'OPEN OFFERS' : key.toUpperCase()}
-              tone={tab === key ? 'green' : 'gray'}
-            />
-          </Pressable>
-        ))}
-      </View>
+      {!detailId && (
+        <View style={styles.tabs}>
+          {(['active', 'offers', 'history'] as const).map((key) => (
+            <Pressable
+              key={key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === key }}
+              onPress={() => setTab(key)}
+            >
+              <Chip
+                label={key === 'offers' ? 'OPEN OFFERS' : key.toUpperCase()}
+                tone={tab === key ? 'green' : 'gray'}
+              />
+            </Pressable>
+          ))}
+        </View>
+      )}
       <RemoteState
         loading={remote.loading}
         error={remote.error}
@@ -130,7 +149,7 @@ export default function PartnerJobsScreen() {
             const expired =
               pending &&
               job.partner_offer_expires_at &&
-              Date.parse(job.partner_offer_expires_at) <= Date.now();
+              Date.parse(job.partner_offer_expires_at) <= now;
             const action = NEXT_ACTION[job.status];
             const accepted =
               job.partner_acceptance_status === 'accepted' ||
@@ -151,8 +170,43 @@ export default function PartnerJobsScreen() {
                   · {job.duration_minutes} min
                 </Text>
                 <Text style={ui.body}>
-                  {job.service_level?.name || 'Standard'} · {job.location_text}
+                  {job.service_level?.name || 'Level not assigned'} ·{' '}
+                  {job.location_text}
                 </Text>
+                <Text style={[ui.label, { marginTop: 12 }]}>
+                  Assignment payout:{' '}
+                  {job.partner_payout_paise == null
+                    ? 'Not available'
+                    : money(job.partner_payout_paise)}
+                </Text>
+                <Text style={ui.body}>
+                  Paid according to the booking and payout status, not on
+                  acceptance.
+                </Text>
+                {!detailId && (
+                  <Button
+                    label="View assignment details"
+                    variant="secondary"
+                    onPress={() =>
+                      router.push({ pathname: '/job', params: { id: job.id } })
+                    }
+                  />
+                )}
+                {!!detailId && (
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={ui.label}>Shoot workflow</Text>
+                    <Text style={ui.body}>
+                      Accept → Travel → Customer OTP → Shoot → On-site handoff →
+                      Private backup → Customer confirmation → Payout
+                    </Text>
+                    {job.status === 'DATA_SUBMITTED' && (
+                      <Text style={ui.body}>
+                        Backup submitted. Waiting for the customer to confirm
+                        delivery.
+                      </Text>
+                    )}
+                  </View>
+                )}
                 {job.notes && (
                   <Text style={[ui.body, { marginTop: 8 }]}>{job.notes}</Text>
                 )}
@@ -279,13 +333,19 @@ export default function PartnerJobsScreen() {
         ) : (
           <EmptyState
             title={
-              tab === 'offers'
-                ? 'No open offers'
-                : tab === 'history'
-                  ? 'No job history yet'
-                  : 'No active assignments'
+              detailId
+                ? 'Assignment unavailable'
+                : tab === 'offers'
+                  ? 'No open offers'
+                  : tab === 'history'
+                    ? 'No job history yet'
+                    : 'No active assignments'
             }
-            body="Eligible assignments and updates appear here. Check again when you are available."
+            body={
+              detailId
+                ? 'This assignment is no longer available to your account. Return to Jobs to see your latest assignments.'
+                : 'Eligible assignments and updates appear here. Check again when you are available.'
+            }
           />
         ))}
       <Button

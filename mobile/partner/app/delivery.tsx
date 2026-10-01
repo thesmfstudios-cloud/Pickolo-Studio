@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
 import { errorMessage, request } from '../ui/api';
@@ -33,6 +33,8 @@ export default function DeliveryScreen() {
   const [assets, setAssets] = useState<SelectedAsset[]>([]);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [handoffConfirmed, setHandoffConfirmed] = useState(false);
+  const uploadedFiles = useRef<Record<string, UploadAsset>>({});
 
   async function pickPhotos() {
     try {
@@ -74,7 +76,7 @@ export default function DeliveryScreen() {
   async function uploadAndFinalize() {
     if (!supabase)
       return Alert.alert('Pickolo', 'Pickolo connection is not configured.');
-    if (!id)
+    if (typeof id !== 'string' || !id)
       return Alert.alert(
         'No assignment selected',
         'Open delivery from an active job.',
@@ -82,6 +84,13 @@ export default function DeliveryScreen() {
 
     if (!assets.length) {
       Alert.alert('No photos selected', 'Select at least one photo.');
+      return;
+    }
+    if (!handoffConfirmed) {
+      Alert.alert(
+        'Confirm customer handoff',
+        'Confirm that the customer received the files on site before submitting the private backup.',
+      );
       return;
     }
 
@@ -97,19 +106,33 @@ export default function DeliveryScreen() {
           (asset.fileSize <= 0 || asset.fileSize > 500 * 1024 * 1024)
         )
           throw new Error('Each file must be between 1 byte and 500 MB.');
+        const cached = uploadedFiles.current[asset.uri];
+        if (cached?.path.startsWith(id + '/')) {
+          uploaded.push(cached);
+          setProgress(uploaded.length);
+          continue;
+        }
+        const localFile = new File(asset.uri);
+        if (localFile.size <= 0 || localFile.size > 500 * 1024 * 1024)
+          throw new Error('Each file must be between 1 byte and 500 MB.');
+        const bytes = await localFile.arrayBuffer();
+        if (bytes.byteLength <= 0 || bytes.byteLength > 500 * 1024 * 1024)
+          throw new Error('Each file must be between 1 byte and 500 MB.');
         const uploadInfo = await request<UploadAsset & { token: string }>(
           '/api/partner/jobs/' + id + '/delivery/upload-url',
           {
             method: 'POST',
             body: JSON.stringify({
-              file_name: asset.fileName || 'photo.jpg',
+              file_name:
+                asset.fileName ||
+                (asset.mimeType?.startsWith('video/')
+                  ? 'video.mp4'
+                  : 'photo.jpg'),
               mime_type: asset.mimeType || 'image/jpeg',
-              size_bytes: asset.fileSize ?? null,
+              size_bytes: bytes.byteLength,
             }),
           },
         );
-
-        const bytes = await new File(asset.uri).arrayBuffer();
 
         const { error: uploadError } = await supabase.storage
           .from('booking-deliveries')
@@ -119,18 +142,23 @@ export default function DeliveryScreen() {
 
         if (uploadError) throw new Error(uploadError.message);
 
-        uploaded.push({
+        const uploadedAsset = {
           path: uploadInfo.path,
           fileName: uploadInfo.fileName,
           mimeType: uploadInfo.mimeType,
           sizeBytes: uploadInfo.sizeBytes,
-        });
+        };
+        uploadedFiles.current[asset.uri] = uploadedAsset;
+        uploaded.push(uploadedAsset);
         setProgress(uploaded.length);
       }
 
       await request('/api/partner/jobs/' + id + '/delivery/finalize', {
         method: 'POST',
-        body: JSON.stringify({ assets: uploaded }),
+        body: JSON.stringify({
+          assets: uploaded,
+          customer_handoff_confirmed: true,
+        }),
       });
 
       Alert.alert(
@@ -157,7 +185,8 @@ export default function DeliveryScreen() {
         </Pressable>
         <Text style={styles.title}>Deliver your work</Text>
         <Text style={styles.subtitle}>
-          Select final photos and videos. Each file can be up to 500 MB.
+          Submit a private backup after handing over the final photos and videos
+          to the customer on site. Each file can be up to 500 MB.
         </Text>
 
         <View style={styles.card}>
@@ -183,9 +212,21 @@ export default function DeliveryScreen() {
             submission.
           </Text>
           <Pressable
+            accessibilityRole="checkbox"
+            accessibilityLabel="Customer received files on site"
+            accessibilityState={{ checked: handoffConfirmed, disabled: busy }}
+            disabled={busy}
+            onPress={() => setHandoffConfirmed(!handoffConfirmed)}
+            style={styles.confirmation}
+          >
+            <Text style={styles.secondaryText}>
+              {handoffConfirmed ? '☑' : '☐'} Customer received files on site
+            </Text>
+          </Pressable>
+          <Pressable
             style={styles.primary}
             onPress={uploadAndFinalize}
-            disabled={busy || !assets.length}
+            disabled={busy || !assets.length || !handoffConfirmed}
           >
             <Text style={styles.primaryText}>
               {busy
@@ -232,4 +273,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryText: { color: '#045B35', fontWeight: '800' },
+  confirmation: { marginTop: 16, paddingVertical: 12, minHeight: 48 },
 });

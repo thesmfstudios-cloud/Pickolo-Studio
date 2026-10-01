@@ -19,10 +19,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22.13.0
-          # Do not require a lockfile just to enable npm caching; this repo currently uses npm install.
-      - run: npm install
+      - run: npm ci
       - run: npm run validate:repo
       - run: npm run lint
+      - run: npm run test:customer
+      - run: npm run test:partner
       - run: npm run build
 
   customer-mobile:
@@ -36,7 +37,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22.13.0
-      - run: npm install --legacy-peer-deps
+      - run: npm ci
       - run: npm run typecheck --workspace @pickolo/customer
 
   partner-mobile:
@@ -50,6 +51,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22.13.0
-      - run: npm install --legacy-peer-deps
+      - run: npm ci
       - run: npm run typecheck --workspace @pickolo/partner
       - run: npm test --workspace @pickolo/partner
+      - run: npm run test:dependencies

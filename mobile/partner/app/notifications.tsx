@@ -36,7 +36,8 @@ export default function PartnerNotifications() {
           body: JSON.stringify({ id: item.id }),
         });
       await remote.reload();
-      if (item.booking_id) router.push('/jobs');
+      if (item.booking_id)
+        router.push({ pathname: '/job', params: { id: item.booking_id } });
     } catch (err) {
       Alert.alert('Unable to open notification', errorMessage(err));
     } finally {

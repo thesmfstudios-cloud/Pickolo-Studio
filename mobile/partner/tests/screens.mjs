@@ -70,6 +70,27 @@ function reset(overrides = {}) {
     payouts: [],
     notices: [],
     slots: [],
+    portfolio: [],
+    levels: [
+      {
+        id: 'basic',
+        name: 'Basic',
+        description: 'Entry-level creators',
+        sort_order: 1,
+      },
+      {
+        id: 'standard',
+        name: 'Standard',
+        description: 'Experienced creators',
+        sort_order: 2,
+      },
+    ],
+    currentLevel: {
+      id: 'basic',
+      name: 'Basic',
+      description: 'Entry-level creators',
+      sort_order: 1,
+    },
     authCalls: [],
     params: { id: 'booking' },
     ...overrides,
@@ -99,7 +120,12 @@ globalThis.fetch = async (url, options = {}) => {
     return response({ partner: { ...state.partner } });
   }
   if (endpoint === '/api/partner/performance')
-    return response({ performance: state.performance, payouts: state.payouts });
+    return response({
+      performance: state.performance,
+      payouts: state.payouts,
+      levels: state.levels,
+      current_level: state.currentLevel,
+    });
   if (endpoint === '/api/partner/jobs') return response({ jobs: state.jobs });
   if (endpoint === '/api/partner/availability') {
     if (options.method === 'POST')
@@ -155,6 +181,11 @@ globalThis.fetch = async (url, options = {}) => {
   }
   if (endpoint.endsWith('/finalize')) {
     assert(body.assets.length);
+    assert.equal(
+      body.customer_handoff_confirmed,
+      true,
+      'API requires on-site customer handoff confirmation',
+    );
     return response({ ok: true });
   }
   throw new Error('Unexpected endpoint ' + endpoint);
@@ -188,6 +219,43 @@ const supabase = {
   }),
   storage: {
     from: (bucket) => ({
+      list: async (ownerId) => {
+        assert.equal(bucket, 'partner-portfolio');
+        assert.equal(ownerId, state.user.id);
+        if (state.networkError || state.portfolioError)
+          return { data: null, error: new Error('Storage unavailable') };
+        return {
+          data: state.portfolio.map((name) => ({ name, id: name })),
+          error: null,
+        };
+      },
+      createSignedUrl: async (filePath, seconds) => {
+        assert.equal(seconds, 600);
+        assert(filePath.startsWith(state.user.id + '/'));
+        return {
+          data: { signedUrl: 'https://test.invalid/private/' + filePath },
+        };
+      },
+      upload: async (filePath, bytes, options) => {
+        assert.equal(bucket, 'partner-portfolio');
+        assert(filePath.startsWith(state.user.id + '/'));
+        assert(bytes instanceof ArrayBuffer);
+        assert.equal(options.upsert, false);
+        state.uploads.push({ bucket, filePath, bytes, options });
+        if (!state.uploadError)
+          state.portfolio.push(filePath.split('/').at(-1));
+        return { error: state.uploadError };
+      },
+      remove: async (paths) => {
+        assert.equal(bucket, 'partner-portfolio');
+        assert(paths.every((p) => p.startsWith(state.user.id + '/')));
+        if (state.removeError) return { error: new Error('Remove failed') };
+        state.removedPaths = paths;
+        state.portfolio = state.portfolio.filter(
+          (name) => !paths.includes(state.user.id + '/' + name),
+        );
+        return { error: null };
+      },
       uploadToSignedUrl: async (filePath, token, bytes, options) => {
         assert(bytes instanceof ArrayBuffer, 'Native uploads must send bytes');
         state.uploads.push({ bucket, filePath, token, bytes, options });
@@ -273,6 +341,9 @@ const mocks = {
   },
   'expo-file-system': {
     File: class {
+      get size() {
+        return state.nativeFileSize ?? 3;
+      }
       async arrayBuffer() {
         return new Uint8Array([1, 2, 3]).buffer;
       }
@@ -366,7 +437,7 @@ async function test(name, action, overrides = {}) {
   }
 }
 
-await test('all 15 screens and root layout render without crashing', async () => {
+await test('all 17 screens and root layout render without crashing', async () => {
   for (const screen of [
     '_layout',
     'index',
@@ -375,6 +446,8 @@ await test('all 15 screens and root layout render without crashing', async () =>
     'verification',
     'home',
     'jobs',
+    'job',
+    'portfolio',
     'delivery',
     'availability',
     'notifications',
@@ -619,6 +692,7 @@ await test('delivery supports videos and finalizes only after upload', async () 
   await mount('delivery');
   await press('Select photos & videos');
   assert(state.pickerOptions.mediaTypes.includes('videos'));
+  await press('☐ Customer received files on site');
   await press('Upload & submit delivery');
   assert.equal(state.uploads[0].bucket, 'booking-deliveries');
   assert.equal(state.calls.at(-1).body.assets[0].mimeType, 'video/mp4');
@@ -636,6 +710,7 @@ await test('failed storage upload never finalizes and allows retry', async () =>
   state.uploadError = { message: 'Storage unavailable' };
   await mount('delivery');
   await press('Select photos & videos');
+  await press('☐ Customer received files on site');
   await press('Upload & submit delivery');
   assert(!state.calls.some((c) => c.endpoint.endsWith('/finalize')));
   assert.equal(state.alerts[0][0], 'Delivery failed');
@@ -670,7 +745,10 @@ await test('notifications mark read before opening linked jobs', async () => {
     await button.props.onPress();
   });
   assert(state.calls.some((c) => c.endpoint.endsWith('/read')));
-  assert(state.routes.includes('/jobs'));
+  assert.deepEqual(state.routes.at(-1), {
+    pathname: '/job',
+    params: { id: 'booking' },
+  });
 });
 await test('failed mark-read request reports failure', async () => {
   state.notices = [
@@ -747,6 +825,8 @@ await test('all remote screens recover from network failure with retry', async (
     'earnings',
     'profile',
     'verification',
+    'portfolio',
+    'job',
   ]) {
     state.networkError = true;
     await mount(screen);
@@ -831,6 +911,7 @@ await test('oversized delivery rejected before storage request', async () => {
   ];
   await mount('delivery');
   await press('Select photos & videos');
+  await press('☐ Customer received files on site');
   await press('Upload & submit delivery');
   assert.equal(state.uploads.length, 0);
   assert.equal(state.calls.length, 0);
@@ -847,6 +928,7 @@ await test('failed delivery prepare URL never uploads or finalizes', async () =>
   ];
   await mount('delivery');
   await press('Select photos & videos');
+  await press('☐ Customer received files on site');
   await press('Upload & submit delivery');
   assert.equal(state.uploads.length, 0);
   assert(!state.calls.some((c) => c.endpoint.endsWith('/finalize')));
@@ -863,9 +945,18 @@ await test('failed finalize is reported without success', async () => {
   ];
   await mount('delivery');
   await press('Select photos & videos');
+  await press('☐ Customer received files on site');
   await press('Upload & submit delivery');
   assert.equal(state.uploads.length, 1);
   assert.equal(state.alerts.at(-1)[0], 'Delivery failed');
+  state.failPath = null;
+  await press('Upload & submit delivery');
+  assert.equal(
+    state.uploads.length,
+    1,
+    'Retry reuses the successfully uploaded private object',
+  );
+  assert.equal(state.alerts.at(-1)[0], 'Delivery submitted');
 });
 await test('oversized KYC document is rejected', async () => {
   state.application = {
@@ -935,6 +1026,178 @@ await test('provider-processed payouts are counted alongside released payouts', 
   await mount('earnings');
   await press('LATEST 100');
   assert(screenText().includes('₹2,345'));
+});
+await test('delivery submit remains disabled until customer handoff is confirmed', async () => {
+  state.pickerAssets = [
+    {
+      uri: 'file:///photo.jpg',
+      fileName: 'photo.jpg',
+      mimeType: 'image/jpeg',
+      fileSize: 3,
+    },
+  ];
+  await mount('delivery');
+  await press('Select photos & videos');
+  const button = renderer.root
+    .findAllByType('Pressable')
+    .find((b) => textOf(b) === 'Upload & submit delivery');
+  assert(button.props.disabled);
+  await act(async () => {
+    await button.props.onPress();
+  });
+  assert.equal(state.calls.length, 0);
+  assert.equal(state.alerts[0][0], 'Confirm customer handoff');
+  await press('☐ Customer received files on site');
+  await press('Upload & submit delivery');
+  assert.equal(state.calls.at(-1).body.customer_handoff_confirmed, true);
+});
+await test('delivery checks native file size when picker metadata is missing', async () => {
+  state.pickerAssets = [
+    { uri: 'file:///large.mp4', fileName: 'large.mp4', mimeType: 'video/mp4' },
+  ];
+  state.nativeFileSize = 501 * 1024 * 1024;
+  await mount('delivery');
+  await press('Select photos & videos');
+  await press('☐ Customer received files on site');
+  await press('Upload & submit delivery');
+  assert.equal(state.calls.length, 0);
+  assert.equal(state.uploads.length, 0);
+});
+await test('portfolio uploads native bytes into the authenticated owner folder', async () => {
+  state.pickerAssets = [
+    { uri: 'file:///portfolio.jpg', mimeType: 'image/jpeg', fileSize: 3 },
+  ];
+  await mount('portfolio');
+  assert(screenText().includes('Your work belongs here'));
+  await press('Add portfolio photo');
+  assert.equal(state.uploads[0].bucket, 'partner-portfolio');
+  assert(state.uploads[0].filePath.startsWith('partner/'));
+  assert.equal(state.portfolio.length, 1);
+  assert(screenText().includes('1 of 6 photos'));
+  assert.equal(renderer.root.findAllByType('Image').length, 1);
+});
+await test('full portfolio disables additions', async () => {
+  state.portfolio = Array.from({ length: 6 }, (_, i) => i + '.jpg');
+  await mount('portfolio');
+  assert(
+    renderer.root
+      .findAllByType('Pressable')
+      .find((b) => textOf(b) === 'Add portfolio photo').props.disabled,
+  );
+});
+await test('portfolio removal requires confirmation and removes only the owner object', async () => {
+  state.portfolio = ['photo.jpg'];
+  await mount('portfolio');
+  await press('Remove photo');
+  assert(!state.removedPaths);
+  await act(async () => {
+    await state.alerts
+      .at(-1)[2]
+      .find((b) => b.style === 'destructive')
+      .onPress();
+  });
+  assert.deepEqual(state.removedPaths, ['partner/photo.jpg']);
+  assert(screenText().includes('Your work belongs here'));
+});
+await test('failed portfolio removal retains photo and reports error', async () => {
+  state.portfolio = ['photo.jpg'];
+  state.removeError = true;
+  await mount('portfolio');
+  await press('Remove photo');
+  await act(async () => {
+    await state.alerts
+      .at(-1)[2]
+      .find((b) => b.style === 'destructive')
+      .onPress();
+  });
+  assert.equal(state.portfolio.length, 1);
+  assert.equal(state.alerts.at(-1)[0], 'Unable to remove photo');
+});
+await test('portfolio rejects oversized image without upload', async () => {
+  state.pickerAssets = [
+    {
+      uri: 'file:///huge.jpg',
+      mimeType: 'image/jpeg',
+      fileSize: 21 * 1024 * 1024,
+    },
+  ];
+  await mount('portfolio');
+  await press('Add portfolio photo');
+  assert.equal(state.uploads.length, 0);
+  assert.equal(state.alerts.at(-1)[0], 'Unable to add photo');
+});
+await test('portfolio permission denial and failed upload never add a photo', async () => {
+  state.permission = false;
+  await mount('portfolio');
+  await press('Add portfolio photo');
+  assert.equal(state.uploads.length, 0);
+  state.permission = true;
+  state.uploadError = new Error('Storage failed');
+  state.pickerAssets = [
+    { uri: 'file:///photo.jpg', mimeType: 'image/jpeg', fileSize: 3 },
+  ];
+  await press('Add portfolio photo');
+  assert.equal(state.portfolio.length, 0);
+  assert.equal(state.alerts.at(-1)[0], 'Unable to add photo');
+});
+await test('profile bio edits persist and portfolio link opens working screen', async () => {
+  await mount('profile');
+  await input('Your photography experience', 'Bhopal portrait photographer');
+  await press('Save bio');
+  assert.equal(state.partner.bio, 'Bhopal portrait photographer');
+  await press('Manage portfolio');
+  assert(state.routes.includes('/portfolio'));
+});
+await test('performance shows actual assigned level without invented promotion thresholds', async () => {
+  state.currentLevel = { ...state.levels[1] };
+  await mount('performance');
+  assert(screenText().includes('Standard'));
+  assert(screenText().includes('CURRENT'));
+  assert(screenText().includes('40 XP'));
+  assert(!screenText().includes('3000'));
+});
+await test('job details show only selected job, actual payout and OTP lifecycle', async () => {
+  state.jobs = [
+    { ...job, partner_payout_paise: 80000 },
+    { ...job, id: 'other', booking_code: 'OTHER' },
+  ];
+  await mount('job');
+  assert(screenText().includes('Assignment details'));
+  assert(screenText().includes('₹800'));
+  assert(!screenText().includes('OTHER'));
+  await input('Six-digit OTP', '123456');
+  await press('Start shoot');
+  assert.equal(
+    state.calls.find((c) => c.endpoint.endsWith('/transition')).body
+      .booking_otp,
+    '123456',
+  );
+});
+await test('job detail cannot expose another assignment or act on a missing id', async () => {
+  state.jobs = [{ ...job, id: 'other', booking_code: 'OTHER' }];
+  await mount('job');
+  assert(screenText().includes('Assignment unavailable'));
+  assert(!screenText().includes('OTHER'));
+  await unmount();
+  state.params = {};
+  await mount('job');
+  assert(screenText().includes('No assignment selected'));
+});
+await test('home and inbox open dedicated assignment details', async () => {
+  state.jobs = [{ ...job }];
+  await mount('home');
+  await press('Open assignment  ↗');
+  assert.deepEqual(state.routes.at(-1), {
+    pathname: '/job',
+    params: { id: 'booking' },
+  });
+  await unmount();
+  await mount('jobs');
+  await press('View assignment details');
+  assert.deepEqual(state.routes.at(-1), {
+    pathname: '/job',
+    params: { id: 'booking' },
+  });
 });
 console.log(
   `\n${passed} partner screen/interaction scenarios passed. Native modules and services were mocked.`,

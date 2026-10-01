@@ -8,10 +8,13 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 function getClient(request: NextRequest) {
-  if (!url || !anonKey) throw new Error('Supabase environment is not configured.');
+  if (!url || !anonKey)
+    throw new Error('Supabase environment is not configured.');
   const authorization = request.headers.get('authorization') ?? '';
   return createClient(url, anonKey, {
-    global: authorization ? { headers: { Authorization: authorization } } : undefined,
+    global: authorization
+      ? { headers: { Authorization: authorization } }
+      : undefined,
   });
 }
 
@@ -20,7 +23,6 @@ const PARTNER_ALLOWED: Partial<Record<BookingState, BookingState[]>> = {
   ON_THE_WAY: ['SHOOT_STARTED'],
   SHOOT_STARTED: ['SHOOT_COMPLETED'],
   SHOOT_COMPLETED: ['DATA_PENDING'],
-  DATA_PENDING: ['DATA_SUBMITTED'],
 };
 
 const CUSTOMER_ALLOWED: Partial<Record<BookingState, BookingState[]>> = {
@@ -32,7 +34,10 @@ const ADMIN_ALLOWED: Partial<Record<BookingState, BookingState[]>> = {
   PAYOUT_RELEASED: ['COMPLETED'],
 };
 
-export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   try {
     const supabase = getClient(request);
     const serviceClient = getServiceClient();
@@ -45,21 +50,32 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       error: userError,
     } = await supabase.auth.getUser();
     if (userError || !user) {
-      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required.' },
+        { status: 401 },
+      );
     }
 
     if (!toStatus || !(toStatus in BOOKING_TRANSITIONS)) {
-      return NextResponse.json({ error: 'Invalid target booking status.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid target booking status.' },
+        { status: 400 },
+      );
     }
 
     const { data: booking, error } = await supabase
       .from('bookings')
-      .select('id,status,customer_id,assigned_partner_id,partner_acceptance_status')
+      .select(
+        'id,status,customer_id,assigned_partner_id,partner_acceptance_status',
+      )
       .eq('id', id)
       .single();
 
     if (error || !booking) {
-      return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Booking not found.' },
+        { status: 404 },
+      );
     }
 
     const { data: profile } = await supabase
@@ -76,7 +92,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (role === 'partner') {
       const partner = await getApprovedPartner(serviceClient, user.id);
       if (!partner) {
-        return NextResponse.json({ error: 'Approved partner access required.' }, { status: 403 });
+        return NextResponse.json(
+          { error: 'Approved partner access required.' },
+          { status: 403 },
+        );
       }
     }
 
@@ -112,14 +131,21 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     }
 
     if (!BOOKING_TRANSITIONS[fromStatus].includes(toStatus)) {
-      return NextResponse.json({ error: 'Invalid booking state transition.' }, { status: 409 });
+      return NextResponse.json(
+        { error: 'Invalid booking state transition.' },
+        { status: 409 },
+      );
     }
 
     let updated;
     if (toStatus === 'SHOOT_STARTED') {
       const { data: started, error: startError } = await serviceClient.rpc(
         'verify_and_start_shoot',
-        { p_booking_id: id, p_partner_id: user.id, p_code: String(body.booking_otp || '') },
+        {
+          p_booking_id: id,
+          p_partner_id: user.id,
+          p_code: String(body.booking_otp || ''),
+        },
       );
       if (startError || !started)
         return NextResponse.json(
@@ -143,13 +169,15 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       updated = result.data;
     }
 
-    const { error: historyError } = await serviceClient.from('booking_status_history').insert({
-      booking_id: id,
-      from_status: fromStatus,
-      to_status: toStatus,
-      changed_by: user.id,
-      metadata: { actor_role: role },
-    });
+    const { error: historyError } = await serviceClient
+      .from('booking_status_history')
+      .insert({
+        booking_id: id,
+        from_status: fromStatus,
+        to_status: toStatus,
+        changed_by: user.id,
+        metadata: { actor_role: role },
+      });
 
     if (historyError) {
       return NextResponse.json(
@@ -160,7 +188,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     return NextResponse.json({ booking: updated });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected server error.';
+    const message =
+      error instanceof Error ? error.message : 'Unexpected server error.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
