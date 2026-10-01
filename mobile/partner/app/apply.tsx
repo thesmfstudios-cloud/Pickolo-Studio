@@ -152,7 +152,7 @@ export default function PartnerApply() {
     await loadDocuments(token);
 
     Alert.alert('Application saved', 'Your Pickolo Partner application is pending verification.', [
-      { text: 'Continue', onPress: () => router.replace('/home') },
+      { text: 'Continue', onPress: () => router.replace('/verification') },
     ]);
   }
 
@@ -198,17 +198,17 @@ export default function PartnerApply() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' },
+  safe: { flex: 1, backgroundColor: '#F7F9F8' },
   container: { padding: 20, paddingBottom: 40 },
-  back: { color: '#1e3a8a', fontWeight: '800', fontSize: 16 },
-  kicker: { marginTop: 22, fontSize: 12, letterSpacing: 2.5, color: '#2563eb', fontWeight: '800' },
+  back: { color: '#087443', fontWeight: '800', fontSize: 16 },
+  kicker: { marginTop: 22, fontSize: 12, letterSpacing: 2.5, color: '#087443', fontWeight: '800' },
   title: { marginTop: 7, fontSize: 31, fontWeight: '800', color: '#13213a' },
   subtitle: { marginTop: 7, color: '#64748b', lineHeight: 22 },
   input: { marginTop: 13, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, fontSize: 16 },
   area: { minHeight: 110, textAlignVertical: 'top' },
-  secondary: { marginTop: 14, borderRadius: 14, backgroundColor: '#eef2ff', paddingVertical: 14, alignItems: 'center' },
-  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
-  primary: { marginTop: 12, borderRadius: 14, backgroundColor: '#2563eb', paddingVertical: 15, alignItems: 'center' },
+  secondary: { marginTop: 14, borderRadius: 14, backgroundColor: '#E9F8F0', paddingVertical: 14, alignItems: 'center' },
+  secondaryText: { color: '#045B35', fontWeight: '800' },
+  primary: { marginTop: 12, borderRadius: 14, backgroundColor: '#087443', paddingVertical: 15, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800' },
   card: { marginTop: 18, padding: 18, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0' },
   cardTitle: { fontSize: 19, fontWeight: '800', color: '#13213a' },

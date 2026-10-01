@@ -121,18 +121,18 @@ export default function AvailabilityScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' },
+  safe: { flex: 1, backgroundColor: '#F7F9F8' },
   container: { padding: 20, paddingBottom: 40 },
-  back: { color: '#1e3a8a', fontWeight: '800', fontSize: 16 },
+  back: { color: '#087443', fontWeight: '800', fontSize: 16 },
   title: { marginTop: 18, fontSize: 32, fontWeight: '800', color: '#13213a' },
   subtitle: { marginTop: 6, color: '#64748b', lineHeight: 22 },
   card: { marginTop: 14, padding: 18, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0' },
   cardTitle: { fontSize: 19, fontWeight: '800', color: '#13213a', marginBottom: 12 },
   input: { marginTop: 10, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16 },
-  primary: { marginTop: 14, backgroundColor: '#2563eb', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
+  primary: { marginTop: 14, backgroundColor: '#087443', borderRadius: 13, paddingVertical: 14, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800' },
   sectionTitle: { marginTop: 24, fontSize: 19, fontWeight: '800', color: '#13213a' },
   rowTitle: { fontSize: 16, fontWeight: '800', color: '#13213a' },
   muted: { marginTop: 6, color: '#64748b', lineHeight: 21 },
-  badge: { alignSelf: 'flex-start', marginTop: 11, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999, backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: 10, fontWeight: '800' },
+  badge: { alignSelf: 'flex-start', marginTop: 11, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999, backgroundColor: '#E9F8F0', color: '#045B35', fontSize: 10, fontWeight: '800' },
 });

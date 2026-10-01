@@ -89,9 +89,9 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' },
+  safe: { flex: 1, backgroundColor: '#F7F9F8' },
   container: { padding: 20, paddingBottom: 40 },
-  back: { color: '#1e3a8a', fontWeight: '800', fontSize: 16 },
+  back: { color: '#087443', fontWeight: '800', fontSize: 16 },
   title: { marginTop: 18, fontSize: 32, fontWeight: '800', color: '#13213a' },
   subtitle: { marginTop: 6, color: '#64748b', lineHeight: 22 },
   grid: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },

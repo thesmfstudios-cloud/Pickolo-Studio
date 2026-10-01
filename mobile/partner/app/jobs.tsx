@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
+import { BottomNav } from '../ui/components';
 
 type Job = {
   id: string;
@@ -316,23 +317,24 @@ export default function PartnerJobsScreen() {
           })
         )}
       </ScrollView>
+      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' },
-  container: { padding: 20, paddingBottom: 40 },
-  back: { color: '#1e3a8a', fontWeight: '800', fontSize: 16 },
+  safe: { flex: 1, backgroundColor: '#F7F9F8' },
+  container: { padding: 20, paddingBottom: 110 },
+  back: { color: '#087443', fontWeight: '800', fontSize: 16 },
   title: { marginTop: 18, fontSize: 32, fontWeight: '800', color: '#13213a' },
   subtitle: { marginTop: 6, color: '#64748b', fontSize: 15, lineHeight: 22 },
   empty: {
     marginTop: 20,
     padding: 20,
-    borderRadius: 18,
+    borderRadius: 20,
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#E7ECE9',
   },
   emptyTitle: { fontSize: 20, fontWeight: '800', color: '#13213a' },
   card: {
@@ -346,8 +348,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   code: { fontSize: 16, fontWeight: '800', color: '#13213a' },
   badge: {
-    color: '#1d4ed8',
-    backgroundColor: '#eff6ff',
+    color: '#045B35',
+    backgroundColor: '#E9F8F0',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 999,
@@ -358,7 +360,7 @@ const styles = StyleSheet.create({
   muted: { marginTop: 6, color: '#64748b', lineHeight: 21 },
   primary: {
     marginTop: 16,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#087443',
     borderRadius: 13,
     paddingVertical: 14,
     alignItems: 'center',
@@ -366,7 +368,7 @@ const styles = StyleSheet.create({
   primaryText: { color: '#fff', fontWeight: '800' },
   secondary: {
     marginTop: 10,
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#E9F8F0',
     borderRadius: 13,
     paddingVertical: 14,
     alignItems: 'center',
@@ -374,19 +376,19 @@ const styles = StyleSheet.create({
   offerRow: { marginTop: 16, flexDirection: 'row', gap: 9 },
   primarySmall: {
     flex: 1,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#087443',
     borderRadius: 13,
     paddingVertical: 13,
     alignItems: 'center',
   },
   secondarySmall: {
     flex: 1,
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#E9F8F0',
     borderRadius: 13,
     paddingVertical: 13,
     alignItems: 'center',
   },
-  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
+  secondaryText: { color: '#045B35', fontWeight: '800' },
   danger: {
     marginTop: 10,
     backgroundColor: '#fff1f2',

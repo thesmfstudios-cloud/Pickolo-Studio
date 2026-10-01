@@ -171,17 +171,17 @@ export default function DeliveryScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' },
+  safe: { flex: 1, backgroundColor: '#F7F9F8' },
   container: { padding: 20, paddingBottom: 40 },
-  back: { color: '#1e3a8a', fontWeight: '800', fontSize: 16 },
+  back: { color: '#087443', fontWeight: '800', fontSize: 16 },
   title: { marginTop: 18, fontSize: 32, fontWeight: '800', color: '#13213a' },
   subtitle: { marginTop: 7, color: '#64748b', lineHeight: 22 },
   card: { marginTop: 18, padding: 20, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0' },
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#13213a' },
   count: { marginTop: 8, fontSize: 28, fontWeight: '900', color: '#13213a' },
   muted: { marginTop: 8, color: '#64748b', lineHeight: 21 },
-  primary: { marginTop: 16, backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  primary: { marginTop: 16, backgroundColor: '#087443', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800' },
-  secondary: { marginTop: 14, backgroundColor: '#eef2ff', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
+  secondary: { marginTop: 14, backgroundColor: '#E9F8F0', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  secondaryText: { color: '#045B35', fontWeight: '800' },
 });

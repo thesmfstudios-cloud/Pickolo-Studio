@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../shared/supabase';
+import { Brand } from '../ui/components';
 
 export default function PartnerAuth() {
   const [email, setEmail] = useState('');
@@ -63,7 +64,7 @@ export default function PartnerAuth() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text style={styles.kicker}>PICKOLO PARTNER</Text>
+        <Brand />
         <Text style={styles.title}>{mode === 'login' ? 'Partner Login' : 'Create partner account'}</Text>
         <Text style={styles.subtitle}>Manage nearby assignments and your Pickolo work.</Text>
 
@@ -109,15 +110,15 @@ export default function PartnerAuth() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' },
+  safe: { flex: 1, backgroundColor: '#F7F9F8' },
   container: { flex: 1, justifyContent: 'center', padding: 24 },
-  kicker: { fontSize: 12, letterSpacing: 2.5, color: '#2563eb', fontWeight: '800' },
+  kicker: { fontSize: 12, letterSpacing: 2.5, color: '#087443', fontWeight: '800' },
   title: { marginTop: 8, fontSize: 34, fontWeight: '800', color: '#13213a' },
   subtitle: { marginTop: 9, color: '#64748b', fontSize: 16, lineHeight: 24 },
   form: { marginTop: 28, gap: 14 },
-  input: { borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 15, paddingVertical: 14, fontSize: 16 },
-  primary: { backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  input: { borderWidth: 1, borderColor: '#E7ECE9', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 15, paddingVertical: 14, fontSize: 16 },
+  primary: { backgroundColor: '#087443', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800', fontSize: 16 },
   secondary: { paddingVertical: 14, alignItems: 'center' },
-  secondaryText: { color: '#1e3a8a', fontWeight: '800' },
+  secondaryText: { color: '#045B35', fontWeight: '800' },
 });

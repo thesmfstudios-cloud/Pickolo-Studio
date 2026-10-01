@@ -1,5 +1,12 @@
-import { Redirect } from 'expo-router';
+import { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { supabase } from '../../shared/supabase';
+import { Brand } from '../ui/components';
+import { colors } from '../ui/theme';
 
 export default function Index() {
-  return <Redirect href="/auth" />;
+  useEffect(() => { const timer = setTimeout(async () => { const { data } = await supabase?.auth.getSession() || { data: { session: null } }; router.replace(data.session ? '/home' : '/auth'); }, 900); return () => clearTimeout(timer); }, []);
+  return <View style={styles.screen}><View style={styles.mark}><Text style={styles.markText}>P</Text></View><Brand light /><Text style={styles.line}>Shoot. Create. Earn.</Text><ActivityIndicator style={styles.loader} color="#fff" /></View>;
 }
+const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: colors.greenDark, alignItems: 'center', justifyContent: 'center' }, mark: { width: 82, height: 82, borderRadius: 25, backgroundColor: colors.amber, alignItems: 'center', justifyContent: 'center', marginBottom: 18, transform: [{ rotate: '-6deg' }] }, markText: { color: colors.greenDark, fontWeight: '900', fontSize: 48 }, line: { color: '#D6F0E2', marginTop: 14, fontWeight: '700' }, loader: { marginTop: 50 } });
