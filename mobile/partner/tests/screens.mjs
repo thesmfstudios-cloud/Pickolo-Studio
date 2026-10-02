@@ -347,10 +347,38 @@ const mocks = {
   },
   'expo-file-system': {
     File: class {
+      constructor(uri) {
+        this.uri = uri;
+      }
+      static async pickFileAsync(options) {
+        state.filePickerOptions = options;
+        state.filePickerCalls = (state.filePickerCalls || 0) + 1;
+        if (!state.pickerAssets.length) return { canceled: true, result: null };
+        return { canceled: false, result: new this(state.pickerAssets[0].uri) };
+      }
+      get name() {
+        return (
+          state.pickerAssets.find((asset) => asset.uri === this.uri)?.name ||
+          'identity.jpg'
+        );
+      }
+      get type() {
+        return (
+          state.pickerAssets.find((asset) => asset.uri === this.uri)
+            ?.mimeType || 'image/jpeg'
+        );
+      }
       get size() {
-        return state.nativeFileSize ?? 3;
+        return (
+          state.nativeFileSize ??
+          state.pickerAssets.find((asset) => asset.uri === this.uri)?.size ??
+          3
+        );
       }
       async arrayBuffer() {
+        if (state.fileReadError) throw state.fileReadError;
+        if (state.nativeByteLength !== undefined)
+          return new Uint8Array(state.nativeByteLength).buffer;
         return new Uint8Array([1, 2, 3]).buffer;
       }
     },
@@ -1302,6 +1330,167 @@ await test('oversized KYC document is rejected', async () => {
   await press('Upload document');
   assert.equal(state.uploads.length, 0);
   assert.equal(state.alerts[0][0], 'Document too large');
+});
+function existingApplicant() {
+  state.application = {
+    display_name: 'Applicant',
+    phone: '9999999999',
+    payout_upi_id: 'test@upi',
+    skills: ['Photography', 'Equipment: Phone'],
+    status: 'pending',
+  };
+}
+await test('KYC uses granted native file picker for Android content URI without broad media permission', async () => {
+  existingApplicant();
+  state.permission = false;
+  state.pickerAssets = [
+    {
+      uri: 'content://provider/document/image%3A123',
+      name: 'photo.jpg',
+      mimeType: 'image/jpeg',
+      size: 3,
+    },
+  ];
+  await mount('apply');
+  await press('Upload document');
+  assert.deepEqual(state.filePickerOptions, {
+    mimeTypes: ['image/*', 'application/pdf'],
+    multipleFiles: false,
+  });
+  assert.equal(state.uploads[0].bucket, 'partner-documents');
+  const request = state.calls.find(
+    (call) => call.endpoint === '/api/partner/documents/upload-url',
+  );
+  assert.equal(request.body.file_name, 'identity-document.jpg');
+  assert.equal(request.body.size_bytes, 3);
+});
+await test('KYC uploads a selected PDF privately with genuine byte size', async () => {
+  existingApplicant();
+  state.pickerAssets = [
+    {
+      uri: 'content://provider/document/opaque',
+      name: 'id.pdf',
+      mimeType: 'application/pdf',
+      size: 99,
+    },
+  ];
+  await mount('apply');
+  await press('Upload document');
+  const request = state.calls.find(
+    (call) => call.endpoint === '/api/partner/documents/upload-url',
+  );
+  assert.equal(request.body.mime_type, 'application/pdf');
+  assert.equal(request.body.file_name, 'identity-document.pdf');
+  assert.equal(
+    request.body.size_bytes,
+    3,
+    'Use successfully read bytes, not stale provider metadata',
+  );
+  assert.equal(state.uploads[0].bucket, 'partner-documents');
+});
+await test('cancelled KYC picker creates no metadata or storage upload', async () => {
+  existingApplicant();
+  await mount('apply');
+  await press('Upload document');
+  assert(
+    !state.calls.some(
+      (call) => call.endpoint === '/api/partner/documents/upload-url',
+    ),
+  );
+  assert.equal(state.uploads.length, 0);
+  assert.equal(state.alerts.length, 0);
+  assert.equal(
+    renderer.root
+      .findAllByType('Pressable')
+      .find((node) => textOf(node) === 'Upload document').props.disabled,
+    false,
+  );
+});
+await test('KYC READ permission failure happens before metadata writes and can recover', async () => {
+  existingApplicant();
+  state.pickerAssets = [
+    {
+      uri: 'content://provider/id',
+      name: 'id.jpg',
+      mimeType: 'image/jpeg',
+      size: 3,
+    },
+  ];
+  state.fileReadError = new Error(
+    "Missing 'READ' permission for accessing the file.",
+  );
+  await mount('apply');
+  await press('Upload document');
+  assert(
+    !state.calls.some(
+      (call) => call.endpoint === '/api/partner/documents/upload-url',
+    ),
+  );
+  assert.equal(state.docs.length, 0);
+  assert.equal(state.uploads.length, 0);
+  assert(state.alerts.at(-1)[1].includes('Select it again from Files'));
+  state.fileReadError = null;
+  await press('Upload document');
+  assert.equal(state.uploads.length, 1);
+});
+await test('KYC rejects actual oversized bytes even when picker size is smaller', async () => {
+  existingApplicant();
+  state.pickerAssets = [
+    {
+      uri: 'content://provider/id',
+      name: 'id.jpg',
+      mimeType: 'image/jpeg',
+      size: 3,
+    },
+  ];
+  state.nativeByteLength = 20 * 1024 * 1024 + 1;
+  await mount('apply');
+  await press('Upload document');
+  assert.equal(state.alerts.at(-1)[0], 'Invalid document size');
+  assert(
+    !state.calls.some(
+      (call) => call.endpoint === '/api/partner/documents/upload-url',
+    ),
+  );
+});
+await test('KYC rejects unsupported selected files before backend metadata creation', async () => {
+  existingApplicant();
+  state.pickerAssets = [
+    {
+      uri: 'content://provider/id',
+      name: 'id.txt',
+      mimeType: 'text/plain',
+      size: 3,
+    },
+  ];
+  await mount('apply');
+  await press('Upload document');
+  assert.equal(state.alerts.at(-1)[0], 'Unsupported document');
+  assert(
+    !state.calls.some(
+      (call) => call.endpoint === '/api/partner/documents/upload-url',
+    ),
+  );
+});
+await test('rapid KYC upload taps open only one picker and perform one upload', async () => {
+  existingApplicant();
+  state.pickerAssets = [
+    {
+      uri: 'content://provider/id',
+      name: 'id.jpg',
+      mimeType: 'image/jpeg',
+      size: 3,
+    },
+  ];
+  await mount('apply');
+  const handler = renderer.root
+    .findAllByType('Pressable')
+    .find((node) => textOf(node) === 'Upload document').props.onPress;
+  await act(async () => {
+    await Promise.all([handler(), handler()]);
+  });
+  assert.equal(state.filePickerCalls, 1);
+  assert.equal(state.uploads.length, 1);
 });
 await test('configured support opens phone dialler', async () => {
   process.env.EXPO_PUBLIC_SUPPORT_PHONE = '+919999999999';

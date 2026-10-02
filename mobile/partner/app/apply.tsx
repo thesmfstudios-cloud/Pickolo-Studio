@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
-import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import {
   Alert,
@@ -98,6 +97,7 @@ export default function PartnerApply() {
     }>
   >([]);
   const [docBusy, setDocBusy] = useState(false);
+  const documentUploadPending = useRef(false);
 
   async function loadExistingDocuments() {
     setLoading(true);
@@ -177,52 +177,89 @@ export default function PartnerApply() {
   }
 
   async function uploadDocument() {
-    if (!supabase) return;
+    if (
+      !supabase ||
+      documentUploadPending.current ||
+      !saved ||
+      loading ||
+      busy ||
+      loadError
+    )
+      return;
+    documentUploadPending.current = true;
     setDocBusy(true);
     try {
-      const permission = await DocumentPicker.getDocumentAsync({
-        type: ['image/*', 'application/pdf'],
-        copyToCacheDirectory: true,
-        multiple: false,
+      // The filesystem picker retains the Android SAF grant. DocumentPicker's
+      // host-cache copy can be outside the Expo Go project's readable scope.
+      const picked = await File.pickFileAsync({
+        mimeTypes: ['image/*', 'application/pdf'],
+        multipleFiles: false,
       });
-
-      if (permission.canceled) return;
-      const asset = permission.assets[0];
-      if (!asset) return;
-      if (!asset.size || asset.size > 20 * 1024 * 1024)
+      if (picked.canceled) return;
+      const file = picked.result;
+      const mimeType = String(file.type || '').toLowerCase();
+      if (!mimeType.startsWith('image/') && mimeType !== 'application/pdf')
+        return Alert.alert(
+          'Unsupported document',
+          'Choose a photo or PDF identity document.',
+        );
+      if (
+        !Number.isFinite(file.size) ||
+        file.size <= 0 ||
+        file.size > 20 * 1024 * 1024
+      )
         return Alert.alert(
           'Document too large',
           'Choose an image or PDF with a known size up to 20 MB.',
         );
-
+      // Read before requesting an upload URL: that endpoint creates a metadata
+      // row, so a local permission failure must not leave a phantom document.
+      const bytes = await file.arrayBuffer();
+      if (!bytes.byteLength || bytes.byteLength > 20 * 1024 * 1024)
+        return Alert.alert(
+          'Invalid document size',
+          'Choose a non-empty image or PDF up to 20 MB.',
+        );
+      // SAF URIs can end with an opaque provider ID, not a display filename.
+      const fileName = file.uri.startsWith('content://')
+        ? 'identity-document.' +
+          (mimeType === 'application/pdf'
+            ? 'pdf'
+            : mimeType === 'image/jpeg'
+              ? 'jpg'
+              : mimeType.split('/')[1].replace(/[^a-z0-9]/g, ''))
+        : file.name;
       const upload = await request<{ path: string; token: string }>(
         '/api/partner/documents/upload-url',
         {
           method: 'POST',
           body: JSON.stringify({
             document_type: 'identity',
-            file_name: asset.name,
-            mime_type: asset.mimeType || 'application/octet-stream',
-            size_bytes: asset.size || 0,
+            file_name: fileName,
+            mime_type: mimeType,
+            size_bytes: bytes.byteLength,
           }),
         },
       );
 
-      const bytes = await new File(asset.uri).arrayBuffer();
       const { error: uploadError } = await supabase.storage
         .from('partner-documents')
         .uploadToSignedUrl(upload.path, upload.token, bytes, {
-          contentType: asset.mimeType || 'application/octet-stream',
+          contentType: mimeType,
         });
 
       if (uploadError) throw new Error(uploadError.message);
 
       await loadDocuments();
     } catch (error) {
-      const message =
+      const rawMessage =
         error instanceof Error ? error.message : 'Document upload failed.';
+      const message = /permission|not readable|access denied/i.test(rawMessage)
+        ? 'The selected file could not be read. Select it again from Files. If it is stored in the cloud, download a local copy first and retry.'
+        : rawMessage;
       Alert.alert('Document upload', message);
     } finally {
+      documentUploadPending.current = false;
       setDocBusy(false);
     }
   }
