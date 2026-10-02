@@ -211,6 +211,12 @@ const supabase = {
       };
     },
     signOut: async () => ({ error: state.authError }),
+    resend: async (args) => {
+      state.authCalls.push(args);
+      if (state.authThrows) throw new Error('offline');
+      if (state.resendPending) await state.resendPending;
+      return { data: {}, error: state.authError };
+    },
   },
   from: () => ({
     select: () => ({
@@ -501,6 +507,119 @@ await test('email confirmation signup stays on auth', async () => {
   await press('Create account');
   assert.equal(state.routes.length, 0);
   assert.equal(state.alerts[0][0], 'Account created');
+  assert(screenText().includes('Verify your email'));
+  assert.equal(
+    renderer.root.findByProps({ placeholder: 'Password' }).props.value,
+    '',
+  );
+  assert(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Resend verification email',
+    }).props.disabled,
+  );
+});
+await test('resend requires a valid email without calling the service', async () => {
+  await mount('auth');
+  await input('Email', 'not-an-email');
+  await press('Resend verification email');
+  assert.equal(state.authCalls.length, 0);
+  assert.equal(state.alerts[0][0], 'Email required');
+});
+await test('resend uses the existing signup flow without password or session bypass', async () => {
+  await mount('auth');
+  await input('Email', ' test@example.invalid ');
+  await press('Resend verification email');
+  assert.deepEqual(state.authCalls[0], {
+    type: 'signup',
+    email: 'test@example.invalid',
+  });
+  assert.equal(state.routes.length, 0);
+  assert.equal(state.alerts[0][0], 'Verification email requested');
+  assert(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Resend verification email',
+    }).props.disabled,
+  );
+});
+await test('resend service error is shown and allows retry', async () => {
+  state.authError = { message: 'Email service unavailable' };
+  await mount('auth');
+  await input('Email', 'test@example.invalid');
+  await press('Resend verification email');
+  assert.equal(state.alerts[0][0], 'Could not resend email');
+  assert(
+    !renderer.root.findByProps({
+      accessibilityLabel: 'Resend verification email',
+    }).props.disabled,
+  );
+  assert.equal(state.routes.length, 0);
+});
+await test('rapid repeated resend taps create only one request', async () => {
+  let release;
+  state.resendPending = new Promise((resolve) => {
+    release = resolve;
+  });
+  await mount('auth');
+  await input('Email', 'test@example.invalid');
+  const button = renderer.root.findByProps({
+    accessibilityLabel: 'Resend verification email',
+  });
+  await act(async () => {
+    const request = button.props.onPress();
+    await button.props.onPress();
+    assert.equal(state.authCalls.length, 1);
+    release();
+    await request;
+  });
+  assert.equal(state.authCalls.length, 1);
+  assert.equal(state.routes.length, 0);
+});
+await test('resend rate limit disables repeated email requests', async () => {
+  state.authError = {
+    status: 429,
+    code: 'over_email_send_rate_limit',
+    message: 'Wait before resending',
+  };
+  await mount('auth');
+  await input('Email', 'test@example.invalid');
+  await press('Resend verification email');
+  assert(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Resend verification email',
+    }).props.disabled,
+  );
+  assert.equal(state.authCalls.length, 1);
+});
+await test('resend offline error resets busy state without claiming email sent', async () => {
+  state.authThrows = true;
+  await mount('auth');
+  await input('Email', 'test@example.invalid');
+  await press('Resend verification email');
+  assert.equal(state.alerts[0][0], 'Connection interrupted');
+  assert(!screenText().includes('Verify your email'));
+  assert(
+    !renderer.root.findByProps({
+      accessibilityLabel: 'Resend verification email',
+    }).props.disabled,
+  );
+});
+await test('unconfirmed login presents recovery without entering workspace', async () => {
+  state.authError = {
+    code: 'email_not_confirmed',
+    message: 'Email not confirmed',
+  };
+  await mount('auth');
+  await input('Email', 'test@example.invalid');
+  await input('Password', 'test-password');
+  await press('Login');
+  assert.equal(state.alerts[0][0], 'Verify your email');
+  assert.equal(state.routes.length, 0);
+  assert(screenText().includes('Verify your email'));
+  assert(
+    !renderer.root.findByProps({
+      accessibilityLabel: 'Resend verification email',
+    }).props.disabled,
+  );
 });
 await test('login network failure resets busy button', async () => {
   state.authThrows = true;

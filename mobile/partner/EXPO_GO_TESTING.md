@@ -19,3 +19,13 @@ Regression tests make the notification import throw and verify that importing th
 Expo Go can preview the splash/login without credentials. Actual login, onboarding, dashboard and jobs require real public API/Supabase configuration in the ignored .env.local. Do not use dummy credentials, server-role keys or bypass the auth/verification gates. An EAS project ID is not needed merely to preview in Expo Go; native remote push requires the project's own configured build.
 
 References: [Expo's SDK 57 notification limitation](https://docs.expo.dev/versions/v57.0.0/sdk/notifications/), [Expo Go runtime detection](https://docs.expo.dev/versions/v57.0.0/sdk/expo/#isrunninginexpogo).
+
+## Email confirmation recovery
+
+When signup returns no session, the auth screen explains email verification, clears the password and switches to login. Confirm using the newest email, then return to Expo Go and sign in using the original password. Opening the web landing page after confirmation does not itself sign the mobile app in.
+
+If the browser URL reports `otp_expired`, the link is invalid/expired or may have been used already. Do not create another account or disable verification. Enter the existing signup email and use **Resend verification email** on the auth screen. This calls the documented `supabase.auth.resend({ type: 'signup', email })`; it does not create an authenticated session or change the password. A local 60-second cooldown prevents repeated taps. Supabase's server-side limits remain authoritative. Provider/network errors are displayed without pretending mail was sent.
+
+Email links are single-use. Email scanners can also consume a link before a user clicks it, so the error alone is not proof of the cause. Check the specific account's verification state before deciding that resending is needed. Keep verification tokens, passwords and confirmation URLs out of logs and screenshots.
+
+References: [Supabase signup confirmation resend](https://supabase.com/docs/reference/javascript/auth-resend), [Email link validity](https://supabase.com/docs/guides/deployment/going-into-prod#email-link-validity).

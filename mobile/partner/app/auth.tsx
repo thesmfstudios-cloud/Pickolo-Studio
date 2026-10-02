@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -22,10 +22,77 @@ export default function PartnerAuth() {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [verificationNotice, setVerificationNotice] = useState(false);
+  const [resendAt, setResendAt] = useState(0);
+  const authRequestPending = useRef(false);
+
+  useEffect(() => {
+    if (!resendAt) return;
+    const timer = setTimeout(
+      () => setResendAt(0),
+      Math.max(0, resendAt - Date.now()),
+    );
+    return () => clearTimeout(timer);
+  }, [resendAt]);
+
+  async function resendVerification() {
+    if (authRequestPending.current || resendAt > Date.now()) return;
+    if (!supabase) {
+      Alert.alert(
+        'Pickolo',
+        'Pickolo connection is unavailable. Please contact support.',
+      );
+      return;
+    }
+    const normalizedEmail = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      Alert.alert(
+        'Email required',
+        'Enter the email address you used to create your account.',
+      );
+      return;
+    }
+    authRequestPending.current = true;
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: normalizedEmail,
+      });
+      if (error) {
+        if (
+          error.status === 429 ||
+          error.code === 'over_email_send_rate_limit'
+        ) {
+          setResendAt(Date.now() + 60_000);
+        }
+        Alert.alert('Could not resend email', error.message);
+        return;
+      }
+      setVerificationNotice(true);
+      setResendAt(Date.now() + 60_000);
+      Alert.alert(
+        'Verification email requested',
+        'Check Inbox and Spam. If this account needs verification, use the link in the newest email, then return here to log in. Older links may no longer work.',
+      );
+    } catch {
+      Alert.alert(
+        'Connection interrupted',
+        'Check your internet and try again.',
+      );
+    } finally {
+      authRequestPending.current = false;
+      setBusy(false);
+    }
+  }
 
   async function submitAuth() {
+    if (authRequestPending.current) return;
     if (!supabase) {
-      Alert.alert('Pickolo', 'Pickolo connection is unavailable. Please contact support.');
+      Alert.alert(
+        'Pickolo',
+        'Pickolo connection is unavailable. Please contact support.',
+      );
       return;
     }
 
@@ -42,6 +109,7 @@ export default function PartnerAuth() {
       return;
     }
 
+    authRequestPending.current = true;
     setBusy(true);
     try {
       const result =
@@ -64,6 +132,14 @@ export default function PartnerAuth() {
       setBusy(false);
 
       if (result.error) {
+        if (result.error.code === 'email_not_confirmed') {
+          setVerificationNotice(true);
+          Alert.alert(
+            'Verify your email',
+            'Open the newest confirmation email. If its link expired, use Resend verification email below.',
+          );
+          return;
+        }
         Alert.alert(
           mode === 'login' ? 'Login failed' : 'Account creation failed',
           result.error.message,
@@ -72,9 +148,13 @@ export default function PartnerAuth() {
       }
 
       if (mode === 'signup' && !result.data.session) {
+        setVerificationNotice(true);
+        setResendAt(Date.now() + 60_000);
+        setMode('login');
+        setPassword('');
         Alert.alert(
           'Account created',
-          'Check your email if confirmation is enabled.',
+          'Check Inbox and Spam and confirm your email using the newest link. Then return here to log in. If the link expires, resend it below.',
         );
         return;
       }
@@ -86,6 +166,7 @@ export default function PartnerAuth() {
         'Check your internet and try again.',
       );
     } finally {
+      authRequestPending.current = false;
       setBusy(false);
     }
   }
@@ -109,6 +190,19 @@ export default function PartnerAuth() {
           </Text>
 
           <View style={styles.form}>
+            {verificationNotice && (
+              <View
+                style={styles.verificationCard}
+                accessibilityLiveRegion="polite"
+              >
+                <Text style={styles.verificationTitle}>Verify your email</Text>
+                <Text style={styles.verificationText}>
+                  Open the newest email in Inbox or Spam, confirm your address,
+                  then return here to log in. If the link is invalid or expired,
+                  request a fresh one below.
+                </Text>
+              </View>
+            )}
             {mode === 'signup' && (
               <>
                 <TextInput
@@ -133,6 +227,7 @@ export default function PartnerAuth() {
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
+              autoCorrect={false}
               keyboardType="email-address"
             />
             <TextInput
@@ -154,6 +249,24 @@ export default function PartnerAuth() {
                   : mode === 'login'
                     ? 'Login'
                     : 'Create account'}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Resend verification email"
+              accessibilityState={{ disabled: busy || resendAt > 0 }}
+              disabled={busy || resendAt > 0}
+              style={[
+                styles.secondary,
+                (busy || resendAt > 0) && styles.disabled,
+              ]}
+              onPress={resendVerification}
+            >
+              <Text style={styles.secondaryText}>
+                {resendAt > 0
+                  ? 'Please wait before resending'
+                  : 'Resend verification email'}
               </Text>
             </Pressable>
 
@@ -187,6 +300,15 @@ const styles = StyleSheet.create({
   title: { marginTop: 8, fontSize: 34, fontWeight: '800', color: '#13213a' },
   subtitle: { marginTop: 9, color: '#64748b', fontSize: 16, lineHeight: 24 },
   form: { marginTop: 28, gap: 14 },
+  verificationCard: {
+    backgroundColor: '#E9F5EE',
+    padding: 16,
+    borderRadius: 14,
+    gap: 6,
+  },
+  verificationTitle: { color: '#045B35', fontWeight: '800', fontSize: 16 },
+  verificationText: { color: '#345B48', fontSize: 14, lineHeight: 21 },
+  disabled: { opacity: 0.5 },
   input: {
     borderWidth: 1,
     borderColor: '#E7ECE9',
