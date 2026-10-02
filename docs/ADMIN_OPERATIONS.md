@@ -43,6 +43,8 @@ Photography remains the repository's legacy default capability. The owner can ex
 
 - Production Next.js build: passed.
 - Web TypeScript check: passed.
+- Password recovery follow-up (3 October): **18 component/redirect scenarios passed** with mocked Auth transport; production build and web TypeScript passed. No live password was changed.
+- Recovery browser checks: request form, homepage-to-update redirect, URL fragment scrubbing and expired-link retry passed with localhost-only demo identity responses. Both request/update screens had zero automated WCAG A/AA violations/incomplete checks; no uncaught browser errors. Actual password entry/submission and live recovery email-to-Auth verification require the user after deployment.
 - Admin: **43 actual-handler/local PostgreSQL scenarios + 23 real-component interaction scenarios = 66 passed**.
 - Existing partner backend/local PostgreSQL tests: **26 passed**.
 - Customer database/handler regression suite: passed.
@@ -78,9 +80,9 @@ The optional `scripts/verify-admin-browser.mjs` takes an installed agent-browser
 
 ## Live rollout — approval required
 
-**No live schema, role, approval, transfer, production deployment or main merge was performed by this implementation.**
+**No live schema migration, partner approval, transfer, production deployment or main merge was performed.** The owner explicitly confirmed the account promotion on 3 October 2026; only the admin role and its audit record were changed live.
 
-1. Obtain explicit owner approval to grant admin role to the verified existing account `thesmfstudios@gmail.com`. Account inspection found no partner profile. The initial role-change request was rejected by the safety reviewer; the role remained unchanged. Do not retry without explicit confirmation.
+1. Completed on 3 October 2026 after explicit owner confirmation: promoted the verified existing account `thesmfstudios@gmail.com` from customer to admin. A guarded update and audit insertion ran atomically; a separate read verified the role and audit record `b4c286ce-5e8d-4e40-8fbf-c21d76e61bb6`. The account has no partner profile. This bootstrap audit identifies owner confirmation, not an authenticated operator session. Actual browser sign-in remains to be tested; this does not activate the redesigned panel.
 2. Back up and review live schema/migration history. Apply the pending repository delivery-finalization migration `0030_partner_delivery_integrity.sql` if absent, then the locally tested CLI-generated `20261002170200_admin_operations_safety.sql`.
 3. Preflight any existing duplicate provider payout IDs, invalid/orphan legacy records, missing Standard level and private Storage buckets/objects before the migration. Do not silently delete or rewrite them.
 4. Deploy a reviewed staging/preview revision with the existing authorized configuration. No secrets belong in the browser/mobile build. Database rollout must precede the new mutation APIs.
@@ -92,12 +94,12 @@ The session endpoint checks that every required admin safety RPC exists. Until s
 
 ## Remaining gaps / limits
 
-- Live operator access, migration activation, staging deployment and real device/provider end-to-end verification remain pending approval/access.
+- Live admin role is granted and verified; actual operator sign-in, migration activation, staging deployment and real device/provider end-to-end verification remain pending. Schema migrations and deployment require separate owner approval.
 - Unattended payout webhooks, late reversals and reconciliation of an ambiguous request without a provider reference are not implemented. Owner must investigate provider evidence; do not create a fresh transfer blindly.
 - The pre-existing automatic marketplace matcher is still a separate, non-transactional path. This change makes manual assignment/incident recording transactional, not every system matcher. No-show backup matching is best-effort and reports when manual assignment is needed.
 - Existing trusted-admin RLS policies still permit direct SDK/database writes; these RPC gates protect the new workspace/API workflows, not a malicious owner using raw SQL. Do not distribute service credentials.
 - General customer disputes resolve through in-app notices, not a full helpdesk inbox/email integration. Refunds and bank/accounting reconciliation still use the existing authorized provider/backend operations rather than new one-click financial controls.
-- Password recovery, MFA enforcement and multi-operator roles/permission tiers need a separate agreed access policy. Current access uses the existing single admin database role.
+- Password recovery is implemented locally at `/reset-password`, linked from admin sign-in. Homepage recovery fragments from dashboard-issued emails redirect there without transmitting tokens to Next.js; a separate in-memory Auth client verifies identity and updates only that user. Request emails use the already configured site origin. This requires deployment before it can fix live links. The implicit-link flow supports opening email on another device; PKCE/custom token-hash email templates are not implemented. Refreshing the update screen requires a fresh link because recovery tokens are not persisted. MFA enforcement and multi-operator roles/permission tiers need a separate agreed access policy. Current access uses the existing single admin database role.
 - Booking dossiers show the latest 100 events, files and cases. Old partners without an application record need data review before they can use application-based review.
 - Manual assignment preserves existing overlapping-availability semantics. A full-shoot availability policy would be a separate behavior change.
 - No automated face/identity authenticity checks, fraud guarantees or legal compliance certification are claimed.

@@ -1,7 +1,9 @@
-import Link from 'next/link';
+import Link from "next/link";
+import RecoveryRedirect from "./recovery-redirect";
 export default function Home() {
   return (
     <main className="customer-main">
+      <RecoveryRedirect />
       <div className="customer-wrap">
         <span className="area-tag">● BHOPAL · WITHIN 15 KM OF ROHIT NAGAR</span>
         <section className="landing-hero">
@@ -12,8 +14,8 @@ export default function Home() {
             <em>We’ll capture it.</em>
           </h1>
           <p>
-            Birthdays, little milestones, big ideas. Find your photographer or videographer and make
-            a memory worth keeping.
+            Birthdays, little milestones, big ideas. Find your photographer or
+            videographer and make a memory worth keeping.
           </p>
           <Link className="customer-primary" href="/customer">
             Plan your shoot ↗
@@ -22,12 +24,20 @@ export default function Home() {
         </section>
         <div className="landing-grid">
           {[
-            ['01', 'Choose your creative', 'Photography, videography, or a little of both.'],
-            ['02', 'Make it yours', 'Your time. Your place. Your level of coverage.'],
             [
-              '03',
-              'Enjoy the moment',
-              'Pay securely, meet your professional and let the shoot begin.',
+              "01",
+              "Choose your creative",
+              "Photography, videography, or a little of both.",
+            ],
+            [
+              "02",
+              "Make it yours",
+              "Your time. Your place. Your level of coverage.",
+            ],
+            [
+              "03",
+              "Enjoy the moment",
+              "Pay securely, meet your professional and let the shoot begin.",
             ],
           ].map(([n, t, d]) => (
             <section className="booking-card" key={n}>

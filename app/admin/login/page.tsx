@@ -122,8 +122,10 @@ export default function AdminLogin() {
             {busy ? "Verifying access…" : "Sign in securely →"}
           </button>
           <p className="admin-note">
-            Need access or password recovery? Contact the Pickolo owner. There
-            is no public admin signup.
+            <a href="/reset-password">Forgot password / set a password →</a>
+            <br />
+            Need admin access? Contact the Pickolo owner. There is no public
+            admin signup.
           </p>
           <a href="/">← Back to Pickolo</a>
         </form>
