@@ -424,6 +424,16 @@ async function input(placeholder, value) {
     renderer.root.findByProps({ placeholder }).props.onChangeText(value);
   });
 }
+async function choose(label) {
+  const option = renderer.root
+    .findAllByType('Pressable')
+    .find((node) => node.props.accessibilityLabel === label);
+  assert(option, 'Option not found: ' + label);
+  assert(!option.props.disabled, 'Option is disabled: ' + label);
+  await act(async () => {
+    option.props.onPress();
+  });
+}
 async function unmount() {
   if (renderer)
     await act(async () => {
@@ -639,6 +649,8 @@ await test('application saves required UPI before enabling KYC upload', async ()
   await input('Full name', 'Test');
   await input('Phone', '9999999999');
   await input('UPI ID (name@upi)', 'test@upi');
+  await choose('Service: Photography');
+  await choose('Shooting device: Camera');
   await press('Submit application');
   assert.equal(state.application.payout_upi_id, 'test@upi');
   assert.equal(state.alerts.at(-1)[0], 'Application saved');
@@ -670,6 +682,199 @@ await test('existing application prefilled and identity bytes upload privately',
   );
   await press('Upload document');
   assert.equal(state.uploads[0].bucket, 'partner-documents');
+});
+for (const [deviceLabel, deviceTags] of [
+  ['Camera', ['Equipment: Camera']],
+  ['Phone', ['Equipment: Phone']],
+  ['Both', ['Equipment: Camera', 'Equipment: Phone']],
+]) {
+  for (const [workLabel, workTags] of [
+    ['Photography', ['Photography']],
+    ['Videography', ['Videography']],
+    ['Both', ['Photography', 'Videography']],
+  ]) {
+    await test(`application saves ${deviceLabel} with ${workLabel} without equipment-model requirements`, async () => {
+      await mount('apply');
+      await input('Full name', 'New freelancer');
+      await input('Phone', '9999999999');
+      await input('UPI ID (name@upi)', 'test@upi');
+      await choose('Service: ' + workLabel);
+      await choose('Shooting device: ' + deviceLabel);
+      await press('Submit application');
+      assert.deepEqual(state.application.skills, [...workTags, ...deviceTags]);
+      assert.equal(state.application.bio, null);
+      assert(
+        !state.routes.includes('/home'),
+        'Self-declared choices cannot approve a partner',
+      );
+    });
+  }
+}
+await test('application requires explicit work and device choices', async () => {
+  await mount('apply');
+  await input('Full name', 'New freelancer');
+  await input('Phone', '9999999999');
+  await input('UPI ID (name@upi)', 'test@upi');
+  await press('Submit application');
+  assert(state.alerts.at(-1)[1].includes('Choose Photography'));
+  await choose('Service: Both');
+  await press('Submit application');
+  assert(state.alerts.at(-1)[1].includes('Choose Camera'));
+  assert(!state.calls.some((call) => call.endpoint === '/api/partner/apply'));
+});
+await test('existing selections, optional models and legacy skills survive reopening', async () => {
+  state.application = {
+    display_name: 'Applicant',
+    phone: '9999999999',
+    payout_upi_id: 'test@upi',
+    bio: 'Events in Bhopal',
+    status: 'pending',
+    skills: [
+      'Photography',
+      'Videography',
+      'Equipment: Camera',
+      'Equipment: Phone',
+      'Camera model: Canon R50',
+      'Phone model: Pixel 8',
+      'Portraits',
+      'Lightroom',
+    ],
+  };
+  await mount('apply');
+  for (const label of ['Service: Both', 'Shooting device: Both']) {
+    assert(
+      renderer.root
+        .findAllByType('Pressable')
+        .find((node) => node.props.accessibilityLabel === label).props
+        .accessibilityState.checked,
+    );
+  }
+  assert.equal(
+    renderer.root.findByProps({ placeholder: 'Camera model (optional)' }).props
+      .value,
+    'Canon R50',
+  );
+  assert.equal(
+    renderer.root.findByProps({ placeholder: 'Phone model (optional)' }).props
+      .value,
+    'Pixel 8',
+  );
+  assert.equal(
+    renderer.root.findByProps({ placeholder: 'Skills, comma separated' }).props
+      .value,
+    'Portraits, Lightroom',
+  );
+  const expected = [...state.application.skills];
+  await press('Submit application');
+  assert.deepEqual([...state.application.skills].sort(), expected.sort());
+  assert.equal(state.application.bio, 'Events in Bhopal');
+});
+await test('switching to phone-only removes stale camera capability and model', async () => {
+  await mount('apply');
+  await input('Full name', 'Applicant');
+  await input('Phone', '9999999999');
+  await input('UPI ID (name@upi)', 'test@upi');
+  await choose('Service: Both');
+  await choose('Shooting device: Both');
+  await input('Camera model (optional)', 'Canon R50');
+  await input('Phone model (optional)', 'Pixel 8');
+  await choose('Shooting device: Phone');
+  assert.equal(
+    renderer.root.findAllByProps({ placeholder: 'Camera model (optional)' })
+      .length,
+    0,
+  );
+  await press('Submit application');
+  assert.deepEqual(state.application.skills, [
+    'Photography',
+    'Videography',
+    'Equipment: Phone',
+    'Phone model: Pixel 8',
+  ]);
+});
+await test('additional skills cannot override selected capabilities or be silently truncated', async () => {
+  await mount('apply');
+  await input('Full name', 'Applicant');
+  await input('Phone', '9999999999');
+  await input('UPI ID (name@upi)', 'test@upi');
+  await choose('Service: Photography');
+  await choose('Shooting device: Phone');
+  await input(
+    'Skills, comma separated',
+    'Equipment: Camera, Videography, Portraits, portraits',
+  );
+  await press('Submit application');
+  assert.deepEqual(state.application.skills, [
+    'Photography',
+    'Equipment: Phone',
+    'Portraits',
+  ]);
+  await input(
+    'Skills, comma separated',
+    Array.from({ length: 21 }, (_, i) => 'Skill ' + i).join(', '),
+  );
+  const callsBefore = state.calls.filter(
+    (call) => call.endpoint === '/api/partner/apply',
+  ).length;
+  await press('Submit application');
+  assert(state.alerts.at(-1)[1].includes('maximum 20'));
+  assert.equal(
+    state.calls.filter((call) => call.endpoint === '/api/partner/apply').length,
+    callsBefore,
+  );
+});
+await test('failed application load disables editing/submission and allows retry', async () => {
+  state.failPath = '/api/partner/application';
+  await mount('apply');
+  assert(screenText().includes('Unable to load your details'));
+  assert.equal(
+    renderer.root.findByProps({ placeholder: 'Full name' }).props.editable,
+    false,
+  );
+  const button = renderer.root
+    .findAllByType('Pressable')
+    .find((node) => textOf(node) === 'Submit application');
+  assert(button.props.disabled);
+  state.failPath = null;
+  await press('Try again');
+  assert.equal(
+    renderer.root.findByProps({ placeholder: 'Full name' }).props.editable,
+    true,
+  );
+});
+await test('failed preferences save retains choices and allows retry without false success', async () => {
+  await mount('apply');
+  await input('Full name', 'Applicant');
+  await input('Phone', '9999999999');
+  await input('UPI ID (name@upi)', 'test@upi');
+  await choose('Service: Both');
+  await choose('Shooting device: Phone');
+  state.failPath = '/api/partner/apply';
+  await press('Submit application');
+  assert.equal(state.alerts.at(-1)[0], 'Application failed');
+  assert.equal(state.application, null);
+  assert(screenText().includes('Phone · Photography & Videography'));
+  state.failPath = null;
+  await press('Submit application');
+  assert.equal(state.alerts.at(-1)[0], 'Application saved');
+});
+await test('rapid repeated preference submits perform only one application write', async () => {
+  await mount('apply');
+  await input('Full name', 'Applicant');
+  await input('Phone', '9999999999');
+  await input('UPI ID (name@upi)', 'test@upi');
+  await choose('Service: Photography');
+  await choose('Shooting device: Camera');
+  const handler = renderer.root
+    .findAllByType('Pressable')
+    .find((node) => textOf(node) === 'Submit application').props.onPress;
+  await act(async () => {
+    await Promise.all([handler(), handler()]);
+  });
+  assert.equal(
+    state.calls.filter((call) => call.endpoint === '/api/partner/apply').length,
+    1,
+  );
 });
 await test('verification displays actual rejected reason', async () => {
   state.application = {

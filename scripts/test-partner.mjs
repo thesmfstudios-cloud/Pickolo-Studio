@@ -92,6 +92,7 @@ function asset(name = 'photo.jpg') {
   };
 }
 const tables = new Set([
+  'partner_applications',
   'bookings',
   'partners',
   'profiles',
@@ -106,7 +107,8 @@ function from(table) {
     updates = {};
   let sortColumn,
     ascending = true,
-    limit;
+    limit,
+    upsertValues;
   const execute = async (single = false) => {
     state.queryCalls.push(table);
     if (state.queryError === table)
@@ -119,7 +121,23 @@ function from(table) {
       })
       .join(' and ');
     let query;
-    if (Object.keys(updates).length) {
+    if (upsertValues) {
+      const entries = Object.entries(upsertValues);
+      params.push(...entries.map(([, value]) => value));
+      query =
+        'insert into public.' +
+        table +
+        '(' +
+        entries.map(([key]) => key).join(',') +
+        ') values (' +
+        entries.map((_, index) => '$' + (index + 1)).join(',') +
+        ') on conflict (applicant_id) do update set ' +
+        entries
+          .filter(([key]) => key !== 'applicant_id')
+          .map(([key]) => key + '=excluded.' + key)
+          .join(',') +
+        ' returning *';
+    } else if (Object.keys(updates).length) {
       const assignments = Object.entries(updates).map(([column, value]) => {
         params.push(value);
         return column + '=$' + params.length;
@@ -152,6 +170,13 @@ function from(table) {
   };
   const builder = {
     select: () => builder,
+    upsert: (values, options) => {
+      assert.equal(table, 'partner_applications');
+      assert.equal(options.onConflict, 'applicant_id');
+      for (const key of Object.keys(values)) assert.match(key, /^[a-z_]+$/);
+      upsertValues = values;
+      return builder;
+    },
     eq: (column, value) => {
       assert.match(column, /^[a-z_]+$/);
       filters.push([column, value]);
@@ -731,6 +756,85 @@ await test('existing portfolio Storage policy isolates owner reads and removals'
       "reset role; select set_config('request.jwt.claim.sub','',false);",
     );
   }
+});
+const applicationApply = load('app/api/partner/apply/route.ts').POST;
+const applicationRead = load('app/api/partner/application/route.ts').GET;
+const onboarding = load('mobile/partner/ui/onboarding.ts');
+await test('all nine device/service choices round-trip through existing application handlers and SQL', async () => {
+  for (const work of ['photography', 'videography', 'both']) {
+    for (const device of ['camera', 'phone', 'both']) {
+      const skills = onboarding.buildOnboarding({
+        work,
+        device,
+        cameraModel: 'Canon R50',
+        phoneModel: 'Pixel 8',
+        extraSkills: 'Portraits, Lightroom',
+      });
+      const response = await applicationApply(
+        new NextRequest('https://test.invalid/api/partner/apply', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-token',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            display_name: 'New freelancer',
+            phone: '9999999999',
+            payout_upi_id: 'test@upi',
+            bio: 'Bhopal',
+            skills,
+          }),
+        }),
+      );
+      assert.equal(
+        response.status,
+        201,
+        JSON.stringify(await response.clone().json()),
+      );
+      const readResponse = await applicationRead(
+        new NextRequest('https://test.invalid/api/partner/application', {
+          headers: { Authorization: 'Bearer test-token' },
+        }),
+      );
+      assert.equal(readResponse.status, 200);
+      const saved = (await readResponse.json()).application;
+      assert.deepEqual(saved.skills, skills);
+      const restored = onboarding.readOnboarding(saved.skills);
+      assert.equal(restored.work, work);
+      assert.equal(restored.device, device);
+      assert.equal(restored.extraSkills, 'Portraits, Lightroom');
+      assert.equal(saved.status, 'pending');
+    }
+  }
+});
+await test('application write remains authenticated and preserves existing review status', async () => {
+  const request = () =>
+    new NextRequest('https://test.invalid/api/partner/apply', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer test-token',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        display_name: 'Applicant',
+        phone: '9999999999',
+        payout_upi_id: 'test@upi',
+        skills: ['Videography', 'Equipment: Phone'],
+      }),
+    });
+  state.user = null;
+  assert.equal((await applicationApply(request())).status, 401);
+  state.user = { id: partner };
+  await db.query(
+    "update public.partner_applications set status='rejected',rejection_reason='Needs review' where applicant_id=$1",
+    [partner],
+  );
+  const response = await applicationApply(request());
+  assert.equal(response.status, 201);
+  const saved = (await response.json()).application;
+  assert.equal(saved.status, 'rejected');
+  assert.equal(saved.rejection_reason, 'Needs review');
+  assert.deepEqual(saved.skills, ['Videography', 'Equipment: Phone']);
 });
 await db.close();
 console.log(
