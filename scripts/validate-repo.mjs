@@ -56,6 +56,15 @@ if (fs.existsSync(migrationDir)) {
       failures.push(`Migration numbering gap/order error near ${name}; expected prefix ${expected}`);
     }
   });
+
+  // New migrations use the official CLI timestamp format; preserve validation
+  // of the historical sequential migrations without renaming applied files.
+  const timestampMigrations = fs.readdirSync(migrationDir).filter((name) => /^\d{14}_.+\.sql$/.test(name));
+  const versions = timestampMigrations.map((name) => name.slice(0, 14));
+  if (new Set(versions).size !== versions.length) failures.push('Duplicate timestamp migration version.');
+  for (const name of fs.readdirSync(migrationDir).filter((name) => name.endsWith('.sql'))) {
+    if (!/^\d{4}_.+\.sql$/.test(name) && !/^\d{14}_.+\.sql$/.test(name)) failures.push('Invalid migration filename: ' + name);
+  }
 }
 
 const cronConfig = JSON.parse(read('vercel.json'));

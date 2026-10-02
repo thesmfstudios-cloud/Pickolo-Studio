@@ -1,29 +1,133 @@
-'use client';
-
-import { FormEvent, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-
+"use client";
+import { FormEvent, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
 export default function AdminLogin() {
-  const [email,setEmail]=useState('');
-  const [password,setPassword]=useState('');
-  const [busy,setBusy]=useState(false);
-  const [message,setMessage]=useState('');
-
-  async function submit(event:FormEvent){
+  const [email, setEmail] = useState(""),
+    [password, setPassword] = useState(""),
+    [busy, setBusy] = useState(false),
+    [message, setMessage] = useState(""),
+    [visible, setVisible] = useState(false);
+  const pending = useRef(false);
+  async function submit(event: FormEvent) {
     event.preventDefault();
-    if(!supabase){setMessage('Supabase is not configured.');return;}
-    setBusy(true); setMessage('');
-    const result=await supabase.auth.signInWithPassword({email:email.trim(),password});
-    setBusy(false);
-    if(result.error){setMessage(result.error.message);return;}
-    const profile=await supabase.from('profiles').select('role').eq('id',result.data.user?.id ?? '').single();
-    if(profile.data?.role!=='admin'){
-      await supabase.auth.signOut();
-      setMessage('This account does not have admin access.');
+    if (pending.current) return;
+    if (!supabase) {
+      setMessage("Admin connection is not configured. Contact the owner.");
       return;
     }
-    window.location.href='/admin';
+    pending.current = true;
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (result.error || !result.data.session) {
+        setMessage(
+          "Sign-in failed. Check your email and password, and confirm your email first.",
+        );
+        return;
+      }
+      const response = await fetch("/api/admin/session", {
+        headers: {
+          Authorization: "Bearer " + result.data.session.access_token,
+        },
+        cache: "no-store",
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!response.ok) {
+        await supabase.auth.signOut();
+        setPassword("");
+        setMessage(
+          response.status === 403
+            ? "This account is not an authorized operator. Ask the owner to enable admin access."
+            : "Unable to verify access. Please try again.",
+        );
+        return;
+      }
+      setPassword("");
+      window.location.assign("/admin");
+    } catch {
+      setMessage("Could not connect. Check your connection and try again.");
+    } finally {
+      pending.current = false;
+      setBusy(false);
+    }
   }
-
-  return <main className="main"><div className="container"><div className="kicker">Pickolo operations</div><h1 style={{fontSize:48,margin:'8px 0 10px'}}>Admin sign in</h1><p className="muted">Restricted access for authorized operators.</p><div className="card" style={{maxWidth:520,marginTop:20}}><form className="form" onSubmit={submit}><input className="input" type="email" placeholder="Admin email" value={email} onChange={e=>setEmail(e.target.value)} required/><input className="input" type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} required/><button className="button" type="submit" disabled={busy}>{busy?'Signing in...':'Sign in'}</button>{message&&<p className="muted">{message}</p>}</form></div></div></main>;
+  return (
+    <main className="admin-login">
+      <section className="admin-login-story">
+        <div className="admin-brand">
+          <span>P</span> Pickolo
+        </div>
+        <div className="admin-eyebrow" style={{ color: "#c2d9c8" }}>
+          OPERATIONS • BHOPAL
+        </div>
+        <h1>Every great shoot starts with good operations.</h1>
+        <p>
+          Bring partners, bookings and customer care together. One calm
+          workspace for the team behind every moment.
+        </p>
+        <p>Restricted to authorized Pickolo operators.</p>
+      </section>
+      <section className="admin-login-form">
+        <form onSubmit={submit}>
+          <div className="admin-eyebrow">WELCOME BACK</div>
+          <h2>Operator sign in</h2>
+          <p className="admin-muted">
+            Use your approved admin account to continue.
+          </p>
+          <label htmlFor="admin-email">Email address</label>
+          <input
+            id="admin-email"
+            className="admin-field"
+            autoComplete="username"
+            type="email"
+            placeholder="you@studio.com"
+            required
+            value={email}
+            disabled={busy}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <label htmlFor="admin-password">Password</label>
+          <input
+            id="admin-password"
+            className="admin-field"
+            type={visible ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            value={password}
+            disabled={busy}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            className="admin-inline-link"
+            type="button"
+            aria-pressed={visible}
+            onClick={() => setVisible(!visible)}
+          >
+            {visible ? "Hide" : "Show"} password
+          </button>
+          {message ? (
+            <div role="alert" className="admin-banner error">
+              {message}
+            </div>
+          ) : null}
+          <button
+            className="admin-button primary"
+            disabled={busy}
+            type="submit"
+          >
+            {busy ? "Verifying access…" : "Sign in securely →"}
+          </button>
+          <p className="admin-note">
+            Need access or password recovery? Contact the Pickolo owner. There
+            is no public admin signup.
+          </p>
+          <a href="/">← Back to Pickolo</a>
+        </form>
+      </section>
+    </main>
+  );
 }

@@ -575,8 +575,12 @@ Live browser smoke tests passed for:
 
 The application is therefore **web-deployed and smoke-verified**, but this is not yet a production-ready release. The next gate is the correct Pickolo Supabase project, followed by migrations, Auth/RLS live testing, payment sandbox verification, and mobile build verification.
 
-The connected Supabase integration currently exposes only the unrelated `Aahana AI Influencer` project. No migration or database change should be applied until the intended Pickolo Supabase project is independently verified.
+Historical initial smoke-test note: the connector then exposed only the unrelated `Aahana AI Influencer` project. The intended Pickolo project has since been identified as `ywlayixocyjwodhfcyus` (SMF Studios). Do not apply Pickolo migrations to an unrelated project; live rollout still requires explicit approval and verification.
 
 ## Customer booking update
 
 See [Customer experience and launch setup](docs/CUSTOMER_EXPERIENCE.md) for the web/native journey, new migrations, pricing, SMS/payment configuration and verification steps.
+
+## Admin operations update
+
+See [Admin workspace, safety checks and rollout](docs/ADMIN_OPERATIONS.md) for the responsive operations UI, transactional reviews/assignments, provider-confirmed payout safeguards, 66 admin test scenarios and remaining live-release gates. This implementation is locally verified on the dedicated branch, not yet activated in production.

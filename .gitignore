@@ -11,3 +11,4 @@ pnpm-debug.log*
 
 *.tsbuildinfo
 .expo/
+supabase/.temp/

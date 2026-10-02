@@ -24,6 +24,7 @@ jobs:
       - run: npm run lint
       - run: npm run test:customer
       - run: npm run test:partner
+      - run: npm run test:admin
       - run: npm run build
 
   customer-mobile:

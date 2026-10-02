@@ -9,7 +9,8 @@
     "lint": "tsc --noEmit",
     "validate:repo": "node scripts/validate-repo.mjs",
     "test:customer": "node scripts/test-customer.mjs",
-    "test:partner": "node scripts/test-partner.mjs"
+    "test:partner": "node scripts/test-partner.mjs",
+    "test:admin": "node scripts/test-admin.mjs && node scripts/test-admin-ui.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.116.0",
@@ -26,6 +27,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.2.3",
     "prettier": "^3.9.9",
+    "react-test-renderer": "19.2.3",
     "typescript": "5.9.3"
   }
 }
