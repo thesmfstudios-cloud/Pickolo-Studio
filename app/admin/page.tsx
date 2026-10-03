@@ -453,6 +453,12 @@ export default function AdminPage() {
           </button>
         </div>
 
+        <section className="card section">
+          <strong>Payments · test mode only</strong>
+          <p className="muted">Live partner payouts are paused. Sandbox tests never change bookings or earnings.</p>
+          <a className="button secondary" href="/admin/payment-test">Open payment test</a>
+        </section>
+
         {message && (
           <div className="card section">
             <strong>Attention</strong>
@@ -985,13 +991,10 @@ export default function AdminPage() {
                       ) && (
                         <button
                           className="button"
-                          onClick={() =>
-                            postAdmin(
-                              "/api/admin/payouts/" + booking.id + "/release",
-                            )
-                          }
+                          disabled
+                          title="Live payouts paused during testing. Use Payment test."
                         >
-                          Release partner payout
+                          Live payout paused
                         </button>
                       )}
                       {booking.status === "PAYOUT_RELEASED" && (

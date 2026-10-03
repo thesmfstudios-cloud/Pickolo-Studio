@@ -10,7 +10,8 @@
     "validate:repo": "node scripts/validate-repo.mjs",
     "test:customer": "node scripts/test-customer.mjs",
     "test:recovery": "node scripts/test-password-recovery.mjs",
-    "test:approval": "node scripts/test-approval.mjs"
+    "test:approval": "node scripts/test-approval.mjs",
+    "test:payment-sandbox": "node scripts/test-payment-sandbox.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.116.0",
