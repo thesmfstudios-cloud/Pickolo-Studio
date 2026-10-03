@@ -2,7 +2,9 @@
 
 Branch: `codex/admin-test-integration`, based on the redesigned partner/admin
 branch. This carries the production payment-safety fix into the future workspace.
-It does not deploy the entire new admin, apply migrations, or merge main.
+It does not activate the entire new admin in production, apply migrations, or
+merge main. Publishing the feature branch may trigger the existing Git preview
+integration; preview publication is not production activation or acceptance.
 
 ## Policy and flow
 
