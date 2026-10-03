@@ -254,13 +254,19 @@ function load(file) {
     },
   }).outputText;
   const local = (name) =>
-    name === "@/lib/supabase"
-      ? { supabase }
-      : name.startsWith("@/")
-        ? load(path.join(root, name.slice(2) + ".ts"))
-        : name.startsWith("./")
-          ? load(path.join(path.dirname(file), name + ".tsx"))
-          : require(name);
+    name === "next/link"
+      ? {
+          __esModule: true,
+          default: ({ children, ...props }) =>
+            React.createElement("a", props, children),
+        }
+      : name === "@/lib/supabase"
+        ? { supabase }
+        : name.startsWith("@/")
+          ? load(path.join(root, name.slice(2) + ".ts"))
+          : name.startsWith("./")
+            ? load(path.join(path.dirname(file), name + ".tsx"))
+            : require(name);
   new Function("require", "module", "exports", code)(
     local,
     module,
@@ -462,17 +468,20 @@ await test("disabled payout provider cannot initiate money transfers", async () 
   assert(button("Request payout").props.disabled);
   assert.equal(state.mutations.length, 0);
 });
-await test("provider-enabled payout still requires explicit confirmation", async () => {
+await test("stale provider-enabled session cannot bypass the test-only policy", async () => {
   state.operator = { payoutsEnabled: true };
   await mount();
   await navigate("Bookings");
-  await click("Request payout");
-  assert(textOf(renderer.toJSON()).includes("This may send real money"));
-  assert(button("Confirm action").props.disabled);
-  await confirm();
-  await submit();
-  assert.equal(state.mutations.length, 1);
-  assert(state.mutations[0].path.endsWith("/release"));
+  assert(button("Request payout").props.disabled);
+  assert(textOf(renderer.toJSON()).includes("Live payouts are paused"));
+  const testLink = renderer.root
+    .findAllByType("a")
+    .find((a) => a.props.href === "/admin/payment-test");
+  assert(
+    testLink,
+    "sandbox remains accessible independently of payout readiness",
+  );
+  assert.equal(state.mutations.length, 0);
 });
 await test("identity not approved keeps partner approval disabled, without extra equipment demand", async () => {
   await mount();

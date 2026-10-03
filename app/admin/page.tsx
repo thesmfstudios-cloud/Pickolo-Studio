@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import Link from "next/link";
 import {
   AdminMetrics,
   AdminRecord,
@@ -328,7 +329,7 @@ export default function AdminPage() {
     setDecision(null);
   }
   function choose(action: Action, record: AdminRecord) {
-    if (busy) return;
+    if (busy || action === "payout") return;
     setReview(null);
     setDetail(null);
     setDecision({ action, record });
@@ -455,7 +456,13 @@ export default function AdminPage() {
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!decision || mutation.current || !confirmed) return;
+    if (
+      !decision ||
+      mutation.current ||
+      !confirmed ||
+      decision.action === "payout"
+    )
+      return;
     mutation.current = true;
     setBusy(true);
     setActionError("");
@@ -485,11 +492,6 @@ export default function AdminPage() {
       path = "/api/admin/no-show/" + record.id;
       body = { reason, ...expected };
     }
-    if (action === "payout")
-      path =
-        "/api/admin/payouts/" +
-        (tab === "payouts" ? record.booking_id : record.id) +
-        "/release";
     if (action === "complete") {
       path = "/api/bookings/" + record.id + "/transition";
       body = { to_status: "COMPLETED" };
@@ -571,11 +573,7 @@ export default function AdminPage() {
   ) => (
     <button
       className={"admin-button " + (danger ? "danger" : "")}
-      disabled={
-        busy ||
-        !operator?.safetyReady ||
-        (action === "payout" && !operator.payoutsEnabled)
-      }
+      disabled={busy || !operator?.safetyReady || action === "payout"}
       onClick={() => choose(action, r)}
     >
       {label}
@@ -709,13 +707,13 @@ export default function AdminPage() {
             rollout before testing booking-to-payout.
           </div>
         ) : null}
-        {!operator.payoutsEnabled ? (
-          <div className="admin-banner">
-            <strong>Real payouts are disabled.</strong> No transfer can be
-            requested from this workspace until the owner configures the
-            provider.
-          </div>
-        ) : null}
+        <div className="admin-banner">
+          <strong>Live payouts are paused during testing.</strong> Real money,
+          bookings and partner earnings stay untouched.{" "}
+          <Link className="admin-inline-link" href="/admin/payment-test">
+            Open Payment Test →
+          </Link>
+        </div>
         {notice ? (
           <div role="status" className="admin-banner">
             {notice}

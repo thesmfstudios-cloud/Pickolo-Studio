@@ -3,6 +3,13 @@
 Date: 2 October 2026. Branch: `codex/partner-ui-redesign`.
 Status: implemented and locally verified; **not activated on the live site**.
 
+Update, 3 October 2026, branch `codex/admin-test-integration`: live payout
+actions are unconditionally paused during the test-only phase. The workspace
+links to the isolated Payment Test tool; provider keys alone cannot enable
+transfers. Settlement behavior described below remains dormant and covered by
+synthetic/local SQL regression tests, not an active production payout flow.
+See [PAYMENT-SANDBOX.md](PAYMENT-SANDBOX.md) for configuration and limitations.
+
 ## Workspace
 
 The admin workspace has a dedicated green/white design system, responsive desktop navigation and nine-section mobile navigation. Mobile operational queues use readable cards. Native dialogs restore focus, protect in-flight actions and require explicit confirmation.
@@ -45,7 +52,8 @@ Photography remains the repository's legacy default capability. The owner can ex
 - Web TypeScript check: passed.
 - Password recovery follow-up (3 October): **18 component/redirect scenarios passed** with mocked Auth transport; production build and web TypeScript passed. No live password was changed.
 - Recovery browser checks: request form, homepage-to-update redirect, URL fragment scrubbing and expired-link retry passed with localhost-only demo identity responses. Both request/update screens had zero automated WCAG A/AA violations/incomplete checks; no uncaught browser errors. Actual password entry/submission and live recovery email-to-Auth verification require the user after deployment.
-- Admin: **43 actual-handler/local PostgreSQL scenarios + 23 real-component interaction scenarios = 66 passed**.
+- Admin: **45 handler/local PostgreSQL scenarios + 23 component interaction scenarios = 68 passed** (including the test-only public route guard).
+- Isolated payment sandbox: **27 helper/API/UI scenarios passed**, with synthetic provider responses only; no actual provider sandbox transaction.
 - Existing partner backend/local PostgreSQL tests: **26 passed**.
 - Customer database/handler regression suite: passed.
 - Partner mobile TypeScript check: passed; **93 screen/interaction scenarios passed**.

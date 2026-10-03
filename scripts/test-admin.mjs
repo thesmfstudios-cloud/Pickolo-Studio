@@ -9,6 +9,8 @@ import { NextRequest } from "next/server.js";
 
 // Actual handlers and transaction SQL on disposable Postgres. Auth transport,
 // Storage signing and payout provider are mocked. No live keys or money.
+// Payout reserve/record scenarios exercise the dormant reconciliation module;
+// the public release route is separately tested as unconditionally paused.
 const root = process.cwd(),
   require = createRequire(path.join(root, "package.json")),
   db = new PGlite();
@@ -240,7 +242,9 @@ function load(file) {
 }
 const review = load("app/api/admin/partners/[id]/verify/route.ts").POST,
   docs = load("app/api/admin/partner-documents/route.ts").POST;
-const payout = load("app/api/admin/payouts/[id]/release/route.ts").POST,
+const payout = load(
+    "lib/admin-payout-reconciliation.ts",
+  ).reconcileReservedPayout,
   metrics = load("app/api/admin/metrics/route.ts").GET;
 const queues = load("app/api/admin/queue/route.ts").GET,
   session = load("app/api/admin/session/route.ts").GET,
@@ -248,6 +252,7 @@ const queues = load("app/api/admin/queue/route.ts").GET,
 const disputes = load("app/api/admin/disputes/route.ts").POST,
   pricing = load("app/api/admin/pricing/route.ts").PATCH,
   model = load("lib/admin-model.ts");
+const publicRelease = load("app/api/admin/payouts/[id]/release/route.ts").POST;
 const req = (route, body, header = true) =>
   new NextRequest("https://admin.test.invalid" + route, {
     method: body === undefined ? "GET" : "POST",
@@ -610,6 +615,30 @@ await test("reapproval does not reset an existing earned service level", async (
     ).rows[0].service_level_id,
     best,
   );
+});
+await test("public release stays paused with provider enabled and creates no payout intent", async () => {
+  const b = await booking();
+  state.providerEnabled = true;
+  const before = state.rpcCalls.length;
+  assert.equal((await post(publicRelease, b.id, {})).status, 503);
+  assert.equal(state.rpcCalls.length, before);
+  assert.equal(state.providerCalls.length, 0);
+  assert.equal(
+    Number(
+      (
+        await db.query("select count(*) n from payouts where booking_id=$1", [
+          b.id,
+        ])
+      ).rows[0].n,
+    ),
+    0,
+  );
+});
+await test("admin session cannot enable live payouts from configured legacy keys", async () => {
+  state.providerEnabled = true;
+  const response = await session(req("/api/admin/session"));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).payoutsEnabled, false);
 });
 await test("disabled payout provider does not reserve, transfer or mark anything paid", async () => {
   const b = await booking();

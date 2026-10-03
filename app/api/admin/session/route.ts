@@ -1,5 +1,4 @@
 import { adminAccess, adminFailure, adminJson } from "@/lib/admin-access";
-import { razorpayXPayoutsEnabled } from "@/lib/razorpayx";
 export async function GET(request: Request) {
   try {
     const { user, profile, client } = await adminAccess(request);
@@ -10,7 +9,8 @@ export async function GET(request: Request) {
         name: profile.full_name || "Pickolo operator",
         email: user.email,
       },
-      payoutsEnabled: razorpayXPayoutsEnabled(),
+      // Existing provider keys cannot override the current test-only policy.
+      payoutsEnabled: false,
       safetyReady:
         !readiness.error &&
         readiness.data?.adminReady === true &&
