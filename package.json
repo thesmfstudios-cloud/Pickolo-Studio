@@ -11,6 +11,7 @@
     "test:customer": "node scripts/test-customer.mjs",
     "test:partner": "node scripts/test-partner.mjs",
     "test:admin": "node scripts/test-admin.mjs && node scripts/test-admin-ui.mjs",
+    "test:rollout": "node scripts/test-admin-rollout.mjs",
     "test:recovery": "node scripts/test-password-recovery.mjs",
     "test:payment-sandbox": "node scripts/test-payment-sandbox.mjs"
   },

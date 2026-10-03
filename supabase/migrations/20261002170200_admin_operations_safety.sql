@@ -19,7 +19,7 @@ returns jsonb language plpgsql security invoker set search_path=public,pg_temp a
 declare a public.partner_applications; next_state public.partner_verification_status; level_id uuid; identity_id uuid;
 begin
   perform private.require_operator(p_actor);
-  if p_action not in ('approve','reject','suspend') then raise exception 'Invalid review action.' using errcode='22023'; end if;
+  if p_action is null or p_action not in ('approve','reject','suspend') then raise exception 'Invalid review action.' using errcode='22023'; end if;
   select * into a from public.partner_applications where id=p_id for update;
   if a.id is null then raise exception 'Application not found.' using errcode='P0002'; end if;
   if a.status::text is distinct from p_expected then raise exception 'Application changed. Refresh before reviewing.' using errcode='40001'; end if;
@@ -38,14 +38,16 @@ begin
     if identity_id is null then
       raise exception 'Review and approve one uploaded identity document before approving the application.' using errcode='22023';
     end if;
-    select id into level_id from public.service_levels where name='Standard';
+    -- Preserve the deployed approval policy: new creators start at Basic.
+    -- Higher eligibility remains an explicit operator decision, not a signup reward.
+    select id into level_id from public.service_levels where name='Basic' and active;
     if level_id is null then raise exception 'Default partner level is unavailable.' using errcode='22023'; end if;
     insert into public.partners(id,partner_code,verification_status,service_level_id,bio,base_lat,base_long,payout_upi_id,payout_upi_updated_at)
       values(a.applicant_id,'PKL-'||upper(left(replace(a.applicant_id::text,'-',''),8)),'approved',level_id,a.bio,a.base_lat,a.base_long,a.payout_upi_id,case when a.payout_upi_id is null then null else now() end)
-      on conflict(id) do update set verification_status='approved',bio=excluded.bio,base_lat=excluded.base_lat,base_long=excluded.base_long,payout_upi_id=excluded.payout_upi_id,payout_upi_updated_at=excluded.payout_upi_updated_at;
+      on conflict(id) do update set verification_status='approved',service_level_id=coalesce(public.partners.service_level_id,excluded.service_level_id),bio=excluded.bio,base_lat=excluded.base_lat,base_long=excluded.base_long,payout_upi_id=excluded.payout_upi_id,payout_upi_updated_at=excluded.payout_upi_updated_at;
     update public.profiles set role='partner',full_name=a.display_name,phone=a.phone where id=a.applicant_id;
   else
-    update public.partners set verification_status=next_state where id=a.applicant_id;
+    update public.partners set verification_status=next_state,is_accepting_jobs=false where id=a.applicant_id;
   end if;
   update public.partner_applications set status=next_state,reviewed_by=p_actor,reviewed_at=now(),rejection_reason=case when p_action='approve' then null else btrim(p_reason) end where id=p_id;
   insert into public.admin_audit_log(actor_id,action,entity_type,entity_id,metadata) values(p_actor,upper(p_action),'partner_application',p_id,jsonb_build_object('from_status',a.status,'to_status',next_state,'reason',left(p_reason,500)));
@@ -55,14 +57,17 @@ end; $$;
 
 create or replace function public.admin_review_document(p_actor uuid,p_id uuid,p_status text,p_expected text,p_reason text default '')
 returns jsonb language plpgsql security invoker set search_path=public,pg_temp as $$
-declare d public.partner_verification_documents;
+declare d public.partner_verification_documents; object_id uuid;
 begin
   perform private.require_operator(p_actor);
-  if p_status not in ('approved','rejected') then raise exception 'Invalid document status.' using errcode='22023'; end if;
+  if p_status is null or p_status not in ('approved','rejected') then raise exception 'Invalid document status.' using errcode='22023'; end if;
   select * into d from public.partner_verification_documents where id=p_id for update;
   if d.id is null then raise exception 'Document not found.' using errcode='P0002'; end if;
   if d.status::text is distinct from p_expected or d.status::text=p_status then raise exception 'Document changed. Refresh before reviewing.' using errcode='40001'; end if;
-  if p_status='approved' and not exists(select 1 from storage.objects where bucket_id='partner-documents' and name=d.storage_path) then raise exception 'Document file is missing. Ask the partner to upload again.' using errcode='22023'; end if;
+  if p_status='approved' then
+    select id into object_id from storage.objects where bucket_id='partner-documents' and name=d.storage_path for key share;
+    if object_id is null then raise exception 'Document file is missing. Ask the partner to upload again.' using errcode='22023'; end if;
+  end if;
   if p_status='rejected' and length(btrim(coalesce(p_reason,''))) not between 5 and 500 then raise exception 'Provide a clear correction reason of 5 to 500 characters.' using errcode='22023'; end if;
   update public.partner_verification_documents set status=p_status::public.partner_document_status,rejection_reason=case when p_status='rejected' then btrim(p_reason) else null end,reviewed_by=p_actor,reviewed_at=now() where id=p_id;
   insert into public.admin_audit_log(actor_id,action,entity_type,entity_id,metadata) values(p_actor,'DOCUMENT_'||upper(p_status),'partner_document',p_id,jsonb_build_object('from_status',d.status,'to_status',p_status,'reason',left(p_reason,500)));

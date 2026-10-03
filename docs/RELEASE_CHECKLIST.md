@@ -10,7 +10,7 @@ This checklist is the final gate before private pilot and production release.
 - [ ] Booking persistence verified
 - [ ] State transitions verified
 - [ ] Assignment/reassignment verified
-- [ ] 5 KM eligibility verified
+- [ ] Existing 15 KM Bhopal pilot eligibility verified
 - [ ] Payment sandbox verified
 - [ ] Razorpay webhook verified
 - [ ] Refund verified
@@ -98,7 +98,7 @@ This checklist is the final gate before private pilot and production release.
 
 ## Pilot gate
 - [ ] 20–25 verified partners
-- [ ] 5 KM operating area
+- [ ] Existing 15 KM Bhopal operating area verified
 - [ ] Real test transactions
 - [ ] Cancellation/no-show drills
 - [ ] Delivery recovery test

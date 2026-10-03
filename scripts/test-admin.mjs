@@ -324,6 +324,12 @@ async function booking() {
     ).status,
     200,
   );
+  // Standard-booking fixtures explicitly grant reviewed eligibility; application
+  // approval itself must not silently promote a new Basic creator.
+  await db.query("update partners set service_level_id=$1 where id=$2", [
+    level,
+    a.person,
+  ]);
   const b = (
     await db.query(
       "insert into bookings(customer_id,service_id,service_level_id,scheduled_start,duration_minutes,location_text,location_lat,location_long,raw_policy_version,raw_policy_accepted_at) values($1,$2,$3,'2099-01-01',60,'Bhopal',23.184690,77.435274,'raw-v1',now()) returning *",
@@ -492,6 +498,15 @@ await test("approved identity alone unlocks atomic partner approval and preserve
   );
   assert.equal(
     (
+      await db.query(
+        "select l.name from partners p join service_levels l on l.id=p.service_level_id where p.id=$1",
+        [person],
+      )
+    ).rows[0].name,
+    "Basic",
+  );
+  assert.equal(
+    (
       await post(review, app.id, {
         action: "approve",
         expected_status: "pending",
@@ -614,6 +629,153 @@ await test("reapproval does not reset an existing earned service level", async (
       ])
     ).rows[0].service_level_id,
     best,
+  );
+});
+await test("reapproval repairs a legacy missing level to Basic without granting higher eligibility", async () => {
+  const { app, doc, person } = await application();
+  await object(doc);
+  await approveDocument(doc);
+  await post(review, app.id, { action: "approve", expected_status: "pending" });
+  await db.query("update partners set service_level_id=null where id=$1", [
+    person,
+  ]);
+  await post(review, app.id, {
+    action: "suspend",
+    expected_status: "approved",
+    rejection_reason: "Temporary identity review.",
+  });
+  assert.equal(
+    (
+      await post(review, app.id, {
+        action: "approve",
+        expected_status: "suspended",
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select l.name from partners p join service_levels l on l.id=p.service_level_id where p.id=$1",
+        [person],
+      )
+    ).rows[0].name,
+    "Basic",
+  );
+});
+await test("inactive Basic level blocks approval without partial partner writes", async () => {
+  const { app, doc, person } = await application();
+  await object(doc);
+  await approveDocument(doc);
+  await db.exec("update service_levels set active=false where name='Basic'");
+  try {
+    assert.equal(
+      (
+        await post(review, app.id, {
+          action: "approve",
+          expected_status: "pending",
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (await db.query("select count(*) n from partners where id=$1", [person]))
+        .rows[0].n,
+      0,
+    );
+    assert.equal(
+      (
+        await db.query("select status from partner_applications where id=$1", [
+          app.id,
+        ])
+      ).rows[0].status,
+      "pending",
+    );
+  } finally {
+    await db.exec("update service_levels set active=true where name='Basic'");
+  }
+});
+await test("suspension and rejection force offline; reapproval requires explicit opt-in", async () => {
+  for (const action of ["suspend", "reject"]) {
+    const { app, doc, person } = await application();
+    await object(doc);
+    await approveDocument(doc);
+    await post(review, app.id, {
+      action: "approve",
+      expected_status: "pending",
+    });
+    await db.query("update partners set is_accepting_jobs=true where id=$1", [
+      person,
+    ]);
+    assert.equal(
+      (
+        await post(review, app.id, {
+          action,
+          expected_status: "approved",
+          rejection_reason: "Please correct the identity document.",
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await db.query("select is_accepting_jobs from partners where id=$1", [
+          person,
+        ])
+      ).rows[0].is_accepting_jobs,
+      false,
+    );
+    assert.equal(
+      (
+        await post(review, app.id, {
+          action: "approve",
+          expected_status: action === "suspend" ? "suspended" : "rejected",
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await db.query("select is_accepting_jobs from partners where id=$1", [
+          person,
+        ])
+      ).rows[0].is_accepting_jobs,
+      false,
+    );
+  }
+});
+await test("direct null RPC decisions fail without changing review state", async () => {
+  const { app, doc } = await application();
+  await assert.rejects(
+    db.query("select admin_review_application($1,$2,null,'pending','')", [
+      owner,
+      app.id,
+    ]),
+    /Invalid review action/,
+  );
+  await assert.rejects(
+    db.query("select admin_review_document($1,$2,null,'pending','')", [
+      owner,
+      doc.id,
+    ]),
+    /Invalid document status/,
+  );
+  assert.equal(
+    (
+      await db.query("select status from partner_applications where id=$1", [
+        app.id,
+      ])
+    ).rows[0].status,
+    "pending",
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select status from partner_verification_documents where id=$1",
+        [doc.id],
+      )
+    ).rows[0].status,
+    "pending",
   );
 });
 await test("public release stays paused with provider enabled and creates no payout intent", async () => {

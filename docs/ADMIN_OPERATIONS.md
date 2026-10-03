@@ -92,7 +92,7 @@ The optional `scripts/verify-admin-browser.mjs` takes an installed agent-browser
 
 1. Completed on 3 October 2026 after explicit owner confirmation: promoted the verified existing account `thesmfstudios@gmail.com` from customer to admin. A guarded update and audit insertion ran atomically; a separate read verified the role and audit record `b4c286ce-5e8d-4e40-8fbf-c21d76e61bb6`. The account has no partner profile. This bootstrap audit identifies owner confirmation, not an authenticated operator session. Actual browser sign-in remains to be tested; this does not activate the redesigned panel.
 2. Back up and review live schema/migration history. Apply the pending repository delivery-finalization migration `0030_partner_delivery_integrity.sql` if absent, then the locally tested CLI-generated `20261002170200_admin_operations_safety.sql`.
-3. Preflight any existing duplicate provider payout IDs, invalid/orphan legacy records, missing Standard level and private Storage buckets/objects before the migration. Do not silently delete or rewrite them.
+3. Preflight any existing duplicate provider payout IDs, invalid/orphan legacy records, missing active Basic level and private Storage buckets/objects before the migration. Do not silently delete or rewrite them. See [ADMIN-ROLLOUT.md](ADMIN-ROLLOUT.md) for read-only checks and target migration-history reconciliation.
 4. Deploy a reviewed staging/preview revision with the existing authorized configuration. No secrets belong in the browser/mobile build. Database rollout must precede the new mutation APIs.
 5. Sign in with the separately approved operator account and exercise real identity upload → document review → partner approval → job eligibility → assignment/acceptance → OTP/shoot → handoff/backup → confirmation → payout/completion, with authorized test users/data.
 6. Keep real payouts disabled until the owner authorizes the provider integration and an appropriate test-mode/staging workflow. Never test real money without explicit authorization.
@@ -101,6 +101,15 @@ The optional `scripts/verify-admin-browser.mjs` takes an installed agent-browser
 The session endpoint checks that every required admin safety RPC exists. Until setup is complete, the UI disables record-changing actions and shows a setup warning.
 
 ## Remaining gaps / limits
+
+Update, 3 October 2026, `codex/admin-rollout-hardening`: the pending full-admin
+approval migration now preserves the live Basic default and earned levels,
+repairs a legacy null level only on explicit reapproval, forces rejected/suspended
+partners offline, rejects direct null decisions and locks the referenced document
+object through approval. This is source hardening only, not a production change.
+The rollout inspection is locally tested and does not run against production by
+itself. CI now includes recovery, sandbox and rollout regressions on dedicated
+`codex/**` branches.
 
 - Live admin role is granted and verified; actual operator sign-in, migration activation, staging deployment and real device/provider end-to-end verification remain pending. Schema migrations and deployment require separate owner approval.
 - Unattended payout webhooks, late reversals and reconciliation of an ambiguous request without a provider reference are not implemented. Owner must investigate provider evidence; do not create a fresh transfer blindly.
