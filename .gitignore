@@ -15,3 +15,4 @@ artifacts/
 mobile/customer/dist/
 mobile/customer/android/
 mobile/customer/ios/
+supabase/.temp/
