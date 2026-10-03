@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import RecoveryRedirect from './recovery-redirect';
 export default function Home() {
   return (
     <main className="customer-main">
+      <RecoveryRedirect />
       <div className="customer-wrap">
         <span className="area-tag">● BHOPAL · WITHIN 15 KM OF ROHIT NAGAR</span>
         <section className="landing-hero">

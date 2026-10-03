@@ -1,0 +1,42 @@
+.recovery-app {
+  --ink: #182c27;
+  --muted: #4e6258;
+  --accent: #08754e;
+  color: var(--ink);
+  background: #f3f7f4;
+  min-height: 100vh;
+  font-size: 14px;
+}
+.recovery-app * { box-sizing: border-box; }
+.recovery-app button, .recovery-app input { font: inherit; }
+.recovery-app a { color: #08754e; text-decoration: underline; }
+.recovery-app :focus-visible { outline: 3px solid #b1b935; outline-offset: 3px; }
+.recovery-login { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+.recovery-login-story {
+  background: #06462f; color: white; padding: 60px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.recovery-brand { font-size: 24px; font-weight: 850; letter-spacing: -1px; }
+.recovery-brand span { color: #dfac25; }
+.recovery-login-story h1 { font-size: 50px; letter-spacing: -2px; line-height: 1.1; max-width: 500px; margin: 42px 0 20px; }
+.recovery-login-story p { max-width: 400px; line-height: 1.8; color: #bed5c8; }
+.recovery-login-form { padding: 54px; display: flex; align-items: center; justify-content: center; min-width: 0; }
+.recovery-login-form form { max-width: 390px; width: 100%; }
+.recovery-login-form h2 { font-size: 30px; margin: 10px 0; letter-spacing: -1px; }
+.recovery-login-form label { display: block; font-weight: 650; margin: 24px 0 8px; }
+.recovery-eyebrow { font-size: 10px; letter-spacing: 1.8px; font-weight: 800; color: var(--muted); margin: 7px 0; }
+.recovery-muted { color: var(--muted); line-height: 1.65; }
+.recovery-field { border: 1px solid #d5e0d9; border-radius: 10px; min-height: 44px; padding: 11px 12px; background: white; color: var(--ink); width: 100%; }
+.recovery-button { border: 1px solid var(--accent); border-radius: 10px; min-height: 44px; padding: 12px 15px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.recovery-app .recovery-button.primary { background: var(--accent); color: white; width: 100%; margin-top: 24px; text-decoration: none; }
+.recovery-inline-link { background: none; border: 0; color: #08754e; text-decoration: underline; padding: 12px 0; min-height: 44px; cursor: pointer; }
+.recovery-note { font-size: 12px; color: var(--muted); margin-top: 18px; line-height: 1.8; }
+.recovery-banner.error { border-radius: 12px; padding: 15px 18px; margin: 16px 0; line-height: 1.7; background: #fff1ed; color: #992c22; border: 1px solid #efc9bf; }
+.recovery-app button:disabled { cursor: not-allowed; opacity: .65; }
+body:has(.recovery-app) .topbar, body:has(.recovery-app) .footer { display: none; }
+@media (max-width: 760px) {
+  .recovery-login { grid-template-columns: 1fr; }
+  .recovery-login-story { padding: 30px; }
+  .recovery-login-story h1 { font-size: 32px; margin: 24px 0 12px; }
+  .recovery-login-form { padding: 30px 22px; }
+}
