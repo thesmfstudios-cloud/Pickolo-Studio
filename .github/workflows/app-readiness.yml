@@ -31,3 +31,29 @@ jobs:
           path: readiness-report/
           if-no-files-found: warn
           retention-days: 14
+
+  production-regression:
+    name: Regression tests for the deployed production source
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: e43ece27b0c386e2310985f53114d0dbbd3ad613
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: npm
+      - name: Install production lockfile
+        run: npm ci
+      - name: Customer lifecycle and payment integrity
+        run: npm run test:customer
+      - name: Password recovery regressions
+        if: always()
+        run: npm run test:recovery
+      - name: Partner approval regressions
+        if: always()
+        run: npm run test:approval
+      - name: Isolated payment sandbox regressions
+        if: always()
+        run: npm run test:payment-sandbox

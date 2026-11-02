@@ -1,10 +1,13 @@
 import fs from 'node:fs/promises';
+import dns from 'node:dns/promises';
 const web = 'https://pickolo-studio.vercel.app';
 const config = await fs.readFile('lib/supabase-config.ts', 'utf8');
 const supabase = config.match(/SUPABASE_URL\s*=\s*"([^"]+)"/)?.[1];
 const publicKey = config.match(/"(sb_publishable_[^"]+)"/)?.[1];
 if (!supabase || !publicKey) throw new Error('Unable to read checked-in public client configuration.');
 const checks = [];
+try { const address = await dns.lookup(new URL(supabase).hostname); checks.push({name:'Backend DNS',status:'PASS',detail:{family:address.family}}); }
+catch(error) { checks.push({name:'Backend DNS',status:'BLOCKED',detail:{message:error.message,code:error.code}}); console.log(JSON.stringify(checks.at(-1))); }
 async function check(name, url, accept, options = {}) {
   try {
     const response = await fetch(url, { ...options, signal: AbortSignal.timeout(25000), redirect: 'follow' });
@@ -15,7 +18,7 @@ async function check(name, url, accept, options = {}) {
     checks.push(record);
     console.log(JSON.stringify(record));
   } catch (error) {
-    const record = { name, status: 'BLOCKED', detail: error.message };
+    const record = { name, status: 'BLOCKED', detail: {message:error.message,cause:error.cause?.message,code:error.cause?.code} };
     checks.push(record); console.log(JSON.stringify(record));
   }
 }
@@ -40,7 +43,7 @@ const vercel = JSON.parse(await fs.readFile('vercel.json','utf8'));
 const notes = [
   {name:'Native push identity',status: mobile.expo?.extra?.eas?.projectId ? 'SOURCE_CONFIG_PRESENT' : 'UNVERIFIED',detail:'Physical-device Expo/FCM credentials and push receipt still require verification.'},
   {name:'Background workers',status: vercel.crons?.length ? 'VERCEL_CRONS_PRESENT' : 'UNVERIFIED',detail:'No Vercel crons are declared in checked-in vercel.json; an external scheduler has not been verified.'},
-  {name:'Privileged infrastructure',status:'BLOCKED',detail:'Current connected Supabase management account exposes the old inactive project, not the app backend. Vercel environment and Razorpay sandbox configuration are not yet accessible.'},
+  {name:'Privileged infrastructure',status:'BLOCKED',detail:'Current connected Supabase management account exposes the old inactive project, not the app backend. The SMF Vercel workspace and variable inventory are verified in Chrome; server-secret correctness and actual payment sandbox transactions are not yet verified.'},
   {name:'Device and authenticated isolation',status:'UNVERIFIED',detail:'APK installation, native OAuth callback, two-customer isolation, Partner/Admin role tests, payments and delivery require their real test sessions.'}
 ];
 const report = {generatedAt:new Date().toISOString(),sourceCommit:process.env.GITHUB_SHA,web,backendProject:new URL(supabase).hostname.split('.')[0],scope:'Public read-only integration checks and an empty invalid booking request; no user account, booking, payment, payout or private database mutation.',checks,notes};
