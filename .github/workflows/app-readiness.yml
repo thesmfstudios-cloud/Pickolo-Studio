@@ -1,0 +1,33 @@
+name: Pickolo app readiness audit
+on:
+  push:
+    branches: [codex/android-test-apk-20261102]
+    paths:
+      - '.github/workflows/app-readiness.yml'
+      - '.github/scripts/check-pickolo-runtime.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+      - name: Install web test dependencies
+        run: npm install
+      - name: Run customer database regression tests
+        run: npm run test:customer
+      - name: Check public production integrations
+        if: always()
+        run: node .github/scripts/check-pickolo-runtime.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Pickolo-Readiness-Report
+          path: readiness-report/
+          if-no-files-found: warn
+          retention-days: 14
