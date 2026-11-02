@@ -1,0 +1,34 @@
+name: Prepare Pickolo Expo preview dependencies
+on:
+  push:
+    branches: [codex/expo-go-preview-20261102]
+    paths: ['.github/workflows/expo-preview-deps.yml', '.github/expo-preview-packages.json']
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install locked Expo packages
+        working-directory: mobile
+        run: npm ci --legacy-peer-deps
+      - name: Collect missing JavaScript dependencies and original assets
+        run: |
+          mkdir -p expo-preview
+          node -e 'const fs=require("fs");const entries=JSON.parse(fs.readFileSync(".github/expo-preview-packages.json","utf8"));const paths=[...new Set(entries.map(x=>x.path).concat(["node_modules/query-string","customer/assets/icon.png","customer/assets/pickolo-hero.png"]))];for(const p of paths){if(!p.startsWith("node_modules/")&&!p.startsWith("customer/")&&!p.startsWith("partner/"))throw Error("Unexpected package path");if(!fs.existsSync("mobile/"+p))throw Error("Missing installed package: "+p)}fs.writeFileSync("expo-preview/paths.txt",paths.join("\n")+"\n")'
+          tar -czf expo-preview/Pickolo-Expo-Preview-Dependencies.tar.gz -C mobile -T expo-preview/paths.txt
+          cd expo-preview
+          sha256sum Pickolo-Expo-Preview-Dependencies.tar.gz > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pickolo-Expo-Preview-Dependencies
+          path: expo-preview/
+          retention-days: 3
+          if-no-files-found: error
