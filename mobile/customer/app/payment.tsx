@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import RazorpayCheckout from "react-native-razorpay";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as SecureStore from "expo-secure-store";
 import { api } from "../lib/api";
 import { supabase } from "../../shared/supabase";
@@ -38,6 +38,13 @@ export default function Payment() {
     router.replace({ pathname: "/booking-detail", params: { id } });
   }
   async function pay() {
+    if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+      Alert.alert(
+        "Checkout needs the Pickolo app",
+        "Expo Go can preview the app. Use the installed Pickolo test APK for Razorpay checkout.",
+      );
+      return;
+    }
     if (busy) return;
     setBusy(true);
     setError("");
@@ -47,6 +54,7 @@ export default function Payment() {
         await verify(JSON.parse(saved));
         return;
       }
+      const { default: RazorpayCheckout } = await import("react-native-razorpay");
       const order = await api("/api/payments/order/" + id, {});
       if (order.alreadyPaid) {
         await SecureStore.deleteItemAsync(key);
@@ -108,9 +116,9 @@ export default function Payment() {
           <Glyph name="shield-checkmark-outline" size={48} />
           <Text style={ui.price}>
             {booking
-              ? "₹" +
+              ? "?" +
                 (booking.customer_price_paise / 100).toLocaleString("en-IN")
-              : "Loading…"}
+              : "Loading."}
           </Text>
           <Text style={ui.muted}>
             {booking?.payment?.status === "captured"
@@ -140,7 +148,7 @@ export default function Payment() {
         <Button
           label={
             busy
-              ? "Processing…"
+              ? "Processing."
               : pending
                 ? "Retry payment verification"
                 : "Pay securely"
@@ -172,3 +180,5 @@ export default function Payment() {
     </Frame>
   );
 }
+
+
