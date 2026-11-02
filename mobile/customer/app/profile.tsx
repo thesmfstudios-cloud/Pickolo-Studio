@@ -84,7 +84,7 @@ export default function Profile() {
                 "Booking alerts",
                 token
                   ? "Booking alerts are enabled."
-                  : "Alerts need a physical phone, notification permission and an Expo project. You can still view all updates in the app.",
+                  : "Alerts need the installed Pickolo app, a physical phone, notification permission and an Expo project. You can still view all updates in the app.",
               );
             } catch {
               Alert.alert(
@@ -129,3 +129,4 @@ export default function Profile() {
     </Frame>
   );
 }
+

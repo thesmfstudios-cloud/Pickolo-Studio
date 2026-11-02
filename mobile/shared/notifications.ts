@@ -1,23 +1,40 @@
 import * as Device from "expo-device";
-import * as Notifications from "expo-notifications";
-import Constants from "expo-constants";
+import type * as NotificationsTypes from "expo-notifications";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { Platform } from "react-native";
 import { router } from "expo-router";
 import { supabase } from "./supabase";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+type NotificationsModule = typeof import("expo-notifications");
 
-let responseSubscription: Notifications.Subscription | null = null;
+let notificationsPromise: Promise<NotificationsModule> | null = null;
+
+function loadNotifications() {
+  notificationsPromise ??= import("expo-notifications").then((notifications) => {
+    notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+    return notifications;
+  });
+  return notificationsPromise;
+}
+
+// Preserve foreground handling on native app startup, including saved tokens.
+if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient)
+  void loadNotifications();
+
+let responseSubscription: NotificationsTypes.Subscription | null = null;
 let responseRole: "customer" | "partner" | null = null;
 
-function ensureNotificationNavigation(appRole: "customer" | "partner") {
+function ensureNotificationNavigation(
+  Notifications: NotificationsModule,
+  appRole: "customer" | "partner",
+) {
   if (responseSubscription && responseRole === appRole) return;
 
   responseSubscription?.remove();
@@ -42,12 +59,17 @@ function ensureNotificationNavigation(appRole: "customer" | "partner") {
 }
 
 export async function registerPushToken(appRole: "customer" | "partner") {
+  // Importing expo-notifications itself reports an error in Android Expo Go.
+  // Keep the native module unloaded throughout an Expo Go preview.
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient)
+    return null;
   if (!supabase || !Device.isDevice) return null;
 
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) return null;
 
+  const Notifications = await loadNotifications();
   const permission = await Notifications.getPermissionsAsync();
   let finalStatus = permission.status;
 
@@ -71,7 +93,7 @@ export async function registerPushToken(appRole: "customer" | "partner") {
     undefined;
 
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-  ensureNotificationNavigation(appRole);
+  ensureNotificationNavigation(Notifications, appRole);
 
   const baseUrl =
     process.env.EXPO_PUBLIC_API_BASE_URL || "https://pickolo-studio.vercel.app";
@@ -91,3 +113,4 @@ export async function registerPushToken(appRole: "customer" | "partner") {
   if (!response.ok) return null;
   return token;
 }
+
