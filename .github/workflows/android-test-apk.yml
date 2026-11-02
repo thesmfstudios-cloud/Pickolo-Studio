@@ -1,0 +1,72 @@
+name: Pickolo Customer Android APK
+
+on:
+  push:
+    branches: [codex/android-test-apk-20261102]
+    paths:
+      - '.github/workflows/android-test-apk.yml'
+      - 'mobile/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pickolo-android-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  customer-apk:
+    name: Build installable Customer testing APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_API_BASE_URL: https://pickolo-studio.vercel.app
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install locked mobile dependencies
+        run: npm ci --legacy-peer-deps
+      - name: Customer TypeScript check
+        run: npm run typecheck --workspace @pickolo/customer
+      - name: Generate Android native project
+        working-directory: mobile/customer
+        run: npx --no-install expo prebuild --platform android --no-install
+      - name: Build standalone testing APK
+        working-directory: mobile/customer/android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace -PreactNativeArchitectures=arm64-v8a
+      - name: Verify and collect APK
+        working-directory: mobile/customer/android
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/android-apk"
+          apk="app/build/outputs/apk/release/app-release.apk"
+          test -s "$apk"
+          signer="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
+          test -n "$signer"
+          "$signer" verify --verbose --print-certs "$apk" > "$GITHUB_WORKSPACE/android-apk/signature.txt"
+          cp "$apk" "$GITHUB_WORKSPACE/android-apk/Pickolo-Customer-Test-arm64.apk"
+          cd "$GITHUB_WORKSPACE/android-apk"
+          sha256sum Pickolo-Customer-Test-arm64.apk > SHA256SUMS.txt
+          printf 'Source commit: %s\nBuild: %s\nPackage: com.smfstudios.pickolocustomer\nArchitecture: arm64-v8a\nPurpose: Internal testing; not a Play Store release\n' "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > BUILD_INFO.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pickolo-Customer-Android-Test
+          path: android-apk/
+          if-no-files-found: error
+          retention-days: 14
